@@ -1,0 +1,35 @@
+<?php
+// debug.php - Arquivo para testar
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('log_errors', 0);
+
+echo "<h1>Teste de Debug</h1>";
+echo "PHP version: " . phpversion() . "<br>";
+echo "Document root: " . $_SERVER['DOCUMENT_ROOT'] . "<br>";
+
+// Testar includes
+echo "<h2>Testando includes:</h2>";
+try {
+    require_once __DIR__ . '/../includes/config.php';
+    echo "✓ config.php carregado<br>";
+} catch (Exception $e) {
+    echo "✗ Erro config.php: " . $e->getMessage() . "<br>";
+}
+
+try {
+    require_once __DIR__ . '/../includes/db.php';
+    echo "✓ db.php carregado<br>";
+} catch (Exception $e) {
+    echo "✗ Erro db.php: " . $e->getMessage() . "<br>";
+}
+
+try {
+    require_once __DIR__ . '/../includes/auth.php';
+    echo "✓ auth.php carregado<br>";
+} catch (Exception $e) {
+    echo "✗ Erro auth.php: " . $e->getMessage() . "<br>";
+}
+
+echo "<h2>Teste concluído!</h2>";
+?>

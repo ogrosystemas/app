@@ -1,0 +1,7 @@
+# Proteger arquivos PHP dentro da pasta uploads
+<FilesMatch "\.(php|phtml|php3|php4|php5|phps)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+Options -Indexes
