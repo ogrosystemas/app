@@ -5,10 +5,10 @@
  */
 
 // ── Banco de Dados ────────────────────────────────────────────────────
-define('DB_HOST',    'localhost');
-define('DB_USER',    'barm_barmutante');
-define('DB_PASS',    'Bar147369#');  // ← COLOQUE SUA SENHA AQUI
-define('DB_NAME',    'barm_barmutante');  // Altere se o nome do banco for diferente
+define('DB_HOST',    '');
+define('DB_USER',    '');
+define('DB_PASS',    '');  // ← COLOQUE SUA SENHA AQUI
+define('DB_NAME',    '');  // Altere se o nome do banco for diferente
 define('DB_CHARSET', 'utf8mb4');
 
 // ── BASE_URL: detecção robusta (LiteSpeed / CyberPanel / Apache / Nginx) ──
