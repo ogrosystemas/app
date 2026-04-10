@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#151624">
+    <title>Auto Care</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="icon-192.png">
+    <base href="/auto-care/">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1><img src="icon-192.png" style="width:28px; height:28px; margin-right:8px; vertical-align:middle; border-radius:6px;"> <span id="nomeOficinaHeader">Auto Care</span></h1>
+        <div class="saldo">💰 R$ <span id="saldoDia">0,00</span></div>
+    </header>
+
+    <nav class="menu-principal">
+        <div class="menu-linha">
+            <button data-secao="dashboard">📊 Dashboard</button>
+            <button data-secao="clientes">👥 Clientes</button>
+            <button data-secao="orcamentos">📋 Orçamentos</button>
+            <button data-secao="os">🔨 OS</button>
+        </div>
+        <div class="menu-linha">
+            <button data-secao="financeiro">💵 Caixa</button>
+            <button data-secao="relatorios">📊 Relatórios</button>
+            <button data-secao="config">⚙️ Config</button>
+        </div>
+    </nav>
+
+    <main id="conteudo">
+        <div style="text-align:center; padding:50px; color:#fff; font-size:18px;">
+            🔄 Carregando...
+        </div>
+    </main>
+
+    <div id="modalLembrete" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3>🔔 Agendar Lembrete</h3>
+            <p id="clienteLembreteNome"></p>
+            <label>Data de entrega:</label>
+            <input type="date" id="dataLembrete">
+            <label>Hora:</label>
+            <input type="time" id="horaLembrete" value="18:00">
+            <label>Mensagem:</label>
+            <input type="text" id="msgLembrete" value="Seu veículo está pronto! Venha buscar.">
+            <button class="primary" onclick="salvarLembrete()">💾 AGENDAR</button>
+            <button class="secondary" onclick="fecharModal()">❌ Cancelar</button>
+        </div>
+    </div>
+
+    <script src="db.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

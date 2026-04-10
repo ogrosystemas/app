@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.ogrosystemas.autocare",
+    "sha256_cert_fingerprints": ["SHA256: 81:80:2A:B8:81:DF:4D:B5:E0:B8:B8:7B:43:AE:75:B8:99:0D:B1:6E:FC:87:73:6C:5E:BA:40:57:E4:48:94:B2"]
+  }
+}]
