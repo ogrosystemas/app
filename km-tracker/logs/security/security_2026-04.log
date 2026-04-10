@@ -1,0 +1,33 @@
+2026-04-01 02:18:31 | LOGIN_SUCCESS | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0 | URI:/login.php | User ID: 21 | Role: admin | E-mail: buto@sistema.com
+2026-04-01 02:30:47 | LOGIN_SUCCESS | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) | URI:/login.php | User ID: 7 | Role: user | E-mail: faisca@sistema.com
+2026-04-01 04:08:52 | LOGOUT | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0 | URI:/logout.php | User ID: 21
+2026-04-01 04:09:39 | LOGOUT | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) | URI:/logout.php | User ID: 7
+2026-04-01 04:15:23 | LOGIN_SUCCESS | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0 | URI:/login.php?err=timeout | User ID: 21 | Role: admin | E-mail: buto@sistema.com
+2026-04-01 04:28:34 | LOGOUT | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0 | URI:/logout.php | User ID: 21
+2026-04-01 11:53:21 | LOGIN_SUCCESS | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0 | URI:/login.php | User ID: 21 | Role: admin | E-mail: buto@sistema.com
+2026-04-01 13:06:26 | LOGIN_SUCCESS | IP:191.37.173.145 | UA:Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome | URI:/login.php | User ID: 21 | Role: admin | E-mail: buto@sistema.com
+2026-04-01 13:16:28 | LOGIN_SUCCESS | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) | URI:/login.php | User ID: 7 | Role: user | E-mail: faisca@sistema.com
+2026-04-01 13:54:36 | LOGIN_SUCCESS | IP:177.174.240.190 | UA:Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHT | URI:/login.php | User ID: 17 | Role: admin | E-mail: samir@sistema.com
+2026-04-01 15:02:07 | LOGOUT | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) | URI:/logout.php | User ID: 7
+2026-04-01 15:02:35 | LOGIN_SUCCESS | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) | URI:/login.php | User ID: 7 | Role: user | E-mail: faiska@sistema.com
+2026-04-01 15:03:27 | CSRF_VIOLATION | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) | URI:/profile.php | Token CSRF inválido ou ausente
+2026-04-01 15:06:57 | CSRF_VIOLATION | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) | URI:/profile.php | Token CSRF inválido ou ausente
+2026-04-01 15:19:16 | LOGOUT | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) | URI:/logout.php | User ID: 7
+2026-04-01 15:19:29 | LOGIN_SUCCESS | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) | URI:/login.php | User ID: 7 | Role: user | E-mail: faiska@sistema.com
+2026-04-01 15:41:22 | LOGIN_SUCCESS | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0 | URI:/login.php | User ID: 21 | Role: admin | E-mail: buto@sistema.com
+2026-04-01 16:43:57 | LOGOUT | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0 | URI:/logout.php | User ID: 21
+2026-04-01 16:44:00 | LOGIN_SUCCESS | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0 | URI:/login.php | User ID: 21 | Role: admin | E-mail: buto@sistema.com
+2026-04-01 16:59:06 | LOGOUT | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0 | URI:/logout.php | User ID: 21
+2026-04-01 16:59:10 | LOGOUT | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) | URI:/logout.php | User ID: 7
+2026-04-01 17:03:54 | LOGIN_SUCCESS | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0 | URI:/login.php | User ID: 21 | Role: admin | E-mail: buto@sistema.com
+2026-04-01 17:04:09 | LOGOUT | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0 | URI:/logout.php | User ID: 21
+2026-04-01 20:11:20 | LOGIN_SUCCESS | IP:191.5.171.208 | UA:Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome | URI:/login.php | User ID: 21 | Role: admin | E-mail: buto@sistema.com
+2026-04-01 20:13:15 | LOGOUT | IP:191.5.171.208 | UA:Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome | URI:/logout.php | User ID: 21
+2026-04-01 22:51:07 | LOGIN_SUCCESS | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0 | URI:/login.php | User ID: 21 | Role: admin | E-mail: buto@sistema.com
+2026-04-01 22:56:29 | LOGOUT | IP:191.37.173.145 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0 | URI:/logout.php | User ID: 21
+2026-04-03 22:10:43 | LOGIN_SUCCESS | IP:191.5.171.208 | UA:Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome | URI:/login.php | User ID: 21 | Role: admin | E-mail: buto@sistema.com
+2026-04-03 22:17:30 | LOGOUT | IP:191.5.171.208 | UA:Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome | URI:/logout.php | User ID: 21
+2026-04-03 22:18:09 | LOGIN_FAILED | IP:191.5.171.208 | UA:Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome | URI:/login.php | Tentativa com e-mail: faisca@sistema.com
+2026-04-03 22:18:31 | LOGIN_SUCCESS | IP:191.5.171.208 | UA:Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome | URI:/login.php | User ID: 7 | Role: user | E-mail: faiska@sistema.com
+2026-04-03 22:20:11 | LOGOUT | IP:191.5.171.208 | UA:Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome | URI:/logout.php | User ID: 7
+2026-04-08 08:49:00 | LOGIN_SUCCESS | IP:186.251.110.76 | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0 | URI:/login.php | User ID: 21 | Role: admin | E-mail: buto@sistema.com

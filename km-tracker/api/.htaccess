@@ -1,0 +1,24 @@
+# api/.htaccess - Permite acesso à API
+<IfModule mod_authz_core.c>
+    Require all granted
+</IfModule>
+
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Allow from all
+</IfModule>
+
+# Força o tipo de conteúdo JSON para arquivos PHP
+<IfModule mod_headers.c>
+    Header set Content-Type "application/json; charset=utf-8"
+</IfModule>
+
+# Permite métodos HTTP necessários
+<Limit GET POST OPTIONS>
+    Allow from all
+</Limit>
+
+# Desativa regras de bloqueio para a pasta api
+<IfModule mod_rewrite.c>
+    RewriteEngine Off
+</IfModule>

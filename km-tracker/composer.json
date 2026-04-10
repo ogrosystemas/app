@@ -1,0 +1,11 @@
+{
+    "name": "km-corporate/system",
+    "description": "Sistema de Gestão de Quilometragem Corporativa",
+    "require": {
+        "php": ">=8.3",
+        "mpdf/mpdf": "^8.2"
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}
