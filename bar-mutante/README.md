@@ -1,163 +1,83 @@
-# 🍺 Bar System Pro
+# TCPDF
+*PHP PDF Library*
 
-Sistema completo de gerenciamento de bar com PDV, controle de estoque, integração PagSeguro e relatórios.
+[![Donate via PayPal](https://img.shields.io/badge/donate-paypal-87ceeb.svg)](https://www.paypal.com/donate/?hosted_button_id=NZUEC5XS8MFBJ)
+*Please consider supporting this project by making a donation via [PayPal](https://www.paypal.com/donate/?hosted_button_id=NZUEC5XS8MFBJ)*
 
----
+* **category**    Library
+* **author**      Nicola Asuni <info@tecnick.com>
+* **copyright**   2002-2026 Nicola Asuni - Tecnick.com LTD
+* **license**     https://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE.TXT)
+* **link**        http://www.tcpdf.org
+* **source**      https://github.com/tecnickcom/TCPDF
 
-## ✅ Funcionalidades
 
-### PDV (Dashboard Principal)
-- Interface escura com tema **âmbar** profissional
-- **Grade de produtos em 3 colunas** com imagens
-- Busca instantânea e filtro por categoria
-- Carrinho com controle de quantidade
-- Desconto por venda
-- Formas de pagamento: Dinheiro, Débito, Crédito, PIX, Cortesia
-- **Integração PagSeguro** — envia cobrança para máquina física e aguarda confirmação
-- Troco automático para dinheiro
-- Controle de mesa/identificação
-- Abertura e fechamento de caixa com resumo
-- Sangria e suprimento de caixa
-- **Alertas de estoque baixo** em tempo real
+## NOTE
+A new version of this library is under development at https://github.com/tecnickcom/tc-lib-pdf and as a consequence this library is in support only mode.
 
-### Controle de Estoque
-- Estoque de **latas/unidades** com baixa automática na venda
-- **Barris de chopp** com:
-  - Cálculo automático de doses por barril
-  - Fórmula: `ML úteis = capacidade × (rendimento% / 100)`
-  - Doses estimadas: `ML úteis ÷ ML por copo`
-  - Barra de progresso visual do barril
-  - Abertura e fechamento de barris
-  - Registro do custo e cálculo de custo por dose
-- Calculadora de barril interativa
-- Movimentações completas (entrada/saída/ajuste/perda)
-- Alertas automáticos de estoque mínimo
 
-### Produtos
-- Cadastro com **upload de foto**
-- Tipos: Unidade, Dose, Chopp Lata, Chopp Barril, Garrafa, Outro
-- Destaque no PDV
-- Categorias com cores e ícones FontAwesome personalizados
 
-### Integração PagSeguro
-- Classe PHP completa para API PagSeguro/PagBank
-- Envia cobrança para **terminal físico (Smart POS)**
-- Polling automático do status de pagamento
-- Webhook para atualizações em tempo real
-- Suporte a Sandbox e Produção
-- Cancelamento de cobrança pendente
+## Description
 
-### Relatórios
-- Faturamento mensal com gráfico de barras (últimos 6 meses)
-- Vendas por forma de pagamento
-- Top 10 produtos mais vendidos
-- Vendas por dia
-- Movimentações de estoque
-- Valor do estoque atual
-- Detalhamento de vendas
+PHP library for generating PDF documents on-the-fly.
 
-### Histórico de Caixa
-- Resumo por caixa com diferença (sobra/falta)
-- Sangrias e suprimentos
-- Por forma de pagamento
+### Main Features:
+* no external libraries are required for the basic functions;
+* all standard page formats, custom page formats, custom margins and units of measure;
+* UTF-8 Unicode and Right-To-Left languages;
+* TrueTypeUnicode, OpenTypeUnicode v1, TrueType, OpenType v1, Type1 and CID-0 fonts;
+* font subsetting;
+* methods to publish some XHTML + CSS code, Javascript and Forms;
+* images, graphic (geometric figures) and transformation methods;
+* supports JPEG, PNG and SVG images natively, all images supported by GD (GD, GD2, GD2PART, GIF, JPEG, PNG, BMP, XBM, XPM) and all images supported via ImagMagick (http://www.imagemagick.org/script/formats.php)
+* 1D and 2D barcodes: CODE 39, ANSI MH10.8M-1983, USD-3, 3 of 9, CODE 93, USS-93, Standard 2 of 5, Interleaved 2 of 5, CODE 128 A/B/C, 2 and 5 Digits UPC-Based Extension, EAN 8, EAN 13, UPC-A, UPC-E, MSI, POSTNET, PLANET, RMS4CC (Royal Mail 4-state Customer Code), CBC (Customer Bar Code), KIX (Klant index - Customer index), Intelligent Mail Barcode, Onecode, USPS-B-3200, CODABAR, CODE 11, PHARMACODE, PHARMACODE TWO-TRACKS, Datamatrix, QR-Code, PDF417;
+* JPEG and PNG ICC profiles, Grayscale, RGB, CMYK, Spot Colors and Transparencies;
+* automatic page header and footer management;
+* document encryption up to 256 bit and digital signature certifications;
+* transactions to UNDO commands;
+* PDF annotations, including links, text and file attachments;
+* text rendering modes (fill, stroke and clipping);
+* multiple columns mode;
+* no-write page regions;
+* bookmarks, named destinations and table of content;
+* text hyphenation;
+* text stretching and spacing (tracking);
+* automatic page break, line break and text alignments including justification;
+* automatic page numbering and page groups;
+* move and delete pages;
+* page compression (requires php-zlib extension);
+* XOBject Templates;
+* Layers and object visibility.
+* PDF/A-1b support.
 
----
+### Third party fonts:
 
-## 🚀 Instalação
+This library may include third party font files released with different licenses.
 
-### Requisitos
-- PHP 8.3+
-- MySQL 8.0+ / MariaDB 10.6+
-- Apache/Nginx com `mod_rewrite`
-- Extensões: PDO, PDO_MySQL, curl, mbstring, json, fileinfo
+All the PHP files on the fonts directory are subject to the general TCPDF license (GNU-LGPLv3),
+they do not contain any binary data but just a description of the general properties of a particular font.
+These files can be also generated on the fly using the font utilities and TCPDF methods.
 
-### Passo a Passo
+All the original binary TTF font files have been renamed for compatibility with TCPDF and compressed using the gzcompress PHP function that uses the ZLIB data format (.z files).
 
-1. Copie a pasta `bar_system/` para `htdocs/` ou `/var/www/html/`
-2. Acesse: `http://localhost/bar_system/install/install.php`
-3. Preencha os dados de banco e URL
-4. **Delete a pasta `install/`** após instalar
-5. Acesse: `http://localhost/bar_system/`
+The binary files (.z) that begins with the prefix "free" have been extracted from the GNU FreeFont collection (GNU-GPLv3).
+The binary files (.z) that begins with the prefix "pdfa" have been derived from the GNU FreeFont, so they are subject to the same license.
+For the details of Copyright, License and other information, please check the files inside the directory fonts/freefont-20120503
+Link : https://www.gnu.org/software/freefont/
 
----
+The binary files (.z) that begins with the prefix "dejavu" have been extracted from the DejaVu fonts 2.33 (Bitstream) collection.
+For the details of Copyright, License and other information, please check the files inside the directory fonts/dejavu-fonts-ttf-2.33
+Link : http://dejavu-fonts.org
 
-## ⚙️ Configurar PagSeguro
+The binary files (.z) that begins with the prefix "ae" have been extracted from the Arabeyes.org collection (GNU-GPLv2).
+Link : http://projects.arabeyes.org/
 
-1. Acesse **Configurações → PagSeguro**
-2. Informe o **Bearer Token** da sua conta PagBank
-3. Selecione o ambiente (Sandbox para testes)
-4. Teste a conexão
-5. Cadastre os **terminais físicos** com o Terminal ID
-6. Configure o Webhook URL no painel PagBank:
-   ```
-   http://seudominio.com/bar_system/api/pagseguro.php?action=webhook
-   ```
+### ICC profile:
 
----
+TCPDF includes the sRGB.icc profile from the icc-profiles-free Debian package:
+https://packages.debian.org/source/stable/icc-profiles-free
 
-## 🍺 Fórmula do Barril de Chopp
 
-```
-ML Úteis     = Capacidade Total (ml) × (Rendimento% ÷ 100)
-Doses        = PISO(ML Úteis ÷ ML por Dose)
-Custo/Dose   = Custo do Barril ÷ Doses
-Lucro/Barril = (Preço Venda × Doses) - Custo do Barril
-```
+## Developer(s) Contact
 
-**Exemplo — Barril 30L com 85% de rendimento e copos de 300ml:**
-- ML úteis: 25.500ml (25,5L)
-- Perda: 4.500ml (espuma, limpeza, transporte)  
-- Doses: 85 copos de 300ml
-- Se barril custou R$ 170 → custo/dose = R$ 2,00
-- Se vende a R$ 9 → lucro por barril = R$ 595
-
----
-
-## 📁 Estrutura de Arquivos
-
-```
-bar_system/
-├── index.php              # PDV Dashboard
-├── config/config.php      # Configurações
-├── includes/
-│   ├── DB.php             # Classe de banco de dados
-│   ├── helpers.php        # Funções auxiliares + cálculo barril
-│   └── PagSeguro.php      # Integração completa PagSeguro API
-├── api/
-│   ├── caixa.php          # Abrir/fechar/sangria/suprimento
-│   ├── venda.php          # Finalizar venda + baixa estoque
-│   ├── pagseguro.php      # Cobrar terminal, status, webhook
-│   └── alertas.php        # Alertas de estoque
-├── modules/
-│   ├── produtos/          # Cadastro com upload de imagem
-│   ├── estoque/           # Estoque + barris + movimentações
-│   ├── caixa/             # Histórico de caixas
-│   ├── relatorios/        # Relatórios financeiros e estoque
-│   └── configuracoes/     # Config geral, PagSeguro, categorias
-├── assets/
-│   ├── css/pdv.css        # Tema dark âmbar do PDV
-│   ├── css/admin.css      # Tema dark do backoffice
-│   ├── js/pdv.js          # Lógica do PDV
-│   └── uploads/produtos/  # Imagens dos produtos
-└── install/               # Instalador (apagar após instalar)
-```
-
----
-
-## 📱 Formas de Pagamento Suportadas
-
-| Forma | Como funciona |
-|-------|--------------|
-| Dinheiro | Calcula troco automaticamente |
-| Cartão Débito/Crédito | Registro manual |
-| PIX | Registro manual |
-| **PagSeguro** | Envia para máquina física, aguarda aprovação |
-| Cortesia | Sem cobrança (para controle) |
-
----
-
-## 🔒 Segurança
-- Proteja o arquivo `config/config.php`
-- Delete a pasta `install/` após instalar
-- Em produção, configure `SSL_VERIFYPEER => true` no cURL
-- Configure o webhook secret do PagSeguro
+*2026 Nicola Asuni <info@tecnick.com>
