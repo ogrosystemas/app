@@ -11,16 +11,16 @@ ini_set('session.cookie_secure', 1);
 ini_set('session.cookie_samesite', 'Strict');
 
 // Configurações do banco de dados
-define('DB_HOST', 'localhost');
+define('DB_HOST', '');
 define('DB_PORT', '');
-define('DB_NAME', 'muta_kmtracker');
-define('DB_USER', 'muta_kmtracker');
-define('DB_PASS', 'Km147369#');
+define('DB_NAME', '');
+define('DB_USER', '');
+define('DB_PASS', '');
 
 // ============================================================
 // URL DO SITE - CORRIGIDA
 // ============================================================
-define('BASE_URL', 'https://mutanteskmtracker.ogrosystemas.com.br');
+define('BASE_URL', '');
 
 define('APP_NAME', 'Mutantes KM Tracker');
 define('APP_VERSION', '2.0');
@@ -34,4 +34,4 @@ define('ALLOWED_EXTENSIONS', ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx',
 define('ITEMS_PER_PAGE', 20);
 
 // GraphHopper API Key
-define('GRAPHOPPER_API_KEY', '8c751d90-cfb2-4f11-b225-f533c0a3fa95');
+define('GRAPHOPPER_API_KEY', '');
