@@ -24,7 +24,7 @@ define('BASE_URL', '');
 
 define('APP_NAME', 'Mutantes KM Tracker');
 define('APP_VERSION', '2.0');
-define('APP_SECRET', 'mutantes_km_secret_key_2024');
+define('APP_SECRET', '');
 
 // Configurações de upload
 define('MAX_FILE_SIZE', 10 * 1024 * 1024);
