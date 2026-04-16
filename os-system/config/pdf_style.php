@@ -326,7 +326,7 @@ function pdfRodape(TCPDF $pdf, string $nomeOficina): void {
     for ($i = 1; $i <= $n; $i++) {
         $pdf->setPage($i);
         // Posiciona a 10mm da borda inferior da página A4 (297mm)
-        $pdf->SetY(297 - 12);
+        $pdf->SetY(297 - 20);
         $pdf->SetLineWidth(0.2);
         pdfDraw($pdf, PDF_C_BORDER);
         $pdf->Line(PDF_MARGIN_LEFT, $pdf->GetY(), 196, $pdf->GetY());
