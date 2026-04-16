@@ -9,7 +9,11 @@ $mensagem = $erro = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['salvar'])) {
     csrfVerify();
-    $valor_hora = (float)str_replace(',', '.', str_replace('.', '', $_POST['valor_hora'] ?? '0'));
+    // Converte valor brasileiro (formato 100,00 ou 100.00) para float
+    $valor_bruto = trim($_POST['valor_hora'] ?? '0');
+    $valor_bruto = str_replace('.', '', $valor_bruto); // remove pontos de milhar
+    $valor_bruto = str_replace(',', '.', $valor_bruto); // vírgula vira ponto
+    $valor_hora = (float)$valor_bruto;
     $descricao  = trim($_POST['descricao'] ?? '');
     try {
         $existe = (int)$db->query("SELECT COUNT(*) FROM mao_de_obra")->fetchColumn();
@@ -51,8 +55,10 @@ $historico = $db->query("SELECT os.numero_os, os.data_abertura, SUM(oss.quantida
         <?= csrfField() ?>
         <div class="os-form-group" style="margin-bottom:14px">
           <label class="os-label">Novo Valor por Hora (R$)</label>
-          <input type="number" name="valor_hora" class="os-input" step="0.01" min="0"
-                 value="<?= number_format($atual['valor_hora'] ?? 0, 2, '.', '') ?>" style="font-size:1.1rem;text-align:center;font-family:'Syne',sans-serif;font-weight:700">
+          <input type="text" name="valor_hora" class="os-input" 
+                 value="<?= number_format($atual['valor_hora'] ?? 0, 2, ',', '.') ?>" 
+                 placeholder="0,00"
+                 style="font-size:1.1rem;text-align:center;font-family:'Syne',sans-serif;font-weight:700">
         </div>
         <div class="os-form-group" style="margin-bottom:16px">
           <label class="os-label">Observação</label>
@@ -82,11 +88,47 @@ $historico = $db->query("SELECT os.numero_os, os.data_abertura, SUM(oss.quantida
           </tr>
           <?php endforeach; ?>
         </tbody>
-      </table>
+       </div>
     </div>
   </div>
 
 </div>
 </main>
+
+<script>
+// Adiciona máscara de dinheiro ao campo valor_hora
+document.addEventListener('DOMContentLoaded', function() {
+    var inputValor = document.querySelector('input[name="valor_hora"]');
+    if (inputValor) {
+        inputValor.addEventListener('input', function(e) {
+            var valor = this.value;
+            // Remove tudo que não for número ou vírgula
+            valor = valor.replace(/[^0-9,]/g, '');
+            // Separa centavos
+            var partes = valor.split(',');
+            if (partes.length > 2) {
+                valor = partes[0] + ',' + partes.slice(1).join('');
+            }
+            this.value = valor;
+        });
+        
+        // Ao perder o foco, formata para 2 casas decimais
+        inputValor.addEventListener('blur', function() {
+            var valor = this.value;
+            if (valor === '') {
+                this.value = '0,00';
+                return;
+            }
+            // Remove pontos e mantém apenas números e vírgula
+            valor = valor.replace(/[^0-9,]/g, '');
+            var partes = valor.split(',');
+            var inteiro = partes[0].replace(/^0+/, '') || '0';
+            var centavos = partes[1] ? partes[1].substring(0, 2) : '00';
+            if (centavos.length === 1) centavos += '0';
+            this.value = inteiro + ',' + centavos;
+        });
+    }
+});
+</script>
 
 <?php include '../../includes/footer.php'; ?>
