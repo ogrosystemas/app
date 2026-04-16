@@ -6,6 +6,9 @@ $mensagem = $_SESSION['mensagem'] ?? null;
 $erro     = $_SESSION['erro']     ?? null;
 unset($_SESSION['mensagem'], $_SESSION['erro']);
 
+// Buscar valor atual da mão de obra
+$valor_hora_atual = (float)$db->query("SELECT valor_hora FROM mao_de_obra ORDER BY id DESC LIMIT 1")->fetchColumn();
+
 // Excluir
 if (isset($_GET['excluir'])) {
     try {
@@ -19,16 +22,26 @@ if (isset($_GET['excluir'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['salvar'])) {
     csrfVerify();
     $id = (int)($_POST['id'] ?? 0);
+    $tempo_estimado = (int)($_POST['tempo_estimado'] ?? 0);
+    
+    // CALCULAR VALOR AUTOMATICAMENTE baseado no tempo e na mão de obra atual
+    $valor_calculado = 0;
+    if ($tempo_estimado > 0 && $valor_hora_atual > 0) {
+        $valor_calculado = round(($tempo_estimado / 60) * $valor_hora_atual, 2);
+    }
+    
     $campos = [
         'nome'           => trim($_POST['nome'] ?? ''),
         'descricao'      => trim($_POST['descricao'] ?? ''),
-        'valor'          => (float)str_replace(',', '.', $_POST['valor'] ?? '0'),
-        'tempo_estimado' => (int)($_POST['tempo_estimado'] ?? 0) ?: null,
+        'valor'          => $valor_calculado,
+        'tempo_estimado' => $tempo_estimado ?: null,
         'garantia_dias'  => (int)($_POST['garantia_dias'] ?? 0),
         'ativo'          => 1,
     ];
-    if (!$campos['nome']) { $_SESSION['erro'] = 'Nome é obrigatório.'; }
-    else {
+    
+    if (!$campos['nome']) { 
+        $_SESSION['erro'] = 'Nome é obrigatório.'; 
+    } else {
         try {
             if ($id) {
                 $set = implode(', ', array_map(fn($k) => "$k=?", array_keys($campos)));
@@ -40,7 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['salvar'])) {
                 $db->prepare("INSERT INTO servicos ($cols) VALUES ($vals)")->execute(array_values($campos));
                 $_SESSION['mensagem'] = 'Serviço cadastrado!';
             }
-        } catch (PDOException $e) { $_SESSION['erro'] = $e->getMessage(); }
+        } catch (PDOException $e) { 
+            $_SESSION['erro'] = $e->getMessage(); 
+        }
     }
     header('Location: servicos.php'); exit;
 }
@@ -106,9 +121,18 @@ $servicos = $db->query("SELECT * FROM servicos WHERE ativo = 1 ORDER BY nome")->
         <div class="os-form-group"><label class="os-label">Nome *</label><input type="text" name="nome" id="sNome" class="os-input" required></div>
         <div class="os-form-group"><label class="os-label">Descrição</label><textarea name="descricao" id="sDesc" class="os-input" rows="2"></textarea></div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-          <div class="os-form-group"><label class="os-label">Valor (R$)</label><input type="number" name="valor" id="sValor" class="os-input" step="0.01" min="0" value="0.00"></div>
-          <div class="os-form-group"><label class="os-label">Tempo (min)</label><input type="number" name="tempo_estimado" id="sTempo" class="os-input" min="0"></div>
-          <div class="os-form-group"><label class="os-label">Garantia (dias)</label><input type="number" name="garantia_dias" id="sGarantia" class="os-input" min="0" value="30"></div>
+          <div class="os-form-group">
+            <label class="os-label">Tempo (min) *</label>
+            <input type="number" name="tempo_estimado" id="sTempo" class="os-input" min="0" required oninput="calcularValor()">
+          </div>
+          <div class="os-form-group">
+            <label class="os-label">Valor (R$)</label>
+            <input type="text" name="valor" id="sValor" class="os-input" readonly style="background:var(--bg-muted);cursor:not-allowed">
+          </div>
+          <div class="os-form-group">
+            <label class="os-label">Garantia (dias)</label>
+            <input type="number" name="garantia_dias" id="sGarantia" class="os-input" min="0" value="30">
+          </div>
         </div>
       </div>
       <div style="display:flex;justify-content:flex-end;gap:10px;padding:14px 24px;border-top:1px solid var(--border)">
@@ -120,7 +144,50 @@ $servicos = $db->query("SELECT * FROM servicos WHERE ativo = 1 ORDER BY nome")->
 </div>
 
 <script>
-function abrirModal(){document.getElementById('modalTitulo').textContent='Novo Serviço';['sId','sNome','sDesc','sTempo'].forEach(id=>{document.getElementById(id).value='';});document.getElementById('sValor').value='0.00';document.getElementById('sGarantia').value='30';document.getElementById('modal').style.display='flex';}
-function editarServico(s){document.getElementById('modalTitulo').textContent='Editar Serviço';document.getElementById('sId').value=s.id;document.getElementById('sNome').value=s.nome;document.getElementById('sDesc').value=s.descricao||'';document.getElementById('sValor').value=parseFloat(s.valor||0).toFixed(2);document.getElementById('sTempo').value=s.tempo_estimado||'';document.getElementById('sGarantia').value=s.garantia_dias||30;document.getElementById('modal').style.display='flex';}
+var VALOR_HORA = <?= json_encode((float)$valor_hora_atual); ?>;
+
+function calcularValor() {
+    var tempo = parseFloat(document.getElementById('sTempo').value) || 0;
+    var valor = 0;
+    
+    if (tempo > 0 && VALOR_HORA > 0) {
+        valor = (tempo / 60) * VALOR_HORA;
+        valor = Math.round(valor * 100) / 100;
+    }
+    
+    document.getElementById('sValor').value = valor.toFixed(2).replace('.', ',');
+}
+
+function abrirModal() {
+    document.getElementById('modalTitulo').textContent = 'Novo Serviço';
+    document.getElementById('sId').value = '';
+    document.getElementById('sNome').value = '';
+    document.getElementById('sDesc').value = '';
+    document.getElementById('sTempo').value = '';
+    document.getElementById('sGarantia').value = '30';
+    document.getElementById('sValor').value = '0,00';
+    document.getElementById('modal').style.display = 'flex';
+}
+
+function editarServico(s) {
+    document.getElementById('modalTitulo').textContent = 'Editar Serviço';
+    document.getElementById('sId').value = s.id;
+    document.getElementById('sNome').value = s.nome;
+    document.getElementById('sDesc').value = s.descricao || '';
+    document.getElementById('sTempo').value = s.tempo_estimado || '';
+    document.getElementById('sGarantia').value = s.garantia_dias || 30;
+    
+    // Calcular valor baseado no tempo e na mão de obra atual
+    var tempo = parseFloat(s.tempo_estimado) || 0;
+    var valor = 0;
+    if (tempo > 0 && VALOR_HORA > 0) {
+        valor = (tempo / 60) * VALOR_HORA;
+        valor = Math.round(valor * 100) / 100;
+    }
+    document.getElementById('sValor').value = valor.toFixed(2).replace('.', ',');
+    
+    document.getElementById('modal').style.display = 'flex';
+}
 </script>
+
 <?php include '../../includes/footer.php'; ?>
