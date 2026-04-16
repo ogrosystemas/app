@@ -3,47 +3,27 @@ require_once '../../config/config.php';
 checkAuth(['admin', 'gerente']);
 
 // Create table if not exists
-try {
-    $db->exec("CREATE TABLE IF NOT EXISTS mao_de_obra (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        valor_hora DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-        descricao VARCHAR(255),
-        ativo TINYINT(1) DEFAULT 1,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    )");
-} catch(Exception $e) {}
+try { $db->exec("CREATE TABLE IF NOT EXISTS mao_de_obra (id INT AUTO_INCREMENT PRIMARY KEY, valor_hora DECIMAL(10,2) NOT NULL DEFAULT 0.00, descricao VARCHAR(255), ativo TINYINT(1) DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)"); } catch(Exception $e) {}
 
 $mensagem = $erro = '';
 
-// Salvar valor hora
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['salvar'])) {
-    $valor_hora = str_replace(['.', ','], ['', '.'], $_POST['valor_hora'] ?? '0');
+    csrfVerify();
+    $valor_hora = (float)str_replace(',', '.', str_replace('.', '', $_POST['valor_hora'] ?? '0'));
     $descricao  = trim($_POST['descricao'] ?? '');
-
     try {
-        // Check if exists
-        $existe = $db->query("SELECT COUNT(*) FROM mao_de_obra")->fetchColumn();
+        $existe = (int)$db->query("SELECT COUNT(*) FROM mao_de_obra")->fetchColumn();
         if ($existe > 0) {
-            $db->prepare("UPDATE mao_de_obra SET valor_hora = ?, descricao = ? ORDER BY id DESC LIMIT 1")
-               ->execute([(float)$valor_hora, $descricao]);
+            $db->prepare("UPDATE mao_de_obra SET valor_hora=?, descricao=? ORDER BY id DESC LIMIT 1")->execute([$valor_hora, $descricao]);
         } else {
-            $db->prepare("INSERT INTO mao_de_obra (valor_hora, descricao) VALUES (?, ?)")
-               ->execute([(float)$valor_hora, $descricao]);
+            $db->prepare("INSERT INTO mao_de_obra (valor_hora, descricao) VALUES (?,?)")->execute([$valor_hora, $descricao]);
         }
-        $mensagem = 'Valor de mão de obra atualizado com sucesso!';
-    } catch(Exception $e) {
-        $erro = 'Erro ao salvar: ' . $e->getMessage();
-    }
+        $mensagem = 'Mão de obra atualizada!';
+    } catch (Exception $e) { $erro = $e->getMessage(); }
 }
 
-// Load current value
-$mao = ['valor_hora' => 0, 'descricao' => ''];
-try {
-    $stmt = $db->query("SELECT * FROM mao_de_obra ORDER BY id DESC LIMIT 1");
-    $row  = $stmt->fetch(PDO::FETCH_ASSOC);
-    if ($row) $mao = $row;
-} catch(Exception $e) {}
+$atual = $db->query("SELECT * FROM mao_de_obra ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+$historico = $db->query("SELECT os.numero_os, os.data_abertura, SUM(oss.quantidade * oss.valor_unitario) as total, SUM(s.tempo_estimado * oss.quantidade) as total_min FROM os_servicos oss JOIN ordens_servico os ON oss.os_id=os.id JOIN servicos s ON oss.servico_id=s.id GROUP BY os.id ORDER BY os.data_abertura DESC LIMIT 10")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <?php include '../../includes/sidebar.php'; ?>
 
@@ -52,99 +32,61 @@ try {
 </header>
 
 <main class="os-content">
-<div style="max-width:640px;margin:0 auto">
+<?php if ($mensagem): ?><div class="os-alert os-alert-success"><i class="ph-bold ph-check-circle"></i> <?= htmlspecialchars($mensagem) ?></div><?php endif; ?>
+<?php if ($erro): ?><div class="os-alert os-alert-danger"><?= htmlspecialchars($erro) ?></div><?php endif; ?>
 
-<?php if ($mensagem): ?>
-<div class="os-alert os-alert-success" style="margin-bottom:20px">
-  <i class="ph-bold ph-check-circle"></i> <?= htmlspecialchars($mensagem) ?>
-</div>
-<?php endif; ?>
-<?php if ($erro): ?>
-<div class="os-alert os-alert-danger" style="margin-bottom:20px">
-  <i class="ph-bold ph-warning-circle"></i> <?= htmlspecialchars($erro) ?>
-</div>
-<?php endif; ?>
+<div style="display:grid;grid-template-columns:340px 1fr;gap:20px">
 
-<div class="os-card">
-  <div class="os-card-header">
-    <div class="os-card-title"><i class="ph-bold ph-wrench"></i> Configuração de Mão de Obra</div>
-  </div>
-  <div class="os-card-body">
-    <form method="POST">
-      <input type="hidden" name="salvar" value="1">
-
-      <div class="os-form-group" style="margin-bottom:20px">
-        <label class="os-label">Valor por Hora (R$)</label>
-        <div style="display:flex;align-items:center;gap:12px">
-          <div style="position:relative;flex:1">
-            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-weight:600">R$</span>
-            <input type="text" name="valor_hora" id="valorHora" class="os-input"
-                   style="padding-left:36px;font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:var(--accent)"
-                   value="<?= number_format((float)$mao['valor_hora'], 2, ',', '.') ?>"
-                   placeholder="0,00" required>
-          </div>
-          <div style="font-size:.8rem;color:var(--text-muted);white-space:nowrap">por hora</div>
-        </div>
-        <small style="color:var(--text-muted);font-size:.75rem;margin-top:6px;display:block">
-          O sistema usa o tempo estimado de cada serviço para calcular automaticamente o valor da mão de obra nos orçamentos e OS.
-        </small>
-      </div>
-
-      <div class="os-form-group" style="margin-bottom:20px">
-        <label class="os-label">Descrição (opcional)</label>
-        <input type="text" name="descricao" class="os-input"
-               value="<?= htmlspecialchars($mao['descricao'] ?? '') ?>"
-               placeholder="Ex: Mão de obra padrão oficina">
-      </div>
-
-      <!-- Preview de cálculo -->
-      <div style="background:var(--bg-card2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px">
-        <div style="font-size:.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">Exemplo de Cálculo</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
-          <div>
-            <div style="font-size:.75rem;color:var(--text-muted)">Serviço (60 min)</div>
-            <div id="ex1h" style="font-family:'Syne',sans-serif;font-weight:800;color:var(--accent);font-size:1rem">R$ <?= number_format((float)$mao['valor_hora'], 2, ',', '.') ?></div>
-          </div>
-          <div>
-            <div style="font-size:.75rem;color:var(--text-muted)">Serviço (90 min)</div>
-            <div id="ex15h" style="font-family:'Syne',sans-serif;font-weight:800;color:var(--accent);font-size:1rem">R$ <?= number_format((float)$mao['valor_hora'] * 1.5, 2, ',', '.') ?></div>
-          </div>
-          <div>
-            <div style="font-size:.75rem;color:var(--text-muted)">Serviço (120 min)</div>
-            <div id="ex2h" style="font-family:'Syne',sans-serif;font-weight:800;color:var(--accent);font-size:1rem">R$ <?= number_format((float)$mao['valor_hora'] * 2, 2, ',', '.') ?></div>
-          </div>
+  <div class="os-card">
+    <div class="os-card-header"><div class="os-card-title"><i class="ph-bold ph-clock"></i> Configurar Valor/Hora</div></div>
+    <div class="os-card-body">
+      <div style="text-align:center;padding:16px 0 20px">
+        <div style="font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:8px">Valor Atual por Hora</div>
+        <div style="font-family:'Syne',sans-serif;font-size:3rem;font-weight:800;color:var(--accent)">
+          R$ <?= number_format($atual['valor_hora'] ?? 0, 2, ',', '.') ?>
         </div>
       </div>
+      <form method="POST">
+        <input type="hidden" name="salvar" value="1">
+        <?= csrfField() ?>
+        <div class="os-form-group" style="margin-bottom:14px">
+          <label class="os-label">Novo Valor por Hora (R$)</label>
+          <input type="number" name="valor_hora" class="os-input" step="0.01" min="0"
+                 value="<?= number_format($atual['valor_hora'] ?? 0, 2, '.', '') ?>" style="font-size:1.1rem;text-align:center;font-family:'Syne',sans-serif;font-weight:700">
+        </div>
+        <div class="os-form-group" style="margin-bottom:16px">
+          <label class="os-label">Observação</label>
+          <input type="text" name="descricao" class="os-input" value="<?= htmlspecialchars($atual['descricao'] ?? '') ?>" placeholder="Ex: Revisão de tabela Jan/2025">
+        </div>
+        <button type="submit" class="btn-os btn-os-primary" style="width:100%;justify-content:center"><i class="ph-bold ph-floppy-disk"></i> Salvar</button>
+      </form>
+    </div>
+  </div>
 
-      <button type="submit" class="btn-os btn-os-primary" style="width:100%;padding:12px">
-        <i class="ph-bold ph-floppy-disk"></i> Salvar Valor de Mão de Obra
-      </button>
-    </form>
+  <div class="os-card">
+    <div class="os-card-header"><div class="os-card-title"><i class="ph-bold ph-list-checks"></i> Últimas OS com Mão de Obra</div></div>
+    <div class="os-card-body" style="padding:0">
+      <table class="os-table">
+        <thead><tr><th>OS</th><th>Data</th><th style="text-align:center">Horas</th><th style="text-align:right">M.O. Calculada</th></tr></thead>
+        <tbody>
+          <?php if (empty($historico)): ?><tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum registro ainda.</td></tr><?php endif; ?>
+          <?php foreach ($historico as $h):
+            $horas = round($h['total_min'] / 60, 1);
+            $mo    = $horas * ($atual['valor_hora'] ?? 0);
+          ?>
+          <tr>
+            <td><strong><?= htmlspecialchars($h['numero_os']) ?></strong></td>
+            <td style="font-size:.82rem;color:var(--text-muted)"><?= date('d/m/Y', strtotime($h['data_abertura'])) ?></td>
+            <td style="text-align:center"><?= $horas ?>h</td>
+            <td style="text-align:right;font-weight:700;color:var(--accent)">R$ <?= number_format($mo, 2, ',', '.') ?></td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
   </div>
-</div>
-
-<!-- Info sobre tempo estimado nos serviços -->
-<div class="os-card" style="margin-top:16px">
-  <div class="os-card-header">
-    <div class="os-card-title"><i class="ph-bold ph-info"></i> Como Funciona</div>
-  </div>
-  <div class="os-card-body" style="font-size:.85rem;color:var(--text-muted);line-height:1.7">
-    <p>O valor de mão de obra é calculado automaticamente com base no <strong style="color:var(--text)">tempo estimado</strong> de cada serviço cadastrado em <strong style="color:var(--text)">Gestão → Serviços</strong>.</p>
-    <p>Fórmula: <code style="background:var(--bg-card2);padding:2px 6px;border-radius:4px;color:var(--accent)">Tempo (horas) × R$/hora = Mão de Obra</code></p>
-    <p>Exemplo: Serviço de 90 minutos com R$ 80,00/hora = <strong style="color:var(--accent)">R$ 120,00</strong> de mão de obra.</p>
-  </div>
-</div>
 
 </div>
 </main>
-
-<script>
-document.getElementById('valorHora').addEventListener('input', function() {
-  var v = parseFloat(this.value.replace(/\./g,'').replace(',','.')) || 0;
-  document.getElementById('ex1h').textContent  = 'R$ ' + (v * 1).toFixed(2).replace('.',',');
-  document.getElementById('ex15h').textContent = 'R$ ' + (v * 1.5).toFixed(2).replace('.',',');
-  document.getElementById('ex2h').textContent  = 'R$ ' + (v * 2).toFixed(2).replace('.',',');
-});
-</script>
 
 <?php include '../../includes/footer.php'; ?>

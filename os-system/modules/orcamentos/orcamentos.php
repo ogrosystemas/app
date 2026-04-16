@@ -106,7 +106,7 @@ unset($_SESSION['mensagem'], $_SESSION['erro']);
 
 <header class="os-topbar">
   <div class="topbar-title">Orçamentos</div>
-  <div class="topbar-actions"></div>
+  <div class="topbar-actions"><a href="form_orcamento.php" class="btn-os btn-os-primary"><i class="ph-bold ph-plus-circle"></i> Novo Orçamento</a></div>
 </header>
 
 <main class="os-content">
@@ -170,7 +170,7 @@ unset($_SESSION['mensagem'], $_SESSION['erro']);
                                         <i class="ph-bold ph-trash"></i> Excluir
                                     </button>
                                     <?php endif; ?>
-                                 </tr ?>
+                                 </tr>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>

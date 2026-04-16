@@ -2,137 +2,152 @@
 require_once '../../config/config.php';
 checkAuth(['admin', 'gerente', 'caixa']);
 
-// Buscar caixa aberto
-$query = "SELECT * FROM caixa WHERE status = 'aberto' ORDER BY id DESC LIMIT 1";
-$stmt = $db->prepare($query);
+$stmt = $db->prepare("SELECT * FROM caixa WHERE status = 'aberto' ORDER BY id DESC LIMIT 1");
 $stmt->execute();
 $caixa = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if(!$caixa) {
-    header('Location: pdv.php');
-    exit;
+if (!$caixa) { header('Location: pdv.php'); exit; }
+
+$saldo_esperado = $caixa['saldo_inicial'] + $caixa['total_vendas']
+                + $caixa['total_suprimentos'] - $caixa['total_sangrias'];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrfVerify();
+    $saldo_final = (float)str_replace(['.', ','], ['', '.'], $_POST['saldo_final'] ?? $saldo_esperado);
+    $db->prepare("UPDATE caixa SET data_fechamento=NOW(), saldo_final=?, status='fechado', usuario_fechamento=? WHERE id=?")
+       ->execute([$saldo_final, $_SESSION['usuario_id'], $caixa['id']]);
+    $_SESSION['mensagem'] = 'Caixa fechado! Saldo final: R$ ' . number_format($saldo_final, 2, ',', '.');
+    header('Location: ' . BASE_URL . '/modules/relatorios/relatorios.php'); exit;
 }
 
-$saldo_atual = $caixa['saldo_inicial'] + $caixa['total_vendas'] - $caixa['total_sangrias'] + $caixa['total_suprimentos'];
+// Vendas do caixa por forma de pagamento
+$stmt = $db->prepare("SELECT forma_pagamento, COUNT(*) as qtd, SUM(total) as total FROM vendas WHERE caixa_id = ? AND status = 'finalizada' GROUP BY forma_pagamento");
+$stmt->execute([$caixa['id']]);
+$por_forma = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-if($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $saldo_final = str_replace(',', '.', str_replace('.', '', $_POST['saldo_final']));
-    
-    $query = "UPDATE caixa SET data_fechamento = NOW(), saldo_final = :saldo_final, 
-              status = 'fechado', usuario_fechamento = :usuario WHERE id = :id";
-    $stmt = $db->prepare($query);
-    $stmt->execute([
-        ':saldo_final' => $saldo_final,
-        ':usuario' => $_SESSION['usuario_id'],
-        ':id' => $caixa['id']
-    ]);
-    
-    $_SESSION['mensagem'] = 'Caixa fechado com sucesso!';
-    header('Location: ../relatorios/relatorios.php');
-    exit;
-}
+$stmt = $db->prepare("SELECT * FROM caixa_movimentacoes WHERE caixa_id = ? AND tipo IN ('sangria','suprimento') ORDER BY created_at DESC");
+$stmt->execute([$caixa['id']]);
+$movs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Buscar vendas do dia para conferência
-$vendas_hoje = $db->query("SELECT COUNT(*) as total_vendas, SUM(total) as valor_total FROM vendas WHERE DATE(data_venda) = CURDATE() AND status = 'finalizada'")->fetch(PDO::FETCH_ASSOC);
+$formas_label = ['dinheiro'=>'Dinheiro','pix'=>'PIX','cartao_credito'=>'Crédito','cartao_debito'=>'Débito','boleto'=>'Boleto','mix'=>'Misto'];
 ?>
 <?php include '../../includes/sidebar.php'; ?>
 
 <header class="os-topbar">
-  <div class="topbar-title">Fechar Caixa</div>
-  <div class="topbar-actions"></div>
+  <div class="topbar-title">Fechar Caixa <span style="color:var(--accent)">·</span> #<?= $caixa['id'] ?></div>
+  <div class="topbar-actions">
+    <a href="pdv.php" class="btn-os btn-os-ghost"><i class="ph-bold ph-arrow-left"></i> Voltar ao PDV</a>
+  </div>
 </header>
 
 <main class="os-content">
-<div class="d-flex justify-content-between align-items-center mb-4">
-            <h2><i class="ph-bold ph-lock"></i> Fechar Caixa</h2>
-            <a href="pdv.php" class="btn btn-secondary"><i class="ph-bold ph-arrow-left"></i> Voltar</a>
-        </div>
-        
-        <div class="row">
-            <div class="col-md-6 mx-auto">
-                <div class="card shadow">
-                    <div class="card-header bg-danger text-white">
-                        <h4 class="mb-0"><i class="ph-bold ph-money"></i> Fechamento do Caixa</h4>
-                    </div>
-                    <div class="card-body">
-                        <div class="info-box">
-                            <h6><i class="ph-bold ph-info"></i> Resumo do Caixa</h6>
-                            <hr>
-                            <p><strong>Data de Abertura:</strong> <?php echo date('d/m/Y H:i', strtotime($caixa['data_abertura'])); ?></p>
-                            <p><strong>Saldo Inicial:</strong> R$ <?php echo number_format($caixa['saldo_inicial'], 2, ',', '.'); ?></p>
-                            <p><strong>Total de Vendas:</strong> R$ <?php echo number_format($caixa['total_vendas'], 2, ',', '.'); ?></p>
-                            <p><strong>Total de Sangrias:</strong> R$ <?php echo number_format($caixa['total_sangrias'], 2, ',', '.'); ?></p>
-                            <p><strong>Total de Suprimentos:</strong> R$ <?php echo number_format($caixa['total_suprimentos'], 2, ',', '.'); ?></p>
-                            <hr>
-                            <h5 class="text-primary">Saldo Calculado: R$ <?php echo number_format($saldo_atual, 2, ',', '.'); ?></h5>
-                        </div>
-                        
-                        <div class="info-box">
-                            <h6><i class="ph-bold ph-chart-line-up"></i> Vendas do Dia</h6>
-                            <hr>
-                            <p><strong>Quantidade de Vendas:</strong> <?php echo $vendas_hoje['total_vendas']; ?></p>
-                            <p><strong>Valor Total Vendido:</strong> R$ <?php echo number_format($vendas_hoje['valor_total'], 2, ',', '.'); ?></p>
-                        </div>
-                        
-                        <form method="POST" id="formFechamento">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Saldo Final em Caixa (R$)</label>
-                                <input type="text" name="saldo_final" id="saldo_final" class="form-control form-control-lg money" 
-                                       value="<?php echo number_format($saldo_atual, 2, ',', '.'); ?>" required>
-                                <small class="text-muted">Confirme o valor que está no caixa</small>
-                            </div>
-                            
-                            <div class="alert alert-warning">
-                                <i class="ph-bold ph-warning"></i> 
-                                <strong>Atenção!</strong> Após fechar o caixa, não será possível fazer novas vendas até abrir um novo caixa.
-                            </div>
-                            
-                            <div class="d-grid gap-2">
-                                <button type="button" class="btn btn-danger btn-lg" onclick="confirmarFechamento()">
-                                    <i class="ph-bold ph-check-circle"></i> Fechar Caixa
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-</main>
+<div style="max-width:720px;margin:0 auto">
 
-<script>
-        $(document).ready(function() {
-            // Máscara para valores monetários
-            $('#saldo_final').mask('000.000.000,00', {reverse: true});
-        });
-        
-        function confirmarFechamento() {
-            var saldoFinal = $('#saldo_final').val();
-            
-            if(!saldoFinal || saldoFinal === '') {
-                Swal.fire({
-                    title: 'Erro!',
-                    text: 'Informe o saldo final do caixa!',
-                    icon: 'error',
-                    confirmButtonColor: '#3085d6'
-                });
-                return;
-            }
-            
-            Swal.fire({
-                title: 'Fechar caixa?',
-                text: 'Após fechar o caixa, não será possível fazer novas vendas!',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Sim, fechar caixa!',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById('formFechamento').submit();
-                }
-            });
-        }
-    </script>
+  <!-- Resumo -->
+  <div class="os-card" style="margin-bottom:20px">
+    <div class="os-card-header">
+      <div class="os-card-title"><i class="ph-bold ph-vault"></i> Resumo do Caixa</div>
+      <span style="font-size:.8rem;color:var(--text-muted)">Aberto em <?= date('d/m/Y H:i', strtotime($caixa['data_abertura'])) ?></span>
+    </div>
+    <div class="os-card-body">
+      <div class="grid-4" style="gap:12px;margin-bottom:20px">
+        <?php
+        $stats = [
+          ['Saldo Inicial',   $caixa['saldo_inicial'],    'ph-piggy-bank',    '#38bdf8'],
+          ['Total Vendas',    $caixa['total_vendas'],     'ph-trending-up',   '#22c55e'],
+          ['Suprimentos',     $caixa['total_suprimentos'],'ph-arrow-up',      '#a78bfa'],
+          ['Sangrias',        $caixa['total_sangrias'],   'ph-arrow-down',    '#f87171'],
+        ];
+        foreach ($stats as [$label, $val, $icon, $color]):
+        ?>
+        <div style="background:var(--bg-card2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center">
+          <i class="ph-bold <?= $icon ?>" style="font-size:1.4rem;color:<?= $color ?>;display:block;margin-bottom:6px"></i>
+          <div style="font-size:.7rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px"><?= $label ?></div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;color:var(--text)">R$ <?= number_format($val, 2, ',', '.') ?></div>
+        </div>
+        <?php endforeach; ?>
+      </div>
+
+      <!-- Saldo esperado destaque -->
+      <div style="background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(245,158,11,.05));border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:20px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:.75rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em">Saldo Esperado no Caixa</div>
+          <div style="font-size:.82rem;color:var(--text-muted);margin-top:3px">Inicial + Vendas + Suprimentos - Sangrias</div>
+        </div>
+        <div style="font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:var(--accent)">
+          R$ <?= number_format($saldo_esperado, 2, ',', '.') ?>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Por forma de pagamento -->
+  <?php if (!empty($por_forma)): ?>
+  <div class="os-card" style="margin-bottom:20px">
+    <div class="os-card-header"><div class="os-card-title"><i class="ph-bold ph-credit-card"></i> Vendas por Forma de Pagamento</div></div>
+    <div class="os-card-body" style="padding:0">
+      <table class="os-table">
+        <thead><tr><th>Forma</th><th style="text-align:center">Qtd.</th><th style="text-align:right">Total</th></tr></thead>
+        <tbody>
+          <?php foreach ($por_forma as $f): ?>
+          <tr>
+            <td><strong><?= htmlspecialchars($formas_label[$f['forma_pagamento']] ?? $f['forma_pagamento']) ?></strong></td>
+            <td style="text-align:center"><?= $f['qtd'] ?></td>
+            <td style="text-align:right;font-weight:700;color:var(--accent)">R$ <?= number_format($f['total'], 2, ',', '.') ?></td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <!-- Movimentações -->
+  <?php if (!empty($movs)): ?>
+  <div class="os-card" style="margin-bottom:20px">
+    <div class="os-card-header"><div class="os-card-title"><i class="ph-bold ph-arrows-down-up"></i> Sangrias / Suprimentos</div></div>
+    <div class="os-card-body" style="padding:0">
+      <table class="os-table">
+        <thead><tr><th>Tipo</th><th>Descrição</th><th style="text-align:right">Valor</th><th>Horário</th></tr></thead>
+        <tbody>
+          <?php foreach ($movs as $m): ?>
+          <tr>
+            <td><span class="os-badge <?= $m['tipo']==='sangria'?'os-badge-red':'os-badge-green' ?>"><?= ucfirst($m['tipo']) ?></span></td>
+            <td><?= htmlspecialchars($m['descricao'] ?? '') ?></td>
+            <td style="text-align:right;font-weight:600">R$ <?= number_format($m['valor'], 2, ',', '.') ?></td>
+            <td style="font-size:.78rem;color:var(--text-muted)"><?= date('H:i', strtotime($m['created_at'])) ?></td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <!-- Fechar -->
+  <div class="os-card">
+    <div class="os-card-header"><div class="os-card-title"><i class="ph-bold ph-lock"></i> Confirmar Fechamento</div></div>
+    <div class="os-card-body">
+      <form method="POST" id="formFechamento">
+        <?= csrfField() ?>
+        <div class="os-form-group" style="margin-bottom:16px">
+          <label class="os-label">Saldo Físico Contado (R$)</label>
+          <input type="number" name="saldo_final" class="os-input"
+                 style="font-size:1.4rem;font-family:'Syne',sans-serif;font-weight:700;text-align:center;padding:12px"
+                 step="0.01" min="0" value="<?= number_format($saldo_esperado, 2, '.', '') ?>" required>
+          <div style="font-size:.75rem;color:var(--text-muted);text-align:center;margin-top:4px">
+            Informe o valor físico contado no caixa. Diferenças serão registradas.
+          </div>
+        </div>
+        <button type="submit" class="btn-os" onclick="return confirm('Confirma o fechamento do caixa?')"
+                style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#ef4444;width:100%;justify-content:center;padding:13px;font-size:.95rem;font-weight:700">
+          <i class="ph-bold ph-lock"></i> Fechar Caixa Definitivamente
+        </button>
+      </form>
+    </div>
+  </div>
+
+</div>
+</main>
 
 <?php include '../../includes/footer.php'; ?>

@@ -375,7 +375,7 @@ if ($usuario && !empty($usuario['nome'])) {
   <!-- Brand -->
   <a href="<?= $baseUrl ?>/index.php" class="nav-brand">
     <?php if (!empty($_sistemaConfig['logo_path'])): ?>
-      <img src="<?= $baseUrl . htmlspecialchars($_sistemaConfig['logo_path']) ?>"
+      <img src="<?= rtrim($baseUrl, '/') . '/' . ltrim(htmlspecialchars($_sistemaConfig['logo_path']), '/') ?>"
            alt="Logo" style="height:36px;max-width:120px;object-fit:contain;border-radius:4px">
     <?php else: ?>
       <div class="nav-brand-icon"><i class="ph-bold ph-motorcycle"></i></div>
@@ -485,7 +485,7 @@ if ($usuario && !empty($usuario['nome'])) {
   <div class="nav-drawer-header">
     <a href="<?= $baseUrl ?>/index.php" style="display:flex;align-items:center;gap:10px;text-decoration:none">
       <?php if (!empty($_sistemaConfig['logo_path'])): ?>
-        <img src="<?= $baseUrl . htmlspecialchars($_sistemaConfig['logo_path']) ?>" alt="Logo" style="height:30px;max-width:100px;object-fit:contain">
+        <img src="<?= rtrim($baseUrl, '/') . '/' . ltrim(htmlspecialchars($_sistemaConfig['logo_path']), '/') ?>" alt="Logo" style="height:30px;max-width:100px;object-fit:contain">
       <?php else: ?>
         <div style="width:30px;height:30px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#000;font-size:.85rem"><i class="ph-bold ph-motorcycle"></i></div>
       <?php endif; ?>

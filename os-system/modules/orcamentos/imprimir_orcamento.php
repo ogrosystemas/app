@@ -8,7 +8,7 @@ $orcamento = $db->query("SELECT o.*, c.nome as cliente_nome, c.telefone, c.email
                          FROM orcamentos o 
                          JOIN clientes c ON o.cliente_id = c.id 
                          JOIN motos m ON o.moto_id = m.id 
-                         WHERE o.id = $id")->fetch(PDO::FETCH_ASSOC);
+                         WHERE o.id = ?")->fetch(PDO::FETCH_ASSOC);
 
 if(!$orcamento) {
     echo "<p class='text-danger'>Orçamento não encontrado</p>";
@@ -21,7 +21,7 @@ $itens = $db->query("SELECT oi.*,
                      FROM orcamento_itens oi 
                      LEFT JOIN servicos s ON oi.tipo = 'servico' AND oi.item_id = s.id 
                      LEFT JOIN produtos p ON oi.tipo = 'produto' AND oi.item_id = p.id 
-                     WHERE oi.orcamento_id = $id")->fetchAll(PDO::FETCH_ASSOC);
+                     WHERE oi.orcamento_id = ?")->fetchAll(PDO::FETCH_ASSOC);
 
 $total = 0;
 foreach($itens as $item) {

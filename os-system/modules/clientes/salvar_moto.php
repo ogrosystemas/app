@@ -1,40 +1,35 @@
 <?php
-require_once '../../config/database.php';
-require_once '../auth/auth.php';
+require_once '../../config/config.php';
+checkAuth();
+csrfVerify();
 
-session_start();
-$database = new Database();
-$db = $database->getConnection();
-$auth = new Auth($db);
+$cliente_id = (int)($_POST['cliente_id'] ?? 0);
+if (!$cliente_id) { header('Location: clientes.php'); exit; }
 
-if(!$auth->isLoggedIn()) {
-    header('Location: ../../login.php');
-    exit;
+$dados = [
+    'cliente_id'  => $cliente_id,
+    'placa'       => strtoupper(preg_replace('/[^A-Z0-9\-]/i', '', $_POST['placa'] ?? '')),
+    'marca'       => trim($_POST['marca']  ?? ''),
+    'modelo'      => trim($_POST['modelo'] ?? ''),
+    'ano'         => (int)($_POST['ano'] ?? 0) ?: null,
+    'cor'         => trim($_POST['cor']    ?? ''),
+    'chassi'      => strtoupper(trim($_POST['chassi'] ?? '')),
+    'cilindrada'  => trim($_POST['cilindrada'] ?? ''),
+    'km_atual'    => (int)($_POST['km_atual'] ?? 0),
+];
+
+if (!$dados['placa'] || !$dados['modelo'] || !$dados['marca']) {
+    $_SESSION['erro'] = 'Placa, marca e modelo são obrigatórios.';
+    header("Location: clientes.php"); exit;
 }
 
-if($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $cliente_id = $_POST['cliente_id'];
-    $placa = strtoupper($_POST['placa']);
-    $modelo = $_POST['modelo'];
-    $marca = $_POST['marca'];
-    $ano = $_POST['ano'];
-    $cor = $_POST['cor'];
-    $chassi = $_POST['chassi'];
-    
-    $query = "INSERT INTO motos (cliente_id, placa, modelo, marca, ano, cor, chassi) 
-              VALUES (:cliente_id, :placa, :modelo, :marca, :ano, :cor, :chassi)";
-    $stmt = $db->prepare($query);
-    $stmt->execute([
-        ':cliente_id' => $cliente_id,
-        ':placa' => $placa,
-        ':modelo' => $modelo,
-        ':marca' => $marca,
-        ':ano' => $ano,
-        ':cor' => $cor,
-        ':chassi' => $chassi
-    ]);
-    
-    header('Location: clientes.php');
-    exit;
+try {
+    $cols = implode(', ', array_keys($dados));
+    $vals = implode(', ', array_fill(0, count($dados), '?'));
+    $db->prepare("INSERT INTO motos ($cols) VALUES ($vals)")->execute(array_values($dados));
+    $_SESSION['mensagem'] = 'Moto cadastrada com sucesso!';
+} catch (PDOException $e) {
+    $_SESSION['erro'] = 'Erro ao salvar moto: ' . $e->getMessage();
 }
-?>
+
+header('Location: clientes.php'); exit;

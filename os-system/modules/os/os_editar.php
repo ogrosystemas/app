@@ -39,12 +39,22 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['adicionar_servico'])) {
     $valor = str_replace(',', '.', str_replace('.', '', $_POST['valor']));
     $mecanico_id = !empty($_POST['mecanico_id']) ? $_POST['mecanico_id'] : null;
     
-    if($servico_id && $quantidade > 0 && $valor > 0) {
+    if($servico_id && $quantidade > 0) {
+        // Se valor = 0, calcular via mão de obra por hora
+        if($valor <= 0) {
+            $svc_row = $db->prepare("SELECT tempo_estimado FROM servicos WHERE id = ?");
+            $svc_row->execute([$servico_id]);
+            $svc_data = $svc_row->fetch(PDO::FETCH_ASSOC);
+            $tempo_min = (float)($svc_data['tempo_estimado'] ?? 0);
+            $mao_row = $db->query("SELECT valor_hora FROM mao_de_obra ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+            $vh = (float)($mao_row['valor_hora'] ?? 0);
+            $valor = round(($tempo_min / 60) * $vh * $quantidade, 2);
+        }
         $stmt = $db->prepare("INSERT INTO os_servicos (os_id, servico_id, quantidade, valor_unitario, mecanico_id) VALUES (?, ?, ?, ?, ?)");
         $stmt->execute([$id, $servico_id, $quantidade, $valor, $mecanico_id]);
         $_SESSION['mensagem'] = 'Serviço adicionado com sucesso!';
     } else {
-        $_SESSION['erro'] = 'Preencha todos os campos do serviço corretamente!';
+        $_SESSION['erro'] = 'Selecione um serviço e informe a quantidade.';
     }
     
     header("Location: os_editar.php?id=$id");
@@ -118,8 +128,8 @@ unset($_SESSION['mensagem'], $_SESSION['erro']);
 <?php include '../../includes/sidebar.php'; ?>
 
 <header class="os-topbar">
-  <div class="topbar-title">Editar OS #</div>
-  <div class="topbar-actions"></div>
+  <div class="topbar-title">Editar OS <span style="color:var(--accent)">#<?php echo htmlspecialchars($os['numero_os']); ?></span></div>
+  <div class="topbar-actions"><a href="os_detalhes.php?id=<?php echo $id; ?>" class="btn-os btn-os-ghost"><i class="ph-bold ph-eye"></i> Ver Detalhes</a></div>
 </header>
 
 <main class="os-content">
@@ -160,11 +170,12 @@ unset($_SESSION['mensagem'], $_SESSION['erro']);
                                 <label>Quantidade *</label>
                                 <input type="number" name="quantidade" id="quantidade_servico" class="form-control" value="1" min="1" required>
                             </div>
-                            <!-- Valor = 0 pois mão de obra é calculada separadamente -->
                             <input type="hidden" name="valor" id="valor_servico" value="0">
-                            <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:10px 14px;font-size:.82rem;color:var(--text-muted);margin-bottom:12px">
+                            <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:12px 14px;font-size:.82rem;color:var(--text-muted);margin-bottom:12px">
                                 <i class="ph-bold ph-info" style="color:#f59e0b"></i>
-                                O valor deste serviço é calculado automaticamente via <strong style="color:var(--accent)">Mão de Obra por Hora</strong> com base no tempo estimado.
+                                Valor calculado via <strong style="color:var(--accent)">Mão de Obra por Hora</strong>
+                                (R$ <?php echo number_format($valor_hora_ed,2,',','.'); ?>/h × tempo estimado × qtd):<br>
+                                <strong id="valorServicoDisplay" style="font-size:1rem;color:var(--accent);font-family:'Syne',sans-serif">R$ 0,00</strong>
                             </div>
                             <div class="mb-3">
                                 <label>Mecânico Responsável</label>
@@ -287,8 +298,8 @@ unset($_SESSION['mensagem'], $_SESSION['erro']);
                                     <button class="btn btn-sm btn-danger btn-remover" data-tipo="produto" data-id="<?php echo $p['id']; ?>">
                                         <i class="ph-bold ph-trash"></i> Remover
                                     </button>
-                                 </tr ?>
-                            </table>
+                                </td>
+                            </tr>
                             <?php endforeach; ?>
                         </tbody>
                      </div>
@@ -335,17 +346,23 @@ unset($_SESSION['mensagem'], $_SESSION['erro']);
                 return parseFloat(valor).toFixed(2).replace('.', ',');
             }
             
-            // ========== SERVIÇOS ==========
-            $('#servico_id').change(function() {
-                var valor = $(this).find(':selected').data('valor');
-                if(valor && valor > 0) {
-                    $('#valor_servico').val(formatarMoeda(valor));
-                    $('#valor_servico').addClass('preco-auto').removeClass('preco-manual');
-                } else {
-                    $('#valor_servico').val('');
-                    $('#valor_servico').addClass('preco-manual').removeClass('preco-auto');
-                }
-            });
+            // ========== SERVIÇOS — cálculo por MO/hora ==========
+            var VALOR_HORA = <?php echo (float)$valor_hora_ed; ?>;
+
+            function calcularValorServico() {
+                var opt   = $('#servico_id').find(':selected');
+                var tempo = parseFloat(opt.data('tempo')) || 0;
+                var qtd   = parseFloat($('#quantidade_servico').val()) || 1;
+                var valor = Math.round((tempo / 60) * VALOR_HORA * qtd * 100) / 100;
+                $('#valor_servico').val(valor.toFixed(2));
+                var label = valor > 0
+                    ? 'R$ ' + valor.toFixed(2).replace('.', ',')
+                    : '(sem mão de obra configurada)';
+                $('#valorServicoDisplay').text(label);
+            }
+
+            $('#servico_id').change(calcularValorServico);
+            $('#quantidade_servico').on('input change', calcularValorServico);
             
             // ========== PRODUTOS ==========
             $('#produto_id').change(function() {

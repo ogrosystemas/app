@@ -26,7 +26,7 @@ unset($_SESSION['mensagem']);
 
 <header class="os-topbar">
   <div class="topbar-title">Ordens de Serviço</div>
-  <div class="topbar-actions"></div>
+  <div class="topbar-actions"><button class="btn-os btn-os-primary" data-bs-toggle="modal" data-bs-target="#modalNovaOS"><i class="ph-bold ph-plus-circle"></i> Nova OS</button></div>
 </header>
 
 <main class="os-content">
@@ -72,7 +72,7 @@ unset($_SESSION['mensagem']);
                                     <?php if($os['status'] != 'finalizada' && $os['status'] != 'cancelada'): ?>
                                     <a href="os_editar.php?id=<?php echo $os['id']; ?>" class="btn btn-sm btn-warning"><i class="ph-bold ph-pencil-simple"></i></a>
                                     <?php endif; ?>
-                                 </tr ?>
+                                 </tr>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
