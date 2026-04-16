@@ -9,12 +9,12 @@ $mensagem = $erro = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['salvar'])) {
     csrfVerify();
-    // Converte valor brasileiro (formato 100,00 ou 100.00) para float
     $valor_bruto = trim($_POST['valor_hora'] ?? '0');
-    $valor_bruto = str_replace('.', '', $valor_bruto); // remove pontos de milhar
-    $valor_bruto = str_replace(',', '.', $valor_bruto); // vírgula vira ponto
+    $valor_bruto = str_replace('.', '', $valor_bruto);
+    $valor_bruto = str_replace(',', '.', $valor_bruto);
     $valor_hora = (float)$valor_bruto;
     $descricao  = trim($_POST['descricao'] ?? '');
+    
     try {
         $existe = (int)$db->query("SELECT COUNT(*) FROM mao_de_obra")->fetchColumn();
         if ($existe > 0) {
@@ -22,8 +22,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['salvar'])) {
         } else {
             $db->prepare("INSERT INTO mao_de_obra (valor_hora, descricao) VALUES (?,?)")->execute([$valor_hora, $descricao]);
         }
-        $mensagem = 'Mão de obra atualizada!';
-    } catch (Exception $e) { $erro = $e->getMessage(); }
+        
+        // ========== ATUALIZAR OS SERVIÇOS EM ABERTO ==========
+        // Buscar todas OS em aberto (não finalizadas nem canceladas)
+        $os_abertas = $db->query("SELECT id FROM ordens_servico WHERE status NOT IN ('finalizada', 'cancelada')")->fetchAll(PDO::FETCH_ASSOC);
+        
+        $servicos_atualizados = 0;
+        foreach ($os_abertas as $os) {
+            // Buscar serviços desta OS
+            $servicos = $db->prepare("
+                SELECT os.id, s.tempo_estimado, os.quantidade 
+                FROM os_servicos os 
+                JOIN servicos s ON os.servico_id = s.id 
+                WHERE os.os_id = ?
+            ");
+            $servicos->execute([$os['id']]);
+            $servicos = $servicos->fetchAll(PDO::FETCH_ASSOC);
+            
+            foreach ($servicos as $servico) {
+                // Recalcular valor com a nova mão de obra
+                $novo_valor = ($servico['tempo_estimado'] / 60) * $valor_hora * $servico['quantidade'];
+                $novo_valor = round($novo_valor, 2);
+                
+                // Atualizar no banco
+                $update = $db->prepare("UPDATE os_servicos SET valor_unitario = ? WHERE id = ?");
+                $update->execute([$novo_valor, $servico['id']]);
+                $servicos_atualizados++;
+            }
+        }
+        
+        $mensagem = "Mão de obra atualizada para R$ " . number_format($valor_hora, 2, ',', '.') . ". $servicos_atualizados serviços foram recalculados automaticamente!";
+        
+    } catch (Exception $e) { 
+        $erro = $e->getMessage(); 
+    }
 }
 
 $atual = $db->query("SELECT * FROM mao_de_obra ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
@@ -64,8 +96,11 @@ $historico = $db->query("SELECT os.numero_os, os.data_abertura, SUM(oss.quantida
           <label class="os-label">Observação</label>
           <input type="text" name="descricao" class="os-input" value="<?= htmlspecialchars($atual['descricao'] ?? '') ?>" placeholder="Ex: Revisão de tabela Jan/2025">
         </div>
-        <button type="submit" class="btn-os btn-os-primary" style="width:100%;justify-content:center"><i class="ph-bold ph-floppy-disk"></i> Salvar</button>
+        <button type="submit" class="btn-os btn-os-primary" style="width:100%;justify-content:center"><i class="ph-bold ph-floppy-disk"></i> Salvar e Recalcular OS</button>
       </form>
+      <div style="margin-top:12px;padding:10px;background:rgba(245,158,11,.05);border-radius:8px;font-size:.75rem;color:var(--text-muted)">
+        <i class="ph-bold ph-info"></i> Ao salvar, TODAS as OS em aberto serão recalculadas automaticamente com o novo valor.
+      </div>
     </div>
   </div>
 
@@ -88,7 +123,7 @@ $historico = $db->query("SELECT os.numero_os, os.data_abertura, SUM(oss.quantida
           </tr>
           <?php endforeach; ?>
         </tbody>
-       </div>
+      </table>
     </div>
   </div>
 
@@ -96,15 +131,12 @@ $historico = $db->query("SELECT os.numero_os, os.data_abertura, SUM(oss.quantida
 </main>
 
 <script>
-// Adiciona máscara de dinheiro ao campo valor_hora
 document.addEventListener('DOMContentLoaded', function() {
     var inputValor = document.querySelector('input[name="valor_hora"]');
     if (inputValor) {
         inputValor.addEventListener('input', function(e) {
             var valor = this.value;
-            // Remove tudo que não for número ou vírgula
             valor = valor.replace(/[^0-9,]/g, '');
-            // Separa centavos
             var partes = valor.split(',');
             if (partes.length > 2) {
                 valor = partes[0] + ',' + partes.slice(1).join('');
@@ -112,14 +144,12 @@ document.addEventListener('DOMContentLoaded', function() {
             this.value = valor;
         });
         
-        // Ao perder o foco, formata para 2 casas decimais
         inputValor.addEventListener('blur', function() {
             var valor = this.value;
             if (valor === '') {
                 this.value = '0,00';
                 return;
             }
-            // Remove pontos e mantém apenas números e vírgula
             valor = valor.replace(/[^0-9,]/g, '');
             var partes = valor.split(',');
             var inteiro = partes[0].replace(/^0+/, '') || '0';
