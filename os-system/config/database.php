@@ -1,7 +1,7 @@
 <?php
 class Database {
     // Configuração para servidor de produção (Locaweb)
-    private $host = "ossystem.mysql.dbaas.com.br";
+    private $host = "localhost";
     private $db_name = "ossystem";  // ALTERE PARA O NOME DO SEU BANCO
     private $username = "ossystem";        // ALTERE PARA SEU USUÁRIO
     private $password = "Os147369#";          // ALTERE PARA SUA SENHA
