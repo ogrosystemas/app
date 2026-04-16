@@ -1,0 +1,5 @@
+Esta pasta contém logs internos do sistema.
+Acesso externo bloqueado via .htaccess.
+
+Arquivos:
+- webhook_mp.log  → eventos recebidos do Mercado Pago
