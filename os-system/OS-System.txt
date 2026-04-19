@@ -1,0 +1,77 @@
+OS-System/
+│
+├── index.php
+├── login.php
+├── logout.php
+│
+├── config/
+│   ├── config.php
+│   └── database.php
+│
+├── includes/
+│   └── sidebar.php
+│
+├── assets/
+│   ├── css/
+│   │   └── style.css
+│   └── images/
+│       ├── logo.png
+│       └── logo-pequena.png
+│
+├── api/
+│   ├── produtos.php
+│   ├── clientes.php
+│   ├── servicos.php
+│   └── motos.php
+│
+├── modules/
+│   ├── auth/
+│   │   └── auth.php
+│   │   └── permissao.php
+│   │
+│   ├── pdv/
+│   │   ├── pdv.php
+│   │   ├── abrir_caixa.php
+│   │   └── fechar_caixa.php
+│   │
+│   ├── produtos/
+│   │   └── produtos.php
+│   │
+│   ├── clientes/
+│   │   ├── clientes.php
+│   │   ├── salvar_moto.php
+│   │   └── excluir_moto.php
+│   │
+│   ├── servicos/
+│   │   └── servicos.php
+│   │
+│   ├── os/
+│   │   ├── os.php
+│   │   ├── os_detalhes.php
+│   │   ├── os_editar.php
+│   │   ├── carregar_detalhes_os.php
+│   │   ├── gerar_os_pdf.php
+│   │   ├── atualizar_status.php
+│   │   └── atualizar_totais_os.php
+│   │
+│   ├── orcamentos/
+│   │   ├── orcamentos.php
+│   │   ├── detalhes_orcamento.php
+│   │   ├── imprimir_orcamento.php
+│   │   └── gerar_pdf_tcpdf.php
+│   │
+│   ├── estoque/
+│   │   └── estoque.php
+│   │
+│   ├── relatorios/
+│   │   ├── relatorios.php
+│   │   └── gerar_relatorio_pdf.php
+│   │
+│   └── usuarios/
+│       └── usuarios.php
+│
+└── tcpdf/
+    ├── tcpdf.php
+    ├── fonts/
+    ├── config/
+    └── ...
