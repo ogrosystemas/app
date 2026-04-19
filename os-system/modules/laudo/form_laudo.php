@@ -2,14 +2,7 @@
 require_once '../../config/config.php';
 checkAuth();
 
-// ── Resolver OS ───────────────────────────────────────────────────────────────
-$os_id    = (int)($_GET['os_id'] ?? 0);
-$laudo_id = (int)($_GET['id']    ?? 0);
-
-$laudo  = null;
-$secoes = [];
-
-// Verificar se tabela existe
+// ── Verificar se tabela existe ────────────────────────────────────────────────
 try {
     $db->query("SELECT 1 FROM laudos_tecnicos LIMIT 1");
 } catch (PDOException $e) {
@@ -17,10 +10,16 @@ try {
     header('Location: laudo.php'); exit;
 }
 
+// ── Resolver IDs ──────────────────────────────────────────────────────────────
+$laudo_id = (int)($_GET['id']    ?? 0);
+$os_id    = (int)($_GET['os_id'] ?? 0);
+
+$laudo  = null;
+$secoes = [];
+
+// Se temos laudo_id, carregar laudo e extrair os_id
 if ($laudo_id) {
-    // Editar laudo existente
-    $laudo = $db->prepare("SELECT * FROM laudos_tecnicos WHERE id = ?")->execute([$laudo_id]) ? null : null;
-    $stmt  = $db->prepare("SELECT * FROM laudos_tecnicos WHERE id = ?");
+    $stmt = $db->prepare("SELECT * FROM laudos_tecnicos WHERE id = ?");
     $stmt->execute([$laudo_id]);
     $laudo = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($laudo) {
@@ -33,14 +32,14 @@ if ($laudo_id) {
 
 if (!$os_id) { header('Location: laudo.php'); exit; }
 
-// Buscar OS (somente não cancelada)
+// ── Buscar OS (somente não cancelada) ─────────────────────────────────────────
 $stmtOS = $db->prepare(
     "SELECT os.*, c.nome as cliente_nome, c.telefone, c.cpf_cnpj,
             m.modelo as moto_modelo, m.marca, m.placa, m.ano, m.km_atual,
             u.nome as tecnico_nome
      FROM ordens_servico os
-     JOIN clientes c  ON os.cliente_id = c.id
-     JOIN motos m     ON os.moto_id    = m.id
+     JOIN clientes c      ON os.cliente_id = c.id
+     JOIN motos m         ON os.moto_id    = m.id
      LEFT JOIN usuarios u ON os.created_by = u.id
      WHERE os.id = ? AND os.status != 'cancelada'"
 );
@@ -52,58 +51,77 @@ if (!$os) { header('Location: ../os/os.php'); exit; }
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['salvar_laudo'])) {
     csrfVerify();
 
-    $dados = [
-        'os_id'             => $os_id,
-        'tipo_manutencao'   => $_POST['tipo_manutencao'] ?? 'corretiva',
-        'objetivo'          => trim($_POST['objetivo'] ?? ''),
-        'km_revisao'        => (int)($_POST['km_revisao'] ?? 0) ?: null,
-        'conclusao_tecnica' => trim($_POST['conclusao_tecnica'] ?? ''),
-        'status_veiculo'    => $_POST['status_veiculo'] ?? 'apta',
-        'created_by'        => $_SESSION['usuario_id'],
-    ];
+    $tipo_manutencao   = $_POST['tipo_manutencao']   ?? 'corretiva';
+    $objetivo          = trim($_POST['objetivo']      ?? '');
+    $km_revisao        = (int)($_POST['km_revisao']   ?? 0) ?: null;
+    $conclusao_tecnica = trim($_POST['conclusao_tecnica'] ?? '');
+    $status_veiculo    = $_POST['status_veiculo']     ?? 'apta';
+    $usuario_id        = (int)$_SESSION['usuario_id'];
 
-    if ($laudo_id) {
-        $db->prepare("UPDATE laudos_tecnicos SET tipo_manutencao=?, objetivo=?, km_revisao=?, conclusao_tecnica=?, status_veiculo=? WHERE id=?")
-           ->execute([$dados['tipo_manutencao'], $dados['objetivo'], $dados['km_revisao'], $dados['conclusao_tecnica'], $dados['status_veiculo'], $laudo_id]);
-        $db->prepare("DELETE FROM laudo_secoes WHERE laudo_id = ?")->execute([$laudo_id]);
-        $lid = $laudo_id;
-    } else {
-        // Verificar se já existe laudo para esta OS
-        $existente = $db->prepare("SELECT id FROM laudos_tecnicos WHERE os_id = ?");
-        $existente->execute([$os_id]);
-        $row = $existente->fetch(PDO::FETCH_ASSOC);
-        if ($row) {
-            $lid = $row['id'];
-            $db->prepare("UPDATE laudos_tecnicos SET tipo_manutencao=?, objetivo=?, km_revisao=?, conclusao_tecnica=?, status_veiculo=? WHERE id=?")
-               ->execute([$dados['tipo_manutencao'], $dados['objetivo'], $dados['km_revisao'], $dados['conclusao_tecnica'], $dados['status_veiculo'], $lid]);
-            $db->prepare("DELETE FROM laudo_secoes WHERE laudo_id = ?")->execute([$lid]);
+    try {
+        if ($laudo_id) {
+            // Atualizar laudo existente
+            $db->prepare(
+                "UPDATE laudos_tecnicos
+                 SET tipo_manutencao=?, objetivo=?, km_revisao=?, conclusao_tecnica=?, status_veiculo=?
+                 WHERE id=?"
+            )->execute([$tipo_manutencao, $objetivo, $km_revisao, $conclusao_tecnica, $status_veiculo, $laudo_id]);
+
+            $db->prepare("DELETE FROM laudo_secoes WHERE laudo_id = ?")->execute([$laudo_id]);
+            $lid = $laudo_id;
+
         } else {
-            $db->prepare("INSERT INTO laudos_tecnicos (os_id, tipo_manutencao, objetivo, km_revisao, conclusao_tecnica, status_veiculo, created_by) VALUES (?,?,?,?,?,?,?)")
-               ->execute(array_values($dados));
-            $lid = (int)$db->lastInsertId();
-        }
-    }
+            // Verificar se já existe laudo para esta OS (evitar duplicata)
+            $existente = $db->prepare("SELECT id FROM laudos_tecnicos WHERE os_id = ?");
+            $existente->execute([$os_id]);
+            $row = $existente->fetch(PDO::FETCH_ASSOC);
 
-    // Salvar itens das seções
-    $itensSecao = $_POST['secao_itens'] ?? [];
-    $stmtIns = $db->prepare("INSERT INTO laudo_secoes (laudo_id, secao, item, resultado, observacao, ordem) VALUES (?,?,?,?,?,?)");
-    foreach ($itensSecao as $secNum => $itens) {
-        foreach ($itens as $ordem => $item) {
-            if (empty(trim($item['item'] ?? ''))) continue;
-            $stmtIns->execute([
-                $lid,
-                (int)$secNum,
-                trim($item['item']),
-                $item['resultado'] ?? 'ok',
-                trim($item['observacao'] ?? ''),
-                (int)$ordem,
-            ]);
+            if ($row) {
+                $lid = (int)$row['id'];
+                $db->prepare(
+                    "UPDATE laudos_tecnicos
+                     SET tipo_manutencao=?, objetivo=?, km_revisao=?, conclusao_tecnica=?, status_veiculo=?
+                     WHERE id=?"
+                )->execute([$tipo_manutencao, $objetivo, $km_revisao, $conclusao_tecnica, $status_veiculo, $lid]);
+                $db->prepare("DELETE FROM laudo_secoes WHERE laudo_id = ?")->execute([$lid]);
+            } else {
+                $db->prepare(
+                    "INSERT INTO laudos_tecnicos
+                     (os_id, tipo_manutencao, objetivo, km_revisao, conclusao_tecnica, status_veiculo, created_by)
+                     VALUES (?,?,?,?,?,?,?)"
+                )->execute([$os_id, $tipo_manutencao, $objetivo, $km_revisao, $conclusao_tecnica, $status_veiculo, $usuario_id]);
+                $lid = (int)$db->lastInsertId();
+            }
         }
-    }
 
-    $_SESSION['mensagem'] = 'Relatório técnico salvo com sucesso!';
-    header('Location: form_laudo.php?id=' . $lid);
-    exit;
+        // Salvar itens das seções
+        $itensSecao = $_POST['secao_itens'] ?? [];
+        $stmtIns = $db->prepare(
+            "INSERT INTO laudo_secoes (laudo_id, secao, item, resultado, observacao, ordem)
+             VALUES (?,?,?,?,?,?)"
+        );
+        foreach ($itensSecao as $secNum => $itens) {
+            foreach ($itens as $ordem => $item) {
+                $nomeItem = trim($item['item'] ?? '');
+                if ($nomeItem === '') continue;
+                $stmtIns->execute([
+                    $lid,
+                    (int)$secNum,
+                    $nomeItem,
+                    $item['resultado'] ?? 'ok',
+                    trim($item['observacao'] ?? ''),
+                    (int)$ordem,
+                ]);
+            }
+        }
+
+        $_SESSION['mensagem'] = 'Relatório técnico salvo com sucesso!';
+        header('Location: form_laudo.php?id=' . $lid);
+        exit;
+
+    } catch (PDOException $e) {
+        $erroSalvar = 'Erro ao salvar: ' . $e->getMessage();
+    }
 }
 
 // ── Itens padrão por seção ────────────────────────────────────────────────────
@@ -130,7 +148,7 @@ $itensPadrao = [
     9 => ['Lavagem / higienização','Lubrificação de cabos','Aperto geral de parafusos','Regulagem de válvulas','Sincronização de carburadores'],
 ];
 
-// Organizar seções existentes por número
+// Organizar seções salvas por número
 $secoesSalvas = [];
 foreach ($secoes as $s) {
     $secoesSalvas[$s['secao']][] = $s;
@@ -148,7 +166,8 @@ unset($_SESSION['mensagem']);
       <i class="ph-bold ph-arrow-left"></i> Voltar para OS
     </a>
     <?php if ($laudo_id): ?>
-    <a href="gerar_laudo_pdf.php?id=<?= $laudo_id ?>" target="_blank" class="btn-os" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#ef4444">
+    <a href="gerar_laudo_pdf.php?id=<?= $laudo_id ?>" target="_blank"
+       class="btn-os" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#ef4444">
       <i class="ph-bold ph-file-pdf"></i> Gerar PDF
     </a>
     <?php endif; ?>
@@ -160,8 +179,11 @@ unset($_SESSION['mensagem']);
 <?php if ($mensagem): ?>
 <div class="os-alert os-alert-success"><i class="ph-bold ph-check-circle"></i> <?= htmlspecialchars($mensagem) ?></div>
 <?php endif; ?>
+<?php if (!empty($erroSalvar)): ?>
+<div class="os-alert os-alert-danger"><i class="ph-bold ph-warning-circle"></i> <?= htmlspecialchars($erroSalvar) ?></div>
+<?php endif; ?>
 
-<form method="POST" id="formLaudo">
+<form method="POST" action="form_laudo.php?id=<?= $laudo_id ?>&os_id=<?= $os_id ?>">
   <input type="hidden" name="salvar_laudo" value="1">
   <?= csrfField() ?>
 
@@ -186,7 +208,7 @@ unset($_SESSION['mensagem']);
         </div>
         <div class="os-form-group">
           <label class="os-label">Modelo da Moto</label>
-          <input type="text" class="os-input" value="<?= htmlspecialchars(($os['marca']??'').' '.$os['moto_modelo']) ?>" readonly style="background:var(--bg-muted)">
+          <input type="text" class="os-input" value="<?= htmlspecialchars(trim(($os['marca'] ?? '') . ' ' . $os['moto_modelo'])) ?>" readonly style="background:var(--bg-muted)">
         </div>
         <div class="os-form-group">
           <label class="os-label">Placa</label>
@@ -195,7 +217,7 @@ unset($_SESSION['mensagem']);
         <div class="os-form-group">
           <label class="os-label">KM no Laudo</label>
           <input type="number" name="km_revisao" class="os-input" min="0" placeholder="Ex: 15000"
-                 value="<?= htmlspecialchars($laudo['km_revisao'] ?? $os['km_atual'] ?? '') ?>">
+                 value="<?= htmlspecialchars((string)($laudo['km_revisao'] ?? $os['km_atual'] ?? '')) ?>">
         </div>
       </div>
     </div>
@@ -227,13 +249,12 @@ unset($_SESSION['mensagem']);
   <!-- ── INSPEÇÃO — 9 SEÇÕES ─────────────────────────────────── -->
   <?php foreach ($secaoNomes as $num => $nomeSecao):
     $itensDaSecao = $secoesSalvas[$num] ?? [];
-    $padrao = $itensPadrao[$num] ?? [];
   ?>
-  <div class="os-card" style="margin-bottom:16px" id="card-secao-<?= $num ?>">
+  <div class="os-card" style="margin-bottom:16px">
     <div class="os-card-body" style="padding-bottom:10px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <h6 style="font-family:'Syne',sans-serif;font-weight:700;color:var(--accent);text-transform:uppercase;font-size:.78rem;letter-spacing:.06em;margin:0">
-          <i class="ph-bold ph-list-checks"></i> <?= (int)$num ?>. <?= htmlspecialchars($nomeSecao) ?>
+          <i class="ph-bold ph-list-checks"></i> <?= $num ?>. <?= htmlspecialchars($nomeSecao) ?>
         </h6>
         <button type="button" class="btn-os btn-os-ghost" style="padding:4px 10px;font-size:.75rem"
                 onclick="adicionarItem(<?= $num ?>)">
@@ -241,7 +262,6 @@ unset($_SESSION['mensagem']);
         </button>
       </div>
 
-      <!-- Cabeçalho da tabela -->
       <div style="display:grid;grid-template-columns:3fr 140px 2fr 32px;gap:6px;padding:0 4px;margin-bottom:4px">
         <span style="font-size:.7rem;color:var(--text-muted);font-weight:600;text-transform:uppercase">Item Inspecionado</span>
         <span style="font-size:.7rem;color:var(--text-muted);font-weight:600;text-transform:uppercase">Resultado</span>
@@ -250,60 +270,55 @@ unset($_SESSION['mensagem']);
       </div>
 
       <div class="secao-itens" id="secao-<?= $num ?>-itens">
-        <?php
-        // Mostrar itens salvos ou padrão vazio
-        $linhas = !empty($itensDaSecao) ? $itensDaSecao : [];
-        foreach ($linhas as $idx => $it):
-        ?>
-        <div class="secao-linha" style="display:grid;grid-template-columns:3fr 140px 2fr 32px;gap:6px;margin-bottom:6px">
-          <input type="text" name="secao_itens[<?= $num ?>][<?= $idx ?>][item]"
-                 class="os-input" style="padding:6px 10px;font-size:.83rem"
-                 value="<?= htmlspecialchars($it['item']) ?>" placeholder="Descrição do item" required>
-          <select name="secao_itens[<?= $num ?>][<?= $idx ?>][resultado]" class="os-input resultado-sel" style="padding:5px 8px;font-size:.8rem">
-            <option value="ok"            <?= ($it['resultado']??'') === 'ok'            ? 'selected':'' ?>>✅ OK</option>
-            <option value="atencao"       <?= ($it['resultado']??'') === 'atencao'       ? 'selected':'' ?>>⚠️ Atenção</option>
-            <option value="critico"       <?= ($it['resultado']??'') === 'critico'       ? 'selected':'' ?>>🔴 Crítico</option>
-            <option value="substituido"   <?= ($it['resultado']??'') === 'substituido'   ? 'selected':'' ?>>🔧 Substituído</option>
-            <option value="nao_aplicavel" <?= ($it['resultado']??'') === 'nao_aplicavel' ? 'selected':'' ?>>— N/A</option>
-          </select>
-          <input type="text" name="secao_itens[<?= $num ?>][<?= $idx ?>][observacao]"
-                 class="os-input" style="padding:6px 10px;font-size:.83rem"
-                 value="<?= htmlspecialchars($it['observacao'] ?? '') ?>" placeholder="Observação (opcional)">
-          <button type="button" onclick="removerLinha(this)" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#ef4444;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center">
-            <i class="ph-bold ph-trash" style="font-size:.85rem"></i>
-          </button>
-        </div>
-        <?php endforeach; ?>
-
-        <?php if (empty($linhas)): ?>
-        <!-- Linha vazia inicial para cada seção -->
-        <div class="secao-linha" style="display:grid;grid-template-columns:3fr 140px 2fr 32px;gap:6px;margin-bottom:6px">
-          <input type="text" name="secao_itens[<?= $num ?>][0][item]"
-                 class="os-input" style="padding:6px 10px;font-size:.83rem"
-                 value="" placeholder="Descrição do item">
-          <select name="secao_itens[<?= $num ?>][0][resultado]" class="os-input resultado-sel" style="padding:5px 8px;font-size:.8rem">
-            <option value="ok">✅ OK</option>
-            <option value="atencao">⚠️ Atenção</option>
-            <option value="critico">🔴 Crítico</option>
-            <option value="substituido">🔧 Substituído</option>
-            <option value="nao_aplicavel">— N/A</option>
-          </select>
-          <input type="text" name="secao_itens[<?= $num ?>][0][observacao]"
-                 class="os-input" style="padding:6px 10px;font-size:.83rem"
-                 value="" placeholder="Observação (opcional)">
-          <button type="button" onclick="removerLinha(this)" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#ef4444;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center">
-            <i class="ph-bold ph-trash" style="font-size:.85rem"></i>
-          </button>
-        </div>
+        <?php if (!empty($itensDaSecao)): ?>
+          <?php foreach ($itensDaSecao as $idx => $it): ?>
+          <div class="secao-linha" style="display:grid;grid-template-columns:3fr 140px 2fr 32px;gap:6px;margin-bottom:6px">
+            <input type="text" name="secao_itens[<?= $num ?>][<?= $idx ?>][item]"
+                   class="os-input" style="padding:6px 10px;font-size:.83rem"
+                   value="<?= htmlspecialchars($it['item']) ?>" placeholder="Descrição do item">
+            <select name="secao_itens[<?= $num ?>][<?= $idx ?>][resultado]" class="os-input" style="padding:5px 8px;font-size:.8rem">
+              <option value="ok"            <?= ($it['resultado'] === 'ok')            ? 'selected':'' ?>>✅ OK</option>
+              <option value="atencao"       <?= ($it['resultado'] === 'atencao')       ? 'selected':'' ?>>⚠️ Atenção</option>
+              <option value="critico"       <?= ($it['resultado'] === 'critico')       ? 'selected':'' ?>>🔴 Crítico</option>
+              <option value="substituido"   <?= ($it['resultado'] === 'substituido')   ? 'selected':'' ?>>🔧 Substituído</option>
+              <option value="nao_aplicavel" <?= ($it['resultado'] === 'nao_aplicavel') ? 'selected':'' ?>>— N/A</option>
+            </select>
+            <input type="text" name="secao_itens[<?= $num ?>][<?= $idx ?>][observacao]"
+                   class="os-input" style="padding:6px 10px;font-size:.83rem"
+                   value="<?= htmlspecialchars($it['observacao'] ?? '') ?>" placeholder="Observação (opcional)">
+            <button type="button" onclick="removerLinha(this)"
+                    style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#ef4444;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center">
+              <i class="ph-bold ph-trash" style="font-size:.85rem"></i>
+            </button>
+          </div>
+          <?php endforeach; ?>
+        <?php else: ?>
+          <div class="secao-linha" style="display:grid;grid-template-columns:3fr 140px 2fr 32px;gap:6px;margin-bottom:6px">
+            <input type="text" name="secao_itens[<?= $num ?>][0][item]"
+                   class="os-input" style="padding:6px 10px;font-size:.83rem" value="" placeholder="Descrição do item">
+            <select name="secao_itens[<?= $num ?>][0][resultado]" class="os-input" style="padding:5px 8px;font-size:.8rem">
+              <option value="ok">✅ OK</option>
+              <option value="atencao">⚠️ Atenção</option>
+              <option value="critico">🔴 Crítico</option>
+              <option value="substituido">🔧 Substituído</option>
+              <option value="nao_aplicavel">— N/A</option>
+            </select>
+            <input type="text" name="secao_itens[<?= $num ?>][0][observacao]"
+                   class="os-input" style="padding:6px 10px;font-size:.83rem" value="" placeholder="Observação (opcional)">
+            <button type="button" onclick="removerLinha(this)"
+                    style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#ef4444;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center">
+              <i class="ph-bold ph-trash" style="font-size:.85rem"></i>
+            </button>
+          </div>
         <?php endif; ?>
       </div>
 
-      <!-- Itens padrão rápidos -->
-      <?php if (!empty($padrao)): ?>
+      <?php if (!empty($itensPadrao[$num])): ?>
       <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
         <span style="font-size:.7rem;color:var(--text-muted);margin-right:6px">Atalhos:</span>
-        <?php foreach ($padrao as $p): ?>
-        <button type="button" class="btn-os" style="padding:2px 8px;font-size:.7rem;margin:2px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text-muted)"
+        <?php foreach ($itensPadrao[$num] as $p): ?>
+        <button type="button" class="btn-os"
+                style="padding:2px 8px;font-size:.7rem;margin:2px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text-muted)"
                 onclick="adicionarItemRapido(<?= $num ?>, <?= htmlspecialchars(json_encode($p), ENT_QUOTES) ?>)">
           + <?= htmlspecialchars($p) ?>
         </button>
@@ -356,21 +371,20 @@ unset($_SESSION['mensagem']);
       <i class="ph-bold ph-floppy-disk"></i> Salvar Relatório
     </button>
     <?php if ($laudo_id): ?>
-    <a href="gerar_laudo_pdf.php?id=<?= $laudo_id ?>" target="_blank" class="btn-os" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#ef4444">
+    <a href="gerar_laudo_pdf.php?id=<?= $laudo_id ?>" target="_blank"
+       class="btn-os" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#ef4444">
       <i class="ph-bold ph-file-pdf"></i> Gerar PDF
     </a>
     <?php endif; ?>
   </div>
 
 </form>
-
 </main>
 
 <script>
-// Controle de índice por seção
 var secaoIdx = {};
 <?php foreach ($secaoNomes as $num => $nome): ?>
-secaoIdx[<?= $num ?>] = <?= max(count($secoesSalvas[$num] ?? [['x']]), 1) ?>;
+secaoIdx[<?= $num ?>] = <?= max(count($secoesSalvas[$num] ?? []), 1) ?>;
 <?php endforeach; ?>
 
 function adicionarItem(secNum) {
@@ -378,10 +392,10 @@ function adicionarItem(secNum) {
     var idx = secaoIdx[secNum]++;
     var div = document.createElement('div');
     div.className = 'secao-linha';
-    div.style = 'display:grid;grid-template-columns:3fr 140px 2fr 32px;gap:6px;margin-bottom:6px';
+    div.style.cssText = 'display:grid;grid-template-columns:3fr 140px 2fr 32px;gap:6px;margin-bottom:6px';
     div.innerHTML =
         '<input type="text" name="secao_itens[' + secNum + '][' + idx + '][item]" class="os-input" style="padding:6px 10px;font-size:.83rem" placeholder="Descrição do item">' +
-        '<select name="secao_itens[' + secNum + '][' + idx + '][resultado]" class="os-input resultado-sel" style="padding:5px 8px;font-size:.8rem">' +
+        '<select name="secao_itens[' + secNum + '][' + idx + '][resultado]" class="os-input" style="padding:5px 8px;font-size:.8rem">' +
         '<option value="ok">✅ OK</option>' +
         '<option value="atencao">⚠️ Atenção</option>' +
         '<option value="critico">🔴 Crítico</option>' +
@@ -397,29 +411,26 @@ function adicionarItem(secNum) {
 
 function adicionarItemRapido(secNum, nome) {
     var container = document.getElementById('secao-' + secNum + '-itens');
-    // Verificar se já existe item com esse nome
-    var inputs = container.querySelectorAll('input[type=text]');
-    for (var i = 0; i < inputs.length; i++) {
-        if (inputs[i].name.includes('[item]') && inputs[i].value.trim() === nome) {
-            inputs[i].style.outline = '2px solid var(--accent)';
-            setTimeout(function(el){ el.style.outline=''; }, 1500, inputs[i]);
+    var linhas = container.querySelectorAll('.secao-linha');
+    // Verificar se nome já existe
+    for (var i = 0; i < linhas.length; i++) {
+        var inp = linhas[i].querySelector('input[type=text]');
+        if (inp && inp.value.trim() === nome) {
+            inp.style.outline = '2px solid var(--accent)';
+            setTimeout(function(el) { el.style.outline = ''; }, 1500, inp);
             return;
         }
     }
-    // Verificar se a última linha está vazia para reutilizar
-    var linhas = container.querySelectorAll('.secao-linha');
+    // Reutilizar última linha vazia
     var ultima = linhas[linhas.length - 1];
     if (ultima) {
-        var inputItem = ultima.querySelector('input[type=text]');
-        if (inputItem && inputItem.value.trim() === '') {
-            inputItem.value = nome;
-            return;
-        }
+        var inp = ultima.querySelector('input[type=text]');
+        if (inp && inp.value.trim() === '') { inp.value = nome; return; }
     }
     adicionarItem(secNum);
     setTimeout(function() {
-        var linhas2 = container.querySelectorAll('.secao-linha');
-        var nova = linhas2[linhas2.length - 1];
+        var ls = container.querySelectorAll('.secao-linha');
+        var nova = ls[ls.length - 1];
         if (nova) nova.querySelector('input[type=text]').value = nome;
     }, 20);
 }
@@ -427,10 +438,8 @@ function adicionarItemRapido(secNum, nome) {
 function removerLinha(btn) {
     var linha = btn.closest('.secao-linha');
     var container = linha.parentElement;
-    var linhas = container.querySelectorAll('.secao-linha');
-    if (linhas.length <= 1) {
-        // Limpar campos ao invés de remover
-        linha.querySelectorAll('input[type=text]').forEach(function(i){ i.value = ''; });
+    if (container.querySelectorAll('.secao-linha').length <= 1) {
+        linha.querySelectorAll('input[type=text]').forEach(function(i) { i.value = ''; });
         linha.querySelector('select').value = 'ok';
     } else {
         linha.remove();

@@ -30,14 +30,22 @@ CREATE TABLE IF NOT EXISTS `laudos_tecnicos` (
 -- 2) Tabela de itens dinâmicos por seção do laudo
 -- ──────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `laudo_secoes` (
-  `id`          INT(11)       NOT NULL AUTO_INCREMENT,
-  `laudo_id`    INT(11)       NOT NULL,
-  `secao`       TINYINT(4)    NOT NULL COMMENT '1=Motor/Lubrificação 2=Arrefecimento 3=Alimentação 4=Transmissão 5=Freios 6=Rodas/Vedações 7=Suspensão/Direção 8=Comandos 9=Serviços Complementares',
-  `item`        VARCHAR(150)  NOT NULL,
+  `id`          INT(11)      NOT NULL AUTO_INCREMENT,
+  `laudo_id`    INT(11)      NOT NULL,
+  `secao`       TINYINT(4)   NOT NULL COMMENT '1=Motor/Lubrificação 2=Arrefecimento 3=Alimentação 4=Transmissão 5=Freios 6=Rodas/Vedações 7=Suspensão/Direção 8=Comandos 9=Serviços Complementares',
+  `item`        TEXT         NOT NULL,
   `resultado`   ENUM('ok','atencao','critico','substituido','nao_aplicavel') NOT NULL DEFAULT 'ok',
-  `observacao`  VARCHAR(255)  DEFAULT NULL,
+  `observacao`  TEXT         DEFAULT NULL,
   `ordem`       TINYINT(4)   NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `idx_laudo_secao` (`laudo_id`, `secao`),
   CONSTRAINT `fk_secao_laudo` FOREIGN KEY (`laudo_id`) REFERENCES `laudos_tecnicos` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ──────────────────────────────────────────────────────────────
+-- 3) Ampliar colunas caso a tabela já exista com VARCHAR
+--    (seguro rodar mesmo se já for TEXT — não faz nada)
+-- ──────────────────────────────────────────────────────────────
+ALTER TABLE `laudo_secoes`
+  MODIFY COLUMN `item`       TEXT NOT NULL,
+  MODIFY COLUMN `observacao` TEXT DEFAULT NULL;

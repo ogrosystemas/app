@@ -29,13 +29,12 @@ $stmt2 = $db->prepare("SELECT * FROM laudo_secoes WHERE laudo_id = ? ORDER BY se
 $stmt2->execute([$id]);
 $secoes = $stmt2->fetchAll(PDO::FETCH_ASSOC);
 
-// Agrupar seções
 $secaoItens = [];
 foreach ($secoes as $s) {
     $secaoItens[$s['secao']][] = $s;
 }
 
-// Config do sistema
+// Config
 $cfg = [];
 $cfgFile = __DIR__ . '/../../config/sistema.php';
 if (file_exists($cfgFile)) { $cfg = include $cfgFile; }
@@ -102,14 +101,14 @@ pdfInfoBoxes(
     $pdf,
     'Cliente',
     [
-        ['label' => '', 'value' => $laudo['cliente_nome']],
-        ['label' => 'CPF/CNPJ', 'value' => $laudo['cpf_cnpj'] ?: '—'],
+        ['label' => '',          'value' => $laudo['cliente_nome']],
+        ['label' => 'CPF/CNPJ',  'value' => $laudo['cpf_cnpj'] ?: '—'],
         ['label' => 'Telefone',  'value' => $laudo['telefone'] ?: '—'],
         ['label' => 'E-mail',    'value' => $laudo['email']    ?: '—'],
     ],
     'Moto',
     [
-        ['label' => '', 'value' => ($laudo['marca'] ? $laudo['marca'] . ' ' : '') . $laudo['moto_modelo']],
+        ['label' => '',          'value' => ($laudo['marca'] ? $laudo['marca'] . ' ' : '') . $laudo['moto_modelo']],
         ['label' => 'Placa',     'value' => $laudo['placa']   ?: '—'],
         ['label' => 'Ano',       'value' => $laudo['ano']     ?: '—'],
         ['label' => 'Chassi',    'value' => $laudo['chassi']  ?: '—'],
@@ -121,18 +120,35 @@ pdfInfoBoxes(
 $pdf->Ln(2);
 pdfSectionTitle($pdf, 'Manutenção');
 
+// Tipo — linha simples
 $pdf->SetFont('dejavusans', '', 8.5);
 pdfColor($pdf, PDF_C_MUTED);
-$pdf->Cell(30, 5, 'Tipo:', 0, 0);
+$pdf->Cell(33, 5.5, 'Tipo de Manutenção:', 0, 0);
 pdfColor($pdf, PDF_C_DARK);
 $pdf->SetFont('dejavusans', 'B', 8.5);
-$pdf->Cell(60, 5, ucfirst($laudo['tipo_manutencao']), 0, 0);
-pdfColor($pdf, PDF_C_MUTED);
-$pdf->SetFont('dejavusans', '', 8.5);
-$pdf->Cell(25, 5, 'Objetivo:', 0, 0);
-pdfColor($pdf, PDF_C_DARK);
-$pdf->MultiCell(0, 5, $laudo['objetivo'] ?: '—', 0, 'L');
-$pdf->Ln(3);
+$pdf->Cell(0, 5.5, ucfirst($laudo['tipo_manutencao']), 0, 1);
+$pdf->Ln(1);
+
+// Objetivo — bloco MultiCell igual à Conclusão
+if (!empty(trim($laudo['objetivo'] ?? ''))) {
+    $pdf->SetFont('dejavusans', 'B', 7);
+    pdfColor($pdf, PDF_C_MUTED);
+    $pdf->Cell(0, 4, 'OBJETIVO DA MANUTENÇÃO', 0, 1, 'L');
+    $pdf->SetLineWidth(0.15);
+    pdfDraw($pdf, PDF_C_BORDER);
+    $pdf->Line(PDF_MARGIN_LEFT, $pdf->GetY(), 196, $pdf->GetY());
+    $pdf->SetLineWidth(0.2);
+    $pdf->Ln(2);
+
+    $pdf->SetFont('dejavusans', '', 8.5);
+    pdfColor($pdf, PDF_C_DARK);
+    pdfFill($pdf, PDF_C_ROW_ALT);
+    pdfDraw($pdf, PDF_C_BORDER);
+    $pdf->SetLineWidth(0.25);
+    $pdf->MultiCell(0, 5, $laudo['objetivo'], 1, 'L', true);
+    $pdf->SetLineWidth(0.2);
+    $pdf->Ln(3);
+}
 
 // ── SEÇÕES DE INSPEÇÃO ────────────────────────────────────────────────────────
 pdfSectionTitle($pdf, 'Inspeção do Veículo');
@@ -141,8 +157,7 @@ foreach ($secaoNomes as $num => $nomeSecao) {
     $itens = $secaoItens[$num] ?? [];
     if (empty($itens)) continue;
 
-    // Verificar quebra de página
-    if ($pdf->GetY() > 240) { $pdf->AddPage(); }
+    if ($pdf->GetY() > 245) { $pdf->AddPage(); }
 
     // Título da seção
     $pdf->Ln(1);
@@ -151,41 +166,57 @@ foreach ($secaoNomes as $num => $nomeSecao) {
     pdfFill($pdf, [240, 242, 247]);
     pdfDraw($pdf, PDF_C_BORDER);
     $pdf->SetLineWidth(0.2);
-    $pdf->Cell(0, 6, ' ' . $num . '. ' . strtoupper($nomeSecao), 1, 1, 'L', true);
-    $pdf->SetLineWidth(0.2);
+    $pdf->Cell(0, 6, '  ' . $num . '. ' . strtoupper($nomeSecao), 1, 1, 'L', true);
 
-    // Header da tabela de itens
+    // Header da tabela — sem coluna Observação (vai abaixo)
     pdfFill($pdf, PDF_C_TH_BG);
     pdfColor($pdf, PDF_C_TH_TEXT);
     $pdf->SetFont('dejavusans', 'B', 7);
-    $pdf->Cell(90, 5, 'Item Inspecionado', 1, 0, 'L', true);
-    $pdf->Cell(30, 5, 'Resultado', 1, 0, 'C', true);
-    $pdf->Cell(62, 5, 'Observação', 1, 1, 'L', true);
+    $pdf->Cell(152, 5, 'Item Inspecionado', 1, 0, 'L', true);
+    $pdf->Cell(30,  5, 'Resultado',         1, 1, 'C', true);
 
     foreach ($itens as $i => $it) {
-        $alt = ($i % 2 === 0);
-        if ($alt) pdfFill($pdf, PDF_C_ROW_ALT);
-        else       pdfFill($pdf, PDF_C_WHITE);
-        pdfColor($pdf, PDF_C_BLACK);
-        $pdf->SetFont('dejavusans', '', 7.5);
-        $pdf->Cell(90, 5, $it['item'], 1, 0, 'L', true);
+        if ($pdf->GetY() > 260) { $pdf->AddPage(); }
 
-        // Resultado colorido
+        $alt = ($i % 2 === 0);
+        $fillColor = $alt ? PDF_C_ROW_ALT : PDF_C_WHITE;
+
+        // ── Linha principal: item + resultado ──────────────────
+        pdfFill($pdf, $fillColor);
+        pdfColor($pdf, PDF_C_BLACK);
+        pdfDraw($pdf, PDF_C_BORDER);
+        $pdf->SetFont('dejavusans', '', 8);
+        $pdf->Cell(152, 5.5, $it['item'], 1, 0, 'L', true);
+
         $res = $it['resultado'];
         $cor = $resultadoColor[$res] ?? [148, 163, 184];
-        $pdf->SetFont('dejavusans', 'B', 7);
+        $pdf->SetFont('dejavusans', 'B', 7.5);
         $pdf->SetTextColor($cor[0], $cor[1], $cor[2]);
-        $pdf->Cell(30, 5, $resultadoLabel[$res] ?? $res, 1, 0, 'C', true);
-        pdfColor($pdf, PDF_C_BLACK);
-        $pdf->SetFont('dejavusans', '', 7.5);
-        $pdf->Cell(62, 5, $it['observacao'] ?: '—', 1, 1, 'L', true);
+        $pdf->Cell(30, 5.5, $resultadoLabel[$res] ?? $res, 1, 1, 'C', true);
+
+        // ── Linha de observação abaixo (só se tiver texto) ─────
+        $obs = trim($it['observacao'] ?? '');
+        if ($obs !== '' && $obs !== '—') {
+            pdfFill($pdf, $fillColor);
+            pdfDraw($pdf, PDF_C_BORDER);
+            $pdf->SetFont('dejavusans', '', 7);
+            pdfColor($pdf, PDF_C_MUTED);
+
+            // Salvar X antes do MultiCell
+            $xAtual = $pdf->GetX();
+            $pdf->SetX(PDF_MARGIN_LEFT + 4);
+            $pdf->SetFont('dejavusans', 'I', 7);
+            pdfColor($pdf, PDF_C_MUTED);
+            // MultiCell com borda lateral e inferior, fundo igual à linha
+            $pdf->MultiCell(178, 4.5, '↳ ' . $obs, 'LBR', 'L', true);
+        }
     }
-    $pdf->Ln(1);
+    $pdf->Ln(2);
 }
 
-// ── FINALIZAÇÃO ───────────────────────────────────────────────────────────────
+// ── CONCLUSÃO TÉCNICA ─────────────────────────────────────────────────────────
 if ($pdf->GetY() > 220) { $pdf->AddPage(); }
-$pdf->Ln(3);
+$pdf->Ln(2);
 pdfSectionTitle($pdf, 'Conclusão Técnica');
 
 $pdf->SetFont('dejavusans', '', 8.5);
@@ -195,31 +226,42 @@ pdfDraw($pdf, PDF_C_BORDER);
 $pdf->SetLineWidth(0.25);
 $pdf->MultiCell(0, 5, $laudo['conclusao_tecnica'] ?: '—', 1, 'L', true);
 $pdf->SetLineWidth(0.2);
-$pdf->Ln(4);
+$pdf->Ln(5);
 
-// Status do veículo — badge grande
+// ── STATUS DO VEÍCULO ─────────────────────────────────────────────────────────
 $sv  = $laudo['status_veiculo'];
 $svC = $statusVeiculoColor[$sv] ?? [148, 163, 184];
 $svL = $statusVeiculoLabel[$sv] ?? strtoupper($sv);
 
 $pdf->SetFont('dejavusans', 'B', 10);
 pdfColor($pdf, PDF_C_MUTED);
-$pdf->Cell(40, 7, 'Status do Veículo:', 0, 0, 'L');
+$pdf->Cell(42, 7, 'Status do Veículo:', 0, 0, 'L');
 $pdf->SetTextColor($svC[0], $svC[1], $svC[2]);
 $pdf->Cell(0, 7, '● ' . $svL, 0, 1, 'L');
-$pdf->Ln(2);
+$pdf->Ln(1);
 
-// Técnico responsável
+// Técnico
 $pdf->SetFont('dejavusans', '', 8);
 pdfColor($pdf, PDF_C_MUTED);
-$pdf->Cell(40, 5, 'Técnico Responsável:', 0, 0);
+$pdf->Cell(42, 5, 'Técnico Responsável:', 0, 0);
 pdfColor($pdf, PDF_C_DARK);
 $pdf->Cell(0, 5, $laudo['tecnico_nome'] ?: '—', 0, 1);
 
 // Assinaturas
 pdfAssinaturas($pdf, 'Assinatura do Técnico', 'Assinatura do Cliente / Responsável');
 
-// Rodapé
-pdfRodape($pdf, $cfg['nome_oficina']);
+// Rodapé — somente na última página
+$pdf->SetY(297 - 20);
+$pdf->SetLineWidth(0.2);
+pdfDraw($pdf, PDF_C_BORDER);
+$pdf->Line(PDF_MARGIN_LEFT, $pdf->GetY(), 196, $pdf->GetY());
+$pdf->Ln(1.5);
+$pdf->SetFont('dejavusans', '', 6.5);
+pdfColor($pdf, PDF_C_LIGHT_MUTED);
+$totalPags = $pdf->getNumPages();
+$pdf->Cell(0, 4,
+    $cfg['nome_oficina'] . ' · OS-System · Pág. ' . $totalPags . '/' . $totalPags . ' · ' . date('d/m/Y H:i'),
+    0, 0, 'C'
+);
 
-$pdf->Output('Laudo-' . $laudo['numero_os'] . '.pdf', 'I');
+$pdf->Output('Laudo-' . $laudo['numero_os'] . '.pdf', 'D');
