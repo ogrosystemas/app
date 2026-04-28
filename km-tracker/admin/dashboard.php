@@ -26,6 +26,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 // Buscar apenas a próxima Sexta
 $proximaSexta = getProximaSexta($db, $uid, $year);
 
+// Escalas do mês para o mini-calendário
+$calMes = (int)date('m');
+$calAno = (int)date('Y');
+$mesesNomes = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+// Escalas do mês — protegidas contra tabelas ausentes no banco
+$diasAdmBar = []; $diasAdmChurrasco = [];
+$todasEscalasBar = []; $todasEscalasChurrasco = [];
+$diasTodosBar = []; $diasTodosChurrasco = [];
+try {
+    // Bar — dias do admin
+    $s = $db->prepare("SELECT semana_inicio FROM escala_bar WHERE (user1_id=? OR user2_id=?) AND MONTH(semana_inicio)=? AND YEAR(semana_inicio)=?");
+    $s->execute([$uid, $uid, $calMes, $calAno]);
+    foreach ($s->fetchAll() as $eb) {
+        $dt = new DateTime($eb['semana_inicio']);
+        $dow_dt = (int)$dt->format('N');
+        $diff_dt = (5 - $dow_dt + 7) % 7;
+        $dt->modify('+' . $diff_dt . ' days');
+        if ((int)$dt->format('m')===$calMes && (int)$dt->format('Y')===$calAno) $diasAdmBar[(int)$dt->format('d')] = true;
+    }
+    // Churrasco — dias do admin
+    $s = $db->prepare("SELECT ec.semana_inicio FROM escala_churrasco ec JOIN churrasco_grupo_membros cgm ON cgm.grupo_id=ec.grupo_id WHERE cgm.user_id=? AND MONTH(ec.semana_inicio)=? AND YEAR(ec.semana_inicio)=?");
+    $s->execute([$uid, $calMes, $calAno]);
+    foreach ($s->fetchAll() as $ec) {
+        $dt = new DateTime($ec['semana_inicio']);
+        $dow_dt = (int)$dt->format('N');
+        $diff_dt = (5 - $dow_dt + 7) % 7;
+        $dt->modify('+' . $diff_dt . ' days');
+        if ((int)$dt->format('m')===$calMes && (int)$dt->format('Y')===$calAno) $diasAdmChurrasco[(int)$dt->format('d')] = true;
+    }
+    // Bar — todos do mês
+    $s = $db->prepare("SELECT eb.semana_inicio, eb.user1_id, eb.user2_id, u1.name as nome1, u2.name as nome2 FROM escala_bar eb JOIN users u1 ON u1.id=eb.user1_id JOIN users u2 ON u2.id=eb.user2_id WHERE MONTH(eb.semana_inicio)=? AND YEAR(eb.semana_inicio)=? ORDER BY eb.semana_inicio");
+    $s->execute([$calMes, $calAno]);
+    $todasEscalasBar = $s->fetchAll();
+    // Churrasco — todos do mês
+    $s = $db->prepare("SELECT ec.semana_inicio, cg.nome as grupo_nome FROM escala_churrasco ec JOIN churrasco_grupos cg ON cg.id=ec.grupo_id WHERE MONTH(ec.semana_inicio)=? AND YEAR(ec.semana_inicio)=? ORDER BY ec.semana_inicio");
+    $s->execute([$calMes, $calAno]);
+    $todasEscalasChurrasco = $s->fetchAll();
+    // Mapear dias do calendário
+    foreach ($todasEscalasBar as $eb) {
+        $dt = new DateTime($eb['semana_inicio']);
+        $dow_dt = (int)$dt->format('N');
+        $diff_dt = (5 - $dow_dt + 7) % 7;
+        $dt->modify('+' . $diff_dt . ' days');
+        if ((int)$dt->format('m')===$calMes && (int)$dt->format('Y')===$calAno) $diasTodosBar[(int)$dt->format('d')] = true;
+    }
+    foreach ($todasEscalasChurrasco as $ec) {
+        for ($d=0; $d<=6; $d++) {
+            $ts = strtotime($ec['semana_inicio']." +$d days");
+            if ((int)date('m',$ts)===$calMes && (int)date('Y',$ts)===$calAno) $diasTodosChurrasco[(int)date('d',$ts)] = true;
+        }
+    }
+} catch (\Throwable $e) {
+    error_log('KM-Tracker admin escala error: '.$e->getMessage());
+}
+
 // ============================================================
 // CÁLCULO DA META (80% do total de KM de todos os eventos)
 // ============================================================
@@ -88,6 +144,20 @@ $ranking = $db->query("
 // Total de confirmações de Sextas
 $totalSextasConfirmadas = countSextasConfirmadas($db, $year);
 
+// Gráfico de participação por evento
+$chartStmt = $db->query("
+    SELECT e.title, e.event_date,
+           COUNT(CASE WHEN a.status='confirmado' THEN 1 END) as confirmados,
+           COUNT(CASE WHEN a.status='pendente' THEN 1 END) as pendentes
+    FROM events e
+    LEFT JOIN attendances a ON a.event_id = e.id
+    WHERE e.active=1 AND YEAR(e.event_date) = $year
+    GROUP BY e.id, e.title, e.event_date
+    ORDER BY e.event_date ASC
+    LIMIT 10
+");
+$chartData = $chartStmt->fetchAll();
+
 pageOpen("Painel Adm", "dashboard");
 ?>
 
@@ -121,9 +191,10 @@ pageOpen("Painel Adm", "dashboard");
 /* Grid 2 colunas para cards lado a lado */
 .grid-meta-sexta {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
+    grid-template-columns: 1fr 1fr 1.1fr;
+    gap: 20px;
     margin-bottom: 30px;
+    align-items: stretch;
 }
 
 /* Card Sexta */
@@ -145,7 +216,7 @@ pageOpen("Painel Adm", "dashboard");
     align-items: center;
     flex-wrap: wrap;
     gap: 16px;
-    background: #1f2229;
+    background:var(--bg-input);
     border-radius: 8px;
     padding: 16px;
 }
@@ -161,11 +232,11 @@ pageOpen("Painel Adm", "dashboard");
 }
 .card-sexta-date {
     font-size: 0.85rem;
-    color: #a0a5b5;
+    color:var(--text-muted);
 }
 .card-sexta-days {
     font-size: 0.7rem;
-    color: #6e7485;
+    color:var(--text-dim);
 }
 .btn-sexta {
     background: #f39c12;
@@ -184,10 +255,10 @@ pageOpen("Painel Adm", "dashboard");
 
 /* Card Meta com gráfico pizza */
 .card-meta-pizza {
-    background: #14161c;
+    background:var(--bg-card);
     border-radius: 12px;
     padding: 20px;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
 }
 .meta-pizza-header {
     font-size: 1rem;
@@ -229,7 +300,7 @@ pageOpen("Painel Adm", "dashboard");
 }
 .pizza-label {
     font-size: 0.7rem;
-    color: #6e7485;
+    color:var(--text-dim);
     margin-top: 4px;
 }
 .meta-stats {
@@ -240,11 +311,11 @@ pageOpen("Painel Adm", "dashboard");
     justify-content: space-between;
     margin-bottom: 12px;
     padding: 8px 0;
-    border-bottom: 1px solid #2a2f3a;
+    border-bottom:1px solid var(--border);
 }
 .meta-stat-label {
     font-size: 0.75rem;
-    color: #6e7485;
+    color:var(--text-dim);
 }
 .meta-stat-value {
     font-weight: 600;
@@ -254,7 +325,7 @@ pageOpen("Painel Adm", "dashboard");
     color: #dc3545;
 }
 .progress-wrap {
-    background: #1f2229;
+    background:var(--bg-input);
     border-radius: 10px;
     height: 20px;
     overflow: hidden;
@@ -270,7 +341,7 @@ pageOpen("Painel Adm", "dashboard");
     margin-top: 8px;
     text-align: center;
     font-size: 0.8rem;
-    color: #a0a5b5;
+    color:var(--text-muted);
 }
 
 /* Grid de estatísticas - 5 cards com bordas coloridas */
@@ -283,11 +354,11 @@ pageOpen("Painel Adm", "dashboard");
 
 /* Cards com bordas coloridas e efeito hover */
 .stat-item {
-    background: #14161c;
+    background:var(--bg-card);
     border-radius: 12px;
     padding: 20px;
     text-align: center;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
@@ -351,7 +422,7 @@ pageOpen("Painel Adm", "dashboard");
 }
 .stat-text {
     font-size: 0.7rem;
-    color: #6e7485;
+    color:var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-top: 8px;
@@ -366,9 +437,9 @@ pageOpen("Painel Adm", "dashboard");
 
 /* Card padrão */
 .card-default {
-    background: #14161c;
+    background:var(--bg-card);
     border-radius: 12px;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
     overflow: hidden;
 }
 .card-header {
@@ -376,7 +447,7 @@ pageOpen("Painel Adm", "dashboard");
     justify-content: space-between;
     align-items: center;
     padding: 16px 20px;
-    border-bottom: 1px solid #2a2f3a;
+    border-bottom:1px solid var(--border);
 }
 .card-header h3 {
     font-size: 1rem;
@@ -397,10 +468,10 @@ pageOpen("Painel Adm", "dashboard");
 .table-rank th, .table-rank td {
     padding: 12px;
     text-align: left;
-    border-bottom: 1px solid #2a2f3a;
+    border-bottom:1px solid var(--border);
 }
 .table-rank th {
-    color: #6e7485;
+    color:var(--text-dim);
     font-weight: 500;
     font-size: 0.7rem;
     text-transform: uppercase;
@@ -425,8 +496,8 @@ pageOpen("Painel Adm", "dashboard");
     color: #0d0f14;
 }
 .rank-other {
-    background: #1f2229;
-    color: #a0a5b5;
+    background:var(--bg-input);
+    color:var(--text-muted);
 }
 .text-gold {
     color: #f5b041;
@@ -436,8 +507,8 @@ pageOpen("Painel Adm", "dashboard");
 /* Botões */
 .btn-link {
     background: transparent;
-    border: 1px solid #2a2f3a;
-    color: #a0a5b5;
+    border:1px solid var(--border);
+    color:var(--text-muted);
     padding: 4px 12px;
     border-radius: 6px;
     font-size: 0.7rem;
@@ -445,7 +516,7 @@ pageOpen("Painel Adm", "dashboard");
     display: inline-block;
 }
 .btn-link:hover {
-    background: #1f2229;
+    background:var(--bg-input);
 }
 .btn-block {
     display: block;
@@ -472,10 +543,14 @@ pageOpen("Painel Adm", "dashboard");
     background: #dc3545;
     color: white;
 }
+.btn-purple {
+    background: #8b5cf6;
+    color: white;
+}
 .btn-gray {
     background: transparent;
-    border: 1px solid #2a2f3a;
-    color: #a0a5b5;
+    border:1px solid var(--border);
+    color:var(--text-muted);
 }
 
 /* Responsivo */
@@ -489,6 +564,9 @@ pageOpen("Painel Adm", "dashboard");
     }
 }
 @media (max-width: 768px) {
+    .grid-meta-sexta {
+        grid-template-columns: 1fr 1fr;
+    }
     .grid-stats {
         grid-template-columns: repeat(2, 1fr);
         gap: 12px;
@@ -501,11 +579,24 @@ pageOpen("Painel Adm", "dashboard");
         flex-direction: column;
         text-align: center;
     }
+    .stat-item:nth-child(1) { border-top: 3px solid #f39c12 !important; }
+    .stat-item:nth-child(2) { border-top: 3px solid #28a745 !important; }
+    .stat-item:nth-child(3) { border-top: 3px solid #7b9fff !important; }
+    .stat-item:nth-child(4) { border-top: 3px solid #dc3545 !important; }
+    .stat-item:nth-child(5) { border-top: 3px solid #fd7e14 !important; }
 }
 @media (max-width: 480px) {
+    .grid-meta-sexta {
+        grid-template-columns: 1fr;
+    }
     .grid-stats {
         grid-template-columns: 1fr;
     }
+    .stat-item:nth-child(1) { border-top: 3px solid #f39c12 !important; }
+    .stat-item:nth-child(2) { border-top: 3px solid #28a745 !important; }
+    .stat-item:nth-child(3) { border-top: 3px solid #7b9fff !important; }
+    .stat-item:nth-child(4) { border-top: 3px solid #dc3545 !important; }
+    .stat-item:nth-child(5) { border-top: 3px solid #fd7e14 !important; }
 }
 </style>
 
@@ -541,7 +632,7 @@ pageOpen("Painel Adm", "dashboard");
     <div class="card-sexta">
         <div class="card-sexta-title">🎯 Confirmar Sexta - Administrador</div>
         <?php if (!$proximaSexta): ?>
-            <div style="color: #6e7485; padding: 20px; text-align: center;">Nenhuma Sexta disponível para confirmar.</div>
+            <div style="color:var(--text-dim); padding: 20px; text-align: center;">Nenhuma Sexta disponível para confirmar.</div>
         <?php else: 
             $hoje = new DateTime();
             $dataEvento = new DateTime($proximaSexta['data']);
@@ -598,7 +689,89 @@ pageOpen("Painel Adm", "dashboard");
             </div>
         </div>
     </div>
+
+    <!-- Mini Calendário de Escalas -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)">
+            <span style="font-size:.85rem;font-weight:700;color:var(--text)">📅 <?= $mesesNomes[$calMes] ?> <?= $calAno ?></span>
+            <a href="<?= BASE_URL ?>/admin/escalas.php" style="font-size:.72rem;color:#f39c12;text-decoration:none">Gerenciar →</a>
+        </div>
+        <div style="padding:14px;flex:1;display:flex;flex-direction:column;gap:0">
+            <!-- Dias da semana -->
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px">
+                <?php foreach (['S','T','Q','Q','S','S','D'] as $d): ?>
+                <div style="text-align:center;font-size:.58rem;font-weight:700;color:var(--text-dim);padding:2px 0"><?= $d ?></div>
+                <?php endforeach; ?>
+            </div>
+            <!-- Dias -->
+            <?php
+            $primeiroDia = mktime(0,0,0,$calMes,1,$calAno);
+            $diasNoMes = (int)date('t', $primeiroDia);
+            $diaSemanaInicio = (int)date('N', $primeiroDia);
+            ?>
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">
+                <?php for ($i=1; $i < $diaSemanaInicio; $i++): ?><div></div><?php endfor; ?>
+                <?php for ($dia=1; $dia<=$diasNoMes; $dia++):
+                    $isToday  = ($dia == date('d') && $calMes == date('m') && $calAno == date('Y'));
+                    $meuBar   = isset($diasAdmBar[$dia]);
+                    $meuChurr = isset($diasAdmChurrasco[$dia]);
+                    $qualBar  = isset($diasTodosBar[$dia]);
+                    $qualChurr= isset($diasTodosChurrasco[$dia]);
+                    $hasAny   = $qualBar || $qualChurr;
+                    $bg = $isToday ? 'background:#f39c12;' : ($meuBar||$meuChurr ? 'background:rgba(99,102,241,.15);outline:1px solid rgba(99,102,241,.4);' : ($hasAny ? 'background:rgba(255,255,255,.03);' : ''));
+                ?>
+                <div style="text-align:center;padding:4px 1px;border-radius:4px;<?= $bg ?>">
+                    <span style="font-size:.65rem;font-weight:<?= $isToday?'800':'500' ?>;color:<?= $isToday?'#0d0f14':($hasAny?'var(--text)':'var(--text-dim)') ?>"><?= $dia ?></span>
+                    <?php if (!$isToday && $hasAny): ?>
+                    <div style="display:flex;justify-content:center;gap:1px;margin-top:1px">
+                        <?php if ($qualBar): ?><div style="width:3px;height:3px;border-radius:50%;background:#f97316"></div><?php endif; ?>
+                        <?php if ($qualChurr): ?><div style="width:3px;height:3px;border-radius:50%;background:#8b5cf6"></div><?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <?php endfor; ?>
+            </div>
+            <!-- Legenda -->
+            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+                <span style="font-size:.6rem;color:var(--text-dim);display:flex;align-items:center;gap:3px"><span style="width:5px;height:5px;border-radius:50%;background:#f97316;display:inline-block"></span>Bar</span>
+                <span style="font-size:.6rem;color:var(--text-dim);display:flex;align-items:center;gap:3px"><span style="width:5px;height:5px;border-radius:50%;background:#8b5cf6;display:inline-block"></span>Churrasco</span>
+                <span style="font-size:.6rem;color:var(--text-dim);display:flex;align-items:center;gap:3px"><span style="width:4px;height:4px;border-radius:50%;outline:1px solid rgba(99,102,241,.6);display:inline-block"></span>Sua semana</span>
+            </div>
+            <!-- Lista escalas do mês -->
+            <?php if (!empty($todasEscalasBar) || !empty($todasEscalasChurrasco)): ?>
+            <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px;flex:1;overflow-y:auto">
+                <?php foreach ($todasEscalasBar as $eb):
+                    $dtL = new DateTime($eb['semana_inicio']);
+                    $difL = (5-(int)$dtL->format('N')+7)%7;
+                    $dtL->modify("+{$difL} days");
+                    $sxtLbl = $dtL->format('d/m');
+                    $ehMinha = in_array($uid, [(int)($eb['user1_id']??0),(int)($eb['user2_id']??0)]);
+                ?>
+                <div style="display:flex;align-items:center;gap:5px;padding:3px 0;font-size:.7rem;border-bottom:1px solid var(--border)">
+                    <span style="width:6px;height:6px;border-radius:50%;background:#f97316;flex-shrink:0"></span>
+                    <span style="color:var(--text-dim);white-space:nowrap">Sx <?= $sxtLbl ?></span>
+                    <span style="color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= htmlspecialchars($eb['nome1']) ?> & <?= htmlspecialchars($eb['nome2']) ?></span>
+                    <?php if ($ehMinha): ?><span style="font-size:.58rem;background:#f9731620;color:#f97316;padding:1px 4px;border-radius:6px;flex-shrink:0">você</span><?php endif; ?>
+                </div>
+                <?php endforeach; ?>
+                <?php foreach ($todasEscalasChurrasco as $ec):
+                    $dtL2 = new DateTime($ec['semana_inicio']);
+                    $ini2 = $dtL2->format('d/m');
+                    $dtL2->modify('+6 days'); $fim2 = $dtL2->format('d/m');
+                ?>
+                <div style="display:flex;align-items:center;gap:5px;padding:3px 0;font-size:.7rem;border-bottom:1px solid var(--border)">
+                    <span style="width:6px;height:6px;border-radius:50%;background:#8b5cf6;flex-shrink:0"></span>
+                    <span style="color:var(--text-dim);white-space:nowrap"><?= $ini2 ?>–<?= $fim2 ?></span>
+                    <span style="color:var(--text);flex:1">Churrasco</span>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
 </div>
+
 
 <!-- Cards de estatísticas com bordas coloridas -->
 <div class="grid-stats">
@@ -674,11 +847,49 @@ pageOpen("Painel Adm", "dashboard");
         </div>
         <div class="card-body">
             <a href="<?= BASE_URL ?>/admin/events.php" class="btn-block btn-gold">📅 Gerenciar Eventos</a>
+            <a href="<?= BASE_URL ?>/user/calendario.php" class="btn-block btn-purple">📅 Ver Calendário</a>
             <a href="<?= BASE_URL ?>/admin/attendances.php" class="btn-block btn-green">👥 Gerenciar Presenças</a>
             <a href="<?= BASE_URL ?>/admin/users.php" class="btn-block btn-blue">👤 Gerenciar Integrantes</a>
             <a href="<?= BASE_URL ?>/admin/reports.php?year=<?= $year ?>" class="btn-block btn-red">📊 Relatórios</a>
         </div>
     </div>
 </div>
+
+<!-- Gráfico de Participação por Evento -->
+<?php if (!empty($chartData)): ?>
+<div style="margin-top:28px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <h3 style="font-size:1rem;font-weight:700;color:var(--text);margin:0">📊 Participação por Evento — <?= $year ?></h3>
+        <a href="<?= BASE_URL ?>/admin/attendances.php" style="font-size:.78rem;color:#f39c12;text-decoration:none">Ver presenças →</a>
+    </div>
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px">
+        <?php
+        $maxConf = max(array_column($chartData, 'confirmados')) ?: 1;
+        foreach ($chartData as $ev):
+            $pct  = round($ev['confirmados'] / $maxConf * 100);
+            $data = date('d/m', strtotime($ev['event_date']));
+            $nome = mb_substr($ev['title'], 0, 30) . (mb_strlen($ev['title']) > 30 ? '…' : '');
+        ?>
+        <div style="margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+                <div style="display:flex;align-items:center;gap:8px">
+                    <span style="font-size:.68rem;background:#f39c1220;color:#f5b041;padding:1px 7px;border-radius:20px;white-space:nowrap"><?= $data ?></span>
+                    <span style="font-size:.8rem;color:var(--text-muted)"><?= htmlspecialchars($nome) ?></span>
+                </div>
+                <span style="font-size:.82rem;font-weight:700;color:var(--text);margin-left:8px;white-space:nowrap">
+                    <?= $ev['confirmados'] ?> ✅ <?= $ev['pendentes'] ? " · {$ev['pendentes']} ⏳" : '' ?>
+                </span>
+            </div>
+            <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden">
+                <div style="height:8px;border-radius:4px;width:<?= $pct ?>%;
+                            background:linear-gradient(90deg,#f39c12,#e67e22);
+                            transition:width .3s"></div>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+</div>
+<?php endif; ?>
+
 
 <?php pageClose(); ?>

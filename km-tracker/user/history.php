@@ -78,7 +78,7 @@ pageOpen('Histórico', 'history', 'Histórico de KM');
 .filter-select {
     padding: 8px 32px 8px 12px;
     border-radius: 8px;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
     background: white;
     color: #0d0f14;
     font-size: 0.85rem;
@@ -102,11 +102,11 @@ pageOpen('Histórico', 'history', 'Histórico de KM');
 
 /* Cards com bordas coloridas e efeito hover */
 .stat-card {
-    background: #14161c;
+    background:var(--bg-card);
     border-radius: 12px;
     padding: 20px;
     text-align: center;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
     transition: all 0.3s ease;
 }
 
@@ -151,7 +151,7 @@ pageOpen('Histórico', 'history', 'Histórico de KM');
 }
 .stat-text {
     font-size: 0.7rem;
-    color: #6e7485;
+    color:var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-top: 8px;
@@ -159,9 +159,9 @@ pageOpen('Histórico', 'history', 'Histórico de KM');
 
 /* Card da tabela */
 .card-table {
-    background: #14161c;
+    background:var(--bg-card);
     border-radius: 12px;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
     overflow: hidden;
 }
 .table-responsive {
@@ -174,10 +174,10 @@ pageOpen('Histórico', 'history', 'Histórico de KM');
 .history-table th, .history-table td {
     padding: 12px;
     text-align: left;
-    border-bottom: 1px solid #2a2f3a;
+    border-bottom:1px solid var(--border);
 }
 .history-table th {
-    color: #6e7485;
+    color:var(--text-dim);
     font-weight: 500;
     font-size: 0.7rem;
     text-transform: uppercase;
@@ -191,16 +191,16 @@ pageOpen('Histórico', 'history', 'Histórico de KM');
     justify-content: center;
     gap: 8px;
     padding: 16px;
-    border-top: 1px solid #2a2f3a;
+    border-top:1px solid var(--border);
 }
 .pagination a {
     display: inline-block;
     padding: 6px 12px;
     border-radius: 4px;
     text-decoration: none;
-    color: #a0a5b5;
-    background: #1f2229;
-    border: 1px solid #2a2f3a;
+    color:var(--text-muted);
+    background:var(--bg-input);
+    border:1px solid var(--border);
 }
 .pagination a.current {
     background: #f39c12;

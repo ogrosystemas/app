@@ -50,6 +50,63 @@ $totalEventos = (int)$evStmt->fetchColumn();
 $txParticipacao = $totalEventos > 0 ? round(($totals['presencas'] / $totalEventos) * 100) : 0;
 
 // Dados da moto
+// Mini calendário - eventos do mês atual
+$calMes = (int)date('m');
+$calAno = (int)date('Y');
+$calStmt = $db->prepare("
+    SELECT e.*, a.status as user_status
+    FROM events e
+    LEFT JOIN attendances a ON a.event_id = e.id AND a.user_id = ?
+    WHERE e.active = 1 AND MONTH(e.event_date) = ? AND YEAR(e.event_date) = ?
+    ORDER BY e.event_date ASC
+");
+$calStmt->execute([$uid, $calMes, $calAno]);
+$calEventos = $calStmt->fetchAll();
+$calEventosPorDia = [];
+foreach ($calEventos as $ev) {
+    $calEventosPorDia[(int)date('d', strtotime($ev['event_date']))][] = $ev;
+}
+
+// Escalas do usuário no mês atual
+$diasEscalaBar = [];
+$diasEscalaChurrasco = [];
+try {
+    $escalaBar = $db->prepare("
+        SELECT semana_inicio FROM escala_bar
+        WHERE (user1_id = ? OR user2_id = ?)
+        AND MONTH(semana_inicio) = ? AND YEAR(semana_inicio) = ?
+    ");
+    $escalaBar->execute([$uid, $uid, $calMes, $calAno]);
+    foreach ($escalaBar->fetchAll() as $eb) {
+        $dt = new DateTime($eb['semana_inicio']);
+        $dow = (int)$dt->format('N');
+        $diffParaSexta = (5 - $dow + 7) % 7;
+        $dt->modify("+{$diffParaSexta} days");
+        if ((int)$dt->format('m') === $calMes && (int)$dt->format('Y') === $calAno) {
+            $diasEscalaBar[(int)$dt->format('d')] = true;
+        }
+    }
+
+    $escalaChurrasco = $db->prepare("
+        SELECT ec.semana_inicio FROM escala_churrasco ec
+        JOIN churrasco_grupo_membros cgm ON cgm.grupo_id = ec.grupo_id
+        WHERE cgm.user_id = ?
+        AND MONTH(ec.semana_inicio) = ? AND YEAR(ec.semana_inicio) = ?
+    ");
+    $escalaChurrasco->execute([$uid, $calMes, $calAno]);
+    foreach ($escalaChurrasco->fetchAll() as $ec) {
+        for ($d = 0; $d <= 6; $d++) {
+            $ts = strtotime($ec['semana_inicio'] . " +$d days");
+            if ((int)date('m', $ts) === $calMes && (int)date('Y', $ts) === $calAno) {
+                $diasEscalaChurrasco[(int)date('d', $ts)] = true;
+            }
+        }
+    }
+} catch (\Throwable $e) {
+    // Tabelas de escala não existem ainda — ignorar silenciosamente
+    error_log('KM-Tracker dashboard escala error: ' . $e->getMessage());
+}
+
 $motoStmt = $db->prepare('SELECT moto_marca, moto_kml, moto_tanque, gas_preco FROM users WHERE id=?');
 $motoStmt->execute([$uid]);
 $moto = $motoStmt->fetch();
@@ -95,7 +152,7 @@ pageOpen("Olá, {$firstName}!", 'dashboard');
 .year-select {
     padding: 8px 32px 8px 12px;
     border-radius: 8px;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
     background: white;
     color: #0d0f14;
     font-size: 0.85rem;
@@ -110,6 +167,17 @@ pageOpen("Olá, {$firstName}!", 'dashboard');
 }
 
 /* Card Sexta */
+.grid-sexta-cal {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+    align-items: stretch;
+}
+.grid-sexta-cal > div {
+    height: 100%;
+}
+
 .card-sexta {
     background: linear-gradient(135deg, #14161c, #1a0f05);
     border: 1px solid #f39c12;
@@ -129,7 +197,7 @@ pageOpen("Olá, {$firstName}!", 'dashboard');
     align-items: center;
     flex-wrap: wrap;
     gap: 16px;
-    background: #1f2229;
+    background:var(--bg-input);
     border-radius: 8px;
     padding: 16px;
 }
@@ -145,11 +213,11 @@ pageOpen("Olá, {$firstName}!", 'dashboard');
 }
 .card-sexta-date {
     font-size: 0.85rem;
-    color: #a0a5b5;
+    color:var(--text-muted);
 }
 .card-sexta-days {
     font-size: 0.7rem;
-    color: #6e7485;
+    color:var(--text-dim);
 }
 .btn-sexta {
     background: #f39c12;
@@ -176,11 +244,11 @@ pageOpen("Olá, {$firstName}!", 'dashboard');
 
 /* Cards com bordas coloridas */
 .stat-card {
-    background: #14161c;
+    background:var(--bg-card);
     border-radius: 12px;
     padding: 20px;
     text-align: center;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
     transition: all 0.3s ease;
 }
 
@@ -219,7 +287,7 @@ pageOpen("Olá, {$firstName}!", 'dashboard');
 }
 .stat-text {
     font-size: 0.7rem;
-    color: #6e7485;
+    color:var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-top: 8px;
@@ -227,9 +295,9 @@ pageOpen("Olá, {$firstName}!", 'dashboard');
 
 /* Card padrón */
 .card-default {
-    background: #14161c;
+    background:var(--bg-card);
     border-radius: 12px;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
     overflow: hidden;
     margin-bottom: 24px;
 }
@@ -238,7 +306,7 @@ pageOpen("Olá, {$firstName}!", 'dashboard');
     justify-content: space-between;
     align-items: center;
     padding: 16px 20px;
-    border-bottom: 1px solid #2a2f3a;
+    border-bottom:1px solid var(--border);
 }
 .card-header h3 {
     font-size: 1rem;
@@ -249,8 +317,8 @@ pageOpen("Olá, {$firstName}!", 'dashboard');
 }
 .btn-link {
     background: transparent;
-    border: 1px solid #2a2f3a;
-    color: #a0a5b5;
+    border:1px solid var(--border);
+    color:var(--text-muted);
     padding: 4px 12px;
     border-radius: 6px;
     font-size: 0.7rem;
@@ -258,7 +326,7 @@ pageOpen("Olá, {$firstName}!", 'dashboard');
     display: inline-block;
 }
 .btn-link:hover {
-    background: #1f2229;
+    background:var(--bg-input);
 }
 
 /* Consumo */
@@ -279,14 +347,14 @@ pageOpen("Olá, {$firstName}!", 'dashboard');
 }
 .consumo-label {
     font-size: 0.7rem;
-    color: #6e7485;
+    color:var(--text-dim);
     text-transform: uppercase;
     margin-top: 4px;
 }
 
 /* Progresso */
 .progress-wrap {
-    background: #1f2229;
+    background:var(--bg-input);
     border-radius: 10px;
     height: 20px;
     overflow: hidden;
@@ -301,7 +369,7 @@ pageOpen("Olá, {$firstName}!", 'dashboard');
     display: flex;
     justify-content: space-between;
     font-size: 0.7rem;
-    color: #a0a5b5;
+    color:var(--text-muted);
 }
 
 /* Lista de eventos */
@@ -315,9 +383,9 @@ pageOpen("Olá, {$firstName}!", 'dashboard');
     align-items: center;
     gap: 16px;
     padding: 12px;
-    background: #1f2229;
+    background:var(--bg-input);
     border-radius: 8px;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
 }
 .event-date {
     text-align: center;
@@ -330,7 +398,7 @@ pageOpen("Olá, {$firstName}!", 'dashboard');
 }
 .event-month {
     font-size: 0.6rem;
-    color: #6e7485;
+    color:var(--text-dim);
     text-transform: uppercase;
 }
 .event-info {
@@ -342,7 +410,7 @@ pageOpen("Olá, {$firstName}!", 'dashboard');
 }
 .event-location {
     font-size: 0.7rem;
-    color: #a0a5b5;
+    color:var(--text-muted);
     margin-top: 2px;
 }
 .event-km {
@@ -365,10 +433,17 @@ pageOpen("Olá, {$firstName}!", 'dashboard');
     }
 }
 @media (max-width: 768px) {
+    .grid-sexta-cal {
+        grid-template-columns: 1fr;
+    }
     .grid-stats {
         grid-template-columns: repeat(2, 1fr);
         gap: 12px;
     }
+    .stat-card:nth-child(1) { border-top: 3px solid #f39c12 !important; }
+    .stat-card:nth-child(2) { border-top: 3px solid #28a745 !important; }
+    .stat-card:nth-child(3) { border-top: 3px solid #7b9fff !important; }
+    .stat-card:nth-child(4) { border-top: 3px solid #dc3545 !important; }
     .card-sexta-content {
         flex-direction: column;
         text-align: center;
@@ -410,37 +485,135 @@ pageOpen("Olá, {$firstName}!", 'dashboard');
     <div class="alert alert-error">⚠️ <?= htmlspecialchars($_SESSION['flash_error']); unset($_SESSION['flash_error']); ?></div>
 <?php endif; ?>
 
-<!-- Card Confirmar Sexta -->
-<div class="card-sexta">
-    <div class="card-sexta-title">🎯 Confirmar Sexta</div>
-    <?php if (!$proximaSexta): ?>
-        <div style="color: #6e7485; padding: 20px; text-align: center;">Nenhuma Sexta disponível para confirmar.</div>
-    <?php else: 
-        $hoje = new DateTime();
-        $dataEvento = new DateTime($proximaSexta['data']);
-        $diferenca = $hoje->diff($dataEvento)->days;
-        $mensagem = $diferenca == 0 ? "Hoje é o dia! Confirme sua presença." : ($diferenca == 1 ? "Amanhã é a Sexta! Confirme já." : "Faltam {$diferenca} dias para a Sexta.");
-    ?>
-        <div class="card-sexta-content">
-            <div class="card-sexta-info">
-                <div class="card-sexta-name">Sexta-feira do Mês</div>
-                <div class="card-sexta-date">📆 <?= date('d/m/Y', strtotime($proximaSexta['data'])) ?></div>
-                <div class="card-sexta-days"><?= $mensagem ?></div>
+<!-- Card Confirmar Sexta + Mini Calendário lado a lado -->
+<?php
+$primeiroDia = mktime(0,0,0,$calMes,1,$calAno);
+$diasNoMes = (int)date('t', $primeiroDia);
+$diaSemanaInicio = (int)date('N', $primeiroDia);
+$mesesNomes = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+?>
+<div class="grid-sexta-cal">
+
+    <!-- Card Confirmar Sexta -->
+    <div class="card-sexta">
+        <div class="card-sexta-title">🎯 Confirmar Sexta</div>
+        <?php if (!$proximaSexta): ?>
+            <div style="color:var(--text-dim); padding: 20px; text-align: center;">Nenhuma Sexta disponível para confirmar.</div>
+        <?php else: 
+            $hoje = new DateTime();
+            $dataEvento = new DateTime($proximaSexta['data']);
+            $diferenca = $hoje->diff($dataEvento)->days;
+            $mensagem = $diferenca == 0 ? "Hoje é o dia! Confirme sua presença." : ($diferenca == 1 ? "Amanhã é a Sexta! Confirme já." : "Faltam {$diferenca} dias para a Sexta.");
+        ?>
+            <div class="card-sexta-content">
+                <div class="card-sexta-info">
+                    <div class="card-sexta-name">Sexta-feira do Mês</div>
+                    <div class="card-sexta-date">📆 <?= date('d/m/Y', strtotime($proximaSexta['data'])) ?></div>
+                    <div class="card-sexta-days"><?= $mensagem ?></div>
+                </div>
+                <div>
+                    <?php if ($proximaSexta['ja_confirmou']): ?>
+                        <span class="btn-sexta btn-sexta-confirmado">✅ Confirmado</span>
+                    <?php else: ?>
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="action" value="confirmar_sexta">
+                            <input type="hidden" name="data_sexta" value="<?= $proximaSexta['data'] ?>">
+                            <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
+                            <button type="submit" class="btn-sexta">✅ Confirmar Presença</button>
+                        </form>
+                    <?php endif; ?>
+                </div>
             </div>
-            <div>
-                <?php if ($proximaSexta['ja_confirmou']): ?>
-                    <span class="btn-sexta btn-sexta-confirmado">✅ Confirmado</span>
-                <?php else: ?>
-                    <form method="POST" style="display:inline;">
-                        <input type="hidden" name="action" value="confirmar_sexta">
-                        <input type="hidden" name="data_sexta" value="<?= $proximaSexta['data'] ?>">
-                        <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
-                        <button type="submit" class="btn-sexta">✅ Confirmar Presença</button>
-                    </form>
+        <?php endif; ?>
+    </div>
+
+    <!-- Mini Calendário -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <span style="font-size:.9rem;font-weight:700;color:var(--text)">📅 <?= $mesesNomes[$calMes] ?> <?= $calAno ?></span>
+            <a href="<?= BASE_URL ?>/user/calendario.php" style="font-size:.72rem;color:#f39c12;text-decoration:none">Ver tudo →</a>
+        </div>
+        <!-- Dias da semana -->
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px">
+            <?php foreach (['S','T','Q','Q','S','S','D'] as $d): ?>
+            <div style="text-align:center;font-size:.6rem;font-weight:700;color:var(--text-dim);padding:3px 0"><?= $d ?></div>
+            <?php endforeach; ?>
+        </div>
+        <!-- Dias -->
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">
+            <?php for ($i=1; $i < $diaSemanaInicio; $i++): ?><div></div><?php endfor; ?>
+            <?php for ($dia=1; $dia<=$diasNoMes; $dia++):
+                $isToday      = ($dia == date('d') && $calMes == date('m') && $calAno == date('Y'));
+                $hasEvent     = isset($calEventosPorDia[$dia]);
+                $hasBar       = isset($diasEscalaBar[$dia]);
+                $hasChurrasco = isset($diasEscalaChurrasco[$dia]);
+                $hasEscala    = $hasBar || $hasChurrasco;
+                $evStatus     = $hasEvent ? ($calEventosPorDia[$dia][0]['user_status'] ?? '') : '';
+                $dotColor     = $evStatus === 'confirmado' ? '#28a745' : '#20c997';
+                $bgColor      = $isToday ? 'background:#f39c12;' : ($hasEvent ? 'background:#28a74510;' : ($hasEscala ? 'background:rgba(99,102,241,.08);' : ''));
+            ?>
+            <div style="text-align:center;padding:5px 1px;border-radius:5px;position:relative;<?= $bgColor ?>cursor:<?= ($hasEvent||$hasEscala)?'pointer':'default' ?>"
+                 <?php if ($hasEvent): ?>onclick="location.href='<?= BASE_URL ?>/user/calendario.php?mes=<?= $calMes ?>&ano=<?= $calAno ?>'"<?php endif; ?>>
+                <span style="font-size:.7rem;font-weight:<?= $isToday?'800':'500' ?>;color:<?= $isToday?'#0d0f14':(($hasEvent||$hasEscala)?'var(--text)':'var(--text-dim)') ?>">
+                    <?= $dia ?>
+                </span>
+                <?php if (!$isToday && ($hasEvent||$hasBar||$hasChurrasco)): ?>
+                <div style="display:flex;justify-content:center;gap:2px;margin-top:1px">
+                    <?php if ($hasEvent): ?><div style="width:3px;height:3px;border-radius:50%;background:<?= $dotColor ?>"></div><?php endif; ?>
+                    <?php if ($hasBar): ?><div style="width:3px;height:3px;border-radius:50%;background:#f97316"></div><?php endif; ?>
+                    <?php if ($hasChurrasco): ?><div style="width:3px;height:3px;border-radius:50%;background:#8b5cf6"></div><?php endif; ?>
+                </div>
                 <?php endif; ?>
             </div>
+            <?php endfor; ?>
         </div>
-    <?php endif; ?>
+        <!-- Escalas do mês -->
+        <?php if (!empty($diasEscalaBar) || !empty($diasEscalaChurrasco)): ?>
+        <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px">
+            <?php
+            $escalaBarListaRows = [];
+            $escalaChurrascoListaRows = [];
+            try {
+                $escalaBarLista = $db->prepare("SELECT semana_inicio FROM escala_bar WHERE (user1_id=? OR user2_id=?) AND MONTH(semana_inicio)=? AND YEAR(semana_inicio)=? ORDER BY semana_inicio ASC");
+                $escalaBarLista->execute([$uid,$uid,$calMes,$calAno]);
+                $escalaBarListaRows = $escalaBarLista->fetchAll();
+                $escalaChurrascoLista2 = $db->prepare("SELECT ec.semana_inicio, cg.nome as grupo_nome FROM escala_churrasco ec JOIN churrasco_grupo_membros cgm ON cgm.grupo_id=ec.grupo_id JOIN churrasco_grupos cg ON cg.id=ec.grupo_id WHERE cgm.user_id=? AND MONTH(ec.semana_inicio)=? AND YEAR(ec.semana_inicio)=? ORDER BY ec.semana_inicio ASC");
+                $escalaChurrascoLista2->execute([$uid,$calMes,$calAno]);
+                $escalaChurrascoListaRows = $escalaChurrascoLista2->fetchAll();
+            } catch (\Throwable $e) { error_log('escala list error: ' . $e->getMessage()); }
+            foreach ($escalaBarListaRows as $eb):
+                $dtBar = new DateTime($eb['semana_inicio']);
+                $dowBar = (int)$dtBar->format('N');
+                $diffBar = (5 - $dowBar + 7) % 7;
+                $dtBar->modify('+' . $diffBar . ' days');
+                $sexta = $dtBar->format('d/m');
+            ?>
+            <div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:.72rem">
+                <span style="width:6px;height:6px;border-radius:50%;background:#f97316;flex-shrink:0"></span>
+                <span style="color:#f97316;font-weight:700">Sexta <?= $sexta ?></span>
+                <span style="color:var(--text-dim)">Bar</span>
+            </div>
+            <?php endforeach; ?>
+            <?php
+            foreach ($escalaChurrascoListaRows as $ec):
+                $dtC = new DateTime($ec['semana_inicio']); $ini = $dtC->format('d/m'); $dtC->modify('+6 days'); $fim = $dtC->format('d/m');
+            ?>
+            <div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:.72rem">
+                <span style="width:6px;height:6px;border-radius:50%;background:#8b5cf6;flex-shrink:0"></span>
+                <span style="color:#8b5cf6;font-weight:700"><?= $ini ?>–<?= $fim ?></span>
+                <span style="color:var(--text-dim)">Churrasco</span>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+        <!-- Legenda -->
+        <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:6px;display:flex;flex-wrap:wrap;gap:8px">
+            <span style="font-size:.62rem;color:var(--text-dim);display:flex;align-items:center;gap:3px"><span style="width:5px;height:5px;border-radius:50%;background:#28a745;display:inline-block"></span>Evento</span>
+            <span style="font-size:.62rem;color:var(--text-dim);display:flex;align-items:center;gap:3px"><span style="width:5px;height:5px;border-radius:50%;background:#f97316;display:inline-block"></span>Bar</span>
+            <span style="font-size:.62rem;color:var(--text-dim);display:flex;align-items:center;gap:3px"><span style="width:5px;height:5px;border-radius:50%;background:#8b5cf6;display:inline-block"></span>Churrasco</span>
+        </div>
+    </div>
+
 </div>
 
 <!-- Cards de estatísticas COM BORDAS COLORIDAS -->
@@ -473,12 +646,12 @@ pageOpen("Olá, {$firstName}!", 'dashboard');
         <?php if (!$temMoto): ?>
             <div style="text-align:center;padding:20px;">
                 <div style="font-size:2rem;">🏍️</div>
-                <p style="margin:10px 0; color:#a0a5b5;">Cadastre os dados da sua moto para calcular o consumo.</p>
+                <p style="margin:10px 0; color:var(--text-muted);">Cadastre os dados da sua moto para calcular o consumo.</p>
                 <a href="<?= BASE_URL ?>/profile.php" class="btn-sexta" style="display:inline-block;">Cadastrar moto</a>
             </div>
         <?php elseif (!$temKm): ?>
             <div style="text-align:center;padding:20px;">
-                <p style="color:#a0a5b5;">Nenhum KM registrado em <?= $year ?> ainda.</p>
+                <p style="color:var(--text-muted);">Nenhum KM registrado em <?= $year ?> ainda.</p>
             </div>
         <?php else: 
             $litrosGastos = round($kmTotal / $kml, 1);
@@ -522,6 +695,7 @@ pageOpen("Olá, {$firstName}!", 'dashboard');
     <div class="card-header">
         <h3>🗓️ Próximos Eventos</h3>
         <a href="<?= BASE_URL ?>/user/events.php" class="btn-link">Ver todos</a>
+        <a href="<?= BASE_URL ?>/user/calendario.php" class="btn-link" style="margin-left:8px">📅 Calendário</a>
     </div>
     <div class="card-body">
         <?php

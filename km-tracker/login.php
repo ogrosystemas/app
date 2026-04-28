@@ -1,12 +1,13 @@
 <?php
 // ============================================================
-// login.php — Mutantes KM Tracker
+// login.php
 // ============================================================
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/security.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/helpers.php';
+require_once __DIR__ . '/includes/settings.php';
 
 // Inicia sessão ANTES de qualquer header
 if (session_status() === PHP_SESSION_NONE) session_start();
@@ -90,15 +91,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Login — <?= APP_NAME ?></title>
+  <title>Login — <?= htmlspecialchars(setting('sistema_nome', 'KM Tracker')) ?></title>
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/login.css">
 </head>
 <body>
 <div class="login-box">
   <div class="login-brand">
     <img src="<?= BASE_URL ?>/assets/logo.png" alt="Mutantes MC">
-    <h1><?= APP_NAME ?></h1>
-    <p>Mutantes MC Brasil — Gestão de Quilometragem</p>
+    <h1><?= htmlspecialchars(setting('sistema_nome', 'KM Tracker')) ?></h1>
+    <p><?= htmlspecialchars(setting('clube_nome','KM Tracker')) ?> — Gestão de Quilometragem</p>
   </div>
 
   <div class="login-card">
@@ -142,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 
   <div class="login-footer" style="margin-top: 16px; border-top: none;">
-    <p><?= APP_NAME ?> v<?= APP_VERSION ?> &mdash; <?= date('Y') ?></p>
+    <p><?= htmlspecialchars(setting('sistema_nome', 'KM Tracker')) ?> v<?= APP_VERSION ?> &mdash; <?= date('Y') ?></p>
   </div>
 </div>
 </body>

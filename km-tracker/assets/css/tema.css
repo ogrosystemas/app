@@ -1,0 +1,488 @@
+/* ============================================================
+   KM Tracker — Sistema de Temas
+   Sobrescreve TODAS as cores hardcoded via CSS variables
+   ============================================================ */
+
+/* ── Tema Escuro (padrão) ── */
+:root {
+    --bg-body:     #0d0f14;
+    --bg-card:     #14161c;
+    --bg-card2:    #1a1d26;
+    --bg-input:    #1f2229;
+    --bg-hover:    #1f2229;
+    --bg-dark:     #0d0f14;
+    --border:      #2a2f3a;
+    --text:        #eef0f8;
+    --text-muted:  #a0a5b5;
+    --text-dim:    #6e7485;
+    --accent:      #f39c12;
+    --accent2:     #e67e22;
+    --sidebar-bg:  #14161c;
+    --topbar-bg:   #14161c;
+}
+
+/* ── Tema Claro ── */
+body.tema-light {
+    --bg-body:     #f0f2f5;
+    --bg-card:     #ffffff;
+    --bg-card2:    #f8f9fa;
+    --bg-input:    #ffffff;
+    --bg-hover:    #f0f2f5;
+    --bg-dark:     #e9ecef;
+    --border:      #dee2e6;
+    --text:        #1a1d23;
+    --text-muted:  #495057;
+    --text-dim:    #6c757d;
+    --accent:      #f39c12;
+    --accent2:     #e67e22;
+    --sidebar-bg:  #ffffff;
+    --topbar-bg:   #ffffff;
+}
+
+/* ── Aplicar variables globalmente ── */
+body {
+    background-color: var(--bg-body) !important;
+    color: var(--text) !important;
+}
+
+/* Cards */
+.card, [class*="card"] {
+    background: var(--bg-card) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+/* Sidebar */
+.sidebar {
+    background: var(--sidebar-bg) !important;
+    border-color: var(--border) !important;
+}
+.sidebar-brand, .sidebar-footer {
+    border-color: var(--border) !important;
+    background: var(--sidebar-bg) !important;
+}
+.sidebar-nav { background: var(--sidebar-bg) !important; }
+.nav-item { color: var(--text-muted) !important; }
+.nav-item:hover { background: var(--bg-hover) !important; color: var(--text) !important; }
+.nav-item.active { background: rgba(243,156,18,.15) !important; color: var(--accent) !important; }
+.nav-section-label { color: var(--text-dim) !important; }
+.user-name { color: var(--text) !important; }
+.user-role { color: var(--text-dim) !important; }
+
+/* Topbar */
+.topbar {
+    background: var(--topbar-bg) !important;
+    border-color: var(--border) !important;
+}
+.topbar-title { color: var(--text) !important; }
+
+/* Inputs */
+input, select, textarea, .form-control {
+    background: var(--bg-input) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+input::placeholder, textarea::placeholder { color: var(--text-dim) !important; }
+
+/* Tables */
+.users-table { background: var(--bg-card) !important; }
+.users-table th {
+    background: var(--bg-card2) !important;
+    color: var(--text-muted) !important;
+    border-color: var(--border) !important;
+}
+.users-table td {
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+.users-table tr:hover td { background: var(--bg-hover) !important; }
+
+/* Page body */
+.page-body { background: var(--bg-body) !important; }
+.page-header h2 { color: var(--text) !important; }
+.page-header p { color: var(--text-dim) !important; }
+
+/* ── Modais — regras definitivas ── */
+/* Overlays: SEMPRE escuros, independente do tema */
+#modalRota,
+#modalRotaAdmin,
+.modal-overlay {
+    background: rgba(0,0,0,0.85) !important;
+    backdrop-filter: blur(2px) !important;
+    -webkit-backdrop-filter: blur(2px) !important;
+}
+/* Cards internos dos modais: seguem o tema */
+#modalRota > div,
+#modalRotaAdmin > div,
+.modal {
+    background: var(--bg-card) !important;
+    border-color: var(--border) !important;
+}
+[style*="background:#14161c"] { background: var(--bg-card) !important; }
+[style*="background:#0d0f14"] { background: var(--bg-dark) !important; }
+[style*="background:#1f2229"] { background: var(--bg-input) !important; }
+[style*="background:#1a1d26"] { background: var(--bg-card2) !important; }
+
+/* Borders */
+[style*="border-color:#2a2f3a"],
+[style*="border: 1px solid #2a2f3a"],
+[style*="border:1px solid #2a2f3a"] {
+    border-color: var(--border) !important;
+}
+
+/* Text colors */
+[style*="color:#eef0f8"] { color: var(--text) !important; }
+[style*="color:#a0a5b5"] { color: var(--text-muted) !important; }
+[style*="color:#6e7485"]  { color: var(--text-dim) !important; }
+
+/* Badges */
+.badge-muted { background: var(--bg-input) !important; color: var(--text-muted) !important; }
+
+/* Alerts */
+.alert { border-color: var(--border) !important; }
+
+/* Filter bar */
+.filter-bar { background: var(--bg-card) !important; border-color: var(--border) !important; }
+.filter-select { background: var(--bg-input) !important; border-color: var(--border) !important; color: var(--text) !important; }
+
+/* Stat cards */
+/* Stat cards — only override background, NOT border-color (colored top borders must be preserved) */
+.stat-card, .stat-item { background: var(--bg-card) !important; }
+/* Side borders only — not top (which has the accent color) */
+.stat-item { border-left-color: var(--border) !important; border-right-color: var(--border) !important; border-bottom-color: var(--border) !important; }
+
+/* Details/summary */
+details { background: var(--bg-dark) !important; border-color: var(--border) !important; }
+
+/* Shell */
+.shell { background: var(--bg-body) !important; }
+
+/* Tema claro — ajustes específicos */
+body.tema-light .nav-item { color: var(--text-muted) !important; }
+body.tema-light .topbar-hamburger { color: var(--text) !important; }
+body.tema-light .user-avatar { color: var(--accent) !important; }
+body.tema-light .badge-muted { background: #e9ecef !important; color: #495057 !important; }
+body.tema-light .btn-ghost { background: #f0f2f5 !important; color: var(--text) !important; border-color: var(--border) !important; }
+
+/* ── Títulos de seção / page-header ── */
+.page-header h2, h1, h2, h3, h4 { color: var(--text) !important; }
+.page-header p, .text-muted { color: var(--text-dim) !important; }
+
+/* ── Barras de título escuras ── */
+[style*="background:#14161c"],
+[style*="background: #14161c"],
+[style*="background:#0d0f14"],
+[style*="background: #0d0f14"],
+[style*="background:#1a1d26"],
+[style*="background:#1f2229"] {
+    background: var(--bg-card) !important;
+}
+
+/* ── Bordas ── */
+[style*="border-bottom:1px solid #2a2f3a"],
+[style*="border-bottom: 1px solid #2a2f3a"],
+[style*="border-top:1px solid #2a2f3a"],
+[style*="border-top: 1px solid #2a2f3a"],
+[style*="border:1px solid #2a2f3a"],
+[style*="border: 1px solid #2a2f3a"] {
+    border-color: var(--border) !important;
+}
+
+/* ── Textos escuros ── */
+[style*="color:#eef0f8"], [style*="color: #eef0f8"] { color: var(--text) !important; }
+[style*="color:#a0a5b5"], [style*="color: #a0a5b5"] { color: var(--text-muted) !important; }
+[style*="color:#6e7485"], [style*="color: #6e7485"]  { color: var(--text-dim) !important; }
+
+/* ── Card header ── */
+.card-header {
+    background: var(--bg-card) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+.card-title { color: var(--text) !important; }
+.card-body { background: var(--bg-card) !important; color: var(--text) !important; }
+
+/* ── Tabela users-table ── */
+.table-wrap { background: var(--bg-card) !important; border-color: var(--border) !important; }
+.users-table th { background: var(--bg-card2) !important; border-color: var(--border) !important; }
+.users-table td { background: var(--bg-card) !important; border-color: var(--border) !important; }
+
+/* ── Seção de lixeira ── */
+body.tema-light [style*="background:#14161c;border:1px solid #dc354530"],
+body.tema-light [style*="background:#1a0a0a"] {
+    background: #fff5f5 !important;
+}
+body.tema-light [style*="background:#1a0a0a"] {
+    background: #ffe0e0 !important;
+}
+
+/* ── Filtros ── */
+.filter-bar, .btn-filter {
+    background: var(--bg-card) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+select.filter-select, select {
+    background: var(--bg-input) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+}
+
+/* ── Modal header ── */
+.modal-header {
+    background: var(--bg-card) !important;
+    border-color: var(--border) !important;
+}
+
+
+/* ── Preservar bordas coloridas dos stat-items (ambos os temas) ── */
+.stat-item:nth-child(1) { border-top-color: #f39c12 !important; }
+.stat-item:nth-child(2) { border-top-color: #28a745 !important; }
+.stat-item:nth-child(3) { border-top-color: #7b9fff !important; }
+.stat-item:nth-child(4) { border-top-color: #dc3545 !important; }
+.stat-item:nth-child(5) { border-top-color: #fd7e14 !important; }
+.stat-item:nth-child(1):hover { border-color: #f39c12 !important; }
+.stat-item:nth-child(2):hover { border-color: #28a745 !important; }
+.stat-item:nth-child(3):hover { border-color: #7b9fff !important; }
+.stat-item:nth-child(4):hover { border-color: #dc3545 !important; }
+.stat-item:nth-child(5):hover { border-color: #fd7e14 !important; }
+
+/* ── Stat cards com bordas coloridas ── */
+.stat-card, .stat-item {
+    background: var(--bg-card) !important;
+}
+
+/* ── Dropdown/select nativo ── */
+body.tema-light select option { background: #fff; color: #1a1d23; }
+body.tema-dark select option  { background: #1f2229; color: #eef0f8; }
+
+/* ── Shell e main ── */
+.main-content { background: var(--bg-body) !important; }
+
+/* ── Botão ghost ── */
+body.tema-light .btn-ghost {
+    background: #f0f2f5 !important;
+    color: #1a1d23 !important;
+    border-color: #dee2e6 !important;
+}
+
+/* ── Links de nav ── */
+body.tema-light a { color: var(--text) !important; }
+body.tema-light a.nav-item.active { color: var(--accent) !important; }
+body.tema-light .topbar-title { color: var(--text) !important; }
+
+/* ── Badges ── */
+body.tema-light .badge-muted {
+    background: #e9ecef !important;
+    color: #495057 !important;
+}
+
+/* ── Scrollbar ── */
+body.tema-light ::-webkit-scrollbar { background: #f0f2f5; }
+body.tema-light ::-webkit-scrollbar-thumb { background: #dee2e6; }
+
+/* ── Abas de navegação (sys-tabs, rank-tabs, wpp-tabs) ── */
+.sys-tabs,
+.rank-tabs,
+[class*="tabs"] {
+    background: var(--bg-card) !important;
+    border-color: var(--border) !important;
+}
+.sys-tab, .rank-tab, [class*="-tab"] {
+    color: var(--text-dim) !important;
+}
+.sys-tab.active, .rank-tab.active {
+    background: var(--accent) !important;
+    color: #0d0f14 !important;
+}
+
+/* ── Abas inline style com background #14161c ── */
+div[style*="background:#14161c"][style*="border:1px solid #2a2f3a"],
+div[style*="background: #14161c"][style*="border: 1px solid #2a2f3a"] {
+    background: var(--bg-card) !important;
+    border-color: var(--border) !important;
+}
+
+/* ── Tabs do WhatsApp ── */
+.wpp-tabs, .tab-nav {
+    background: var(--bg-card) !important;
+    border-color: var(--border) !important;
+}
+
+/* ── Presença — card sexta fundo escuro ── */
+body.tema-light [style*="background:#14161c"],
+body.tema-light [style*="background: #14161c"],
+body.tema-light [style*="background:#0d0f14"],
+body.tema-light [style*="background: #0d0f14"],
+body.tema-light [style*="background:#1a1d26"],
+body.tema-light [style*="background:#1f2229"],
+body.tema-light [style*="background: #1f2229"] {
+    background: var(--bg-card) !important;
+    color: var(--text) !important;
+}
+
+/* ── Textos em elementos com bg escuro ── */
+body.tema-light [style*="color:#eef0f8"],
+body.tema-light [style*="color: #eef0f8"] {
+    color: var(--text) !important;
+}
+body.tema-light [style*="color:#a0a5b5"],
+body.tema-light [style*="color: #a0a5b5"] {
+    color: var(--text-muted) !important;
+}
+body.tema-light [style*="color:#6e7485"],
+body.tema-light [style*="color: #6e7485"] {
+    color: var(--text-dim) !important;
+}
+
+/* ── Bordas inline ── */
+body.tema-light [style*="border-bottom:1px solid #2a2f3a"],
+body.tema-light [style*="border-bottom: 1px solid #2a2f3a"],
+body.tema-light [style*="border:1px solid #2a2f3a"],
+body.tema-light [style*="border: 1px solid #2a2f3a"],
+body.tema-light [style*="border-top:1px solid #2a2f3a"],
+body.tema-light [style*="border-color:#2a2f3a"] {
+    border-color: var(--border) !important;
+}
+
+/* ── Inputs inline ── */
+body.tema-light [style*="background:#1f2229"],
+body.tema-light [style*="background: #1f2229"] {
+    background: var(--bg-input) !important;
+    color: var(--text) !important;
+}
+
+/* ── Sidebar sections labels ── */
+body.tema-light .nav-section-label {
+    color: var(--text-dim) !important;
+    border: none !important;
+}
+
+/* ── Topbar user info ── */
+body.tema-light [style*="color:#eef0f8"] { color: var(--text) !important; }
+
+/* ── Ranking items ── */
+body.tema-light .rank-item,
+body.tema-light [class*="rank"] {
+    background: var(--bg-card) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+/* ── Tab bars ── */
+body.tema-light .rank-tabs,
+body.tema-light .sys-tabs,
+body.tema-light [style*="background:#14161c;border:1px solid #2a2f3a;border-radius:10px"],
+body.tema-light [style*="background:#14161c;border:1px solid #2a2f3a;border-radius:10px;padding:5px"] {
+    background: var(--bg-card) !important;
+    border-color: var(--border) !important;
+}
+
+/* ── Inline background overrides ── */
+body.tema-light [style*="background:#14161c"] { background: var(--bg-card) !important; }
+body.tema-light [style*="background:#0d0f14"] { background: var(--bg-body) !important; }
+body.tema-light [style*="background:#1f2229"] { background: var(--bg-input) !important; }
+body.tema-light [style*="background:#1a1d26"] { background: var(--bg-card2) !important; }
+body.tema-light [style*="background:#2a2f3a"] { background: var(--border) !important; }
+body.tema-light [style*="background: #14161c"] { background: var(--bg-card) !important; }
+body.tema-light [style*="background: #0d0f14"] { background: var(--bg-body) !important; }
+
+/* ── Inline color overrides ── */
+body.tema-light [style*="color:#eef0f8"]  { color: var(--text) !important; }
+body.tema-light [style*="color:#a0a5b5"]  { color: var(--text-muted) !important; }
+body.tema-light [style*="color:#6e7485"]  { color: var(--text-dim) !important; }
+body.tema-light [style*="color: #eef0f8"] { color: var(--text) !important; }
+body.tema-light [style*="color: #a0a5b5"] { color: var(--text-muted) !important; }
+body.tema-light [style*="color: #6e7485"] { color: var(--text-dim) !important; }
+
+/* ── Inline border overrides ── */
+body.tema-light [style*="border:1px solid #2a2f3a"]  { border-color: var(--border) !important; }
+body.tema-light [style*="border: 1px solid #2a2f3a"] { border-color: var(--border) !important; }
+body.tema-light [style*="border-bottom:1px solid #2a2f3a"]  { border-bottom-color: var(--border) !important; }
+body.tema-light [style*="border-top:1px solid #2a2f3a"]     { border-top-color: var(--border) !important; }
+
+/* ── card-table ── */
+.card-table {
+    background: var(--bg-card) !important;
+    border-color: var(--border) !important;
+}
+
+/* ── Presences card header dark ── */
+body.tema-light [style*="background:#1a1d26"],
+body.tema-light [style*="background: #1a1d26"] {
+    background: #e9ecef !important;
+    color: var(--text) !important;
+}
+
+/* ── Pagination ── */
+body.tema-light .pagination a {
+    background: var(--bg-card) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+/* ── wpp tabs ── */
+body.tema-light .wpp-tabs,
+body.tema-light [class*="tabs"] {
+    background: var(--bg-card) !important;
+    border-color: var(--border) !important;
+}
+
+/* ── Tab items not active ── */
+body.tema-light .rank-tab:not(.active),
+body.tema-light .sys-tab:not(.active),
+body.tema-light [class*="tab"]:not(.active):not([class*="active"]) {
+    color: var(--text-muted) !important;
+}
+
+/* ── Topbar avatar area ── */
+body.tema-light .topbar-avatar {
+    background: rgba(243,156,18,0.15) !important;
+    color: var(--accent) !important;
+}
+body.tema-light .topbar-userinfo div {
+    color: var(--text) !important;
+}
+body.tema-light .topbar-userinfo div:last-child {
+    color: var(--text-dim) !important;
+}
+
+/* ── Modal rota ── */
+body.tema-light #modalRota > div,
+body.tema-light #modalRotaAdmin > div {
+    background: var(--bg-card) !important;
+    color: var(--text) !important;
+}
+body.tema-light #weather-section,
+body.tema-light #adm-weather-section {
+    background: var(--bg-card2) !important;
+}
+body.tema-light #modal-titulo,
+body.tema-light #modal-data,
+body.tema-light #adm-modal-titulo,
+body.tema-light #adm-modal-data {
+    color: var(--text) !important;
+}
+
+/* ── Modal stats ── */
+body.tema-light .modal-stats-grid > div,
+body.tema-light .adm-modal-stats > div {
+    border-color: var(--border) !important;
+}
+body.tema-light [id^="m-"],
+body.tema-light [id^="adm-m-"] {
+    color: var(--accent) !important;
+}
+
+/* ── Topbar link hover ── */
+body.tema-light .topbar a:hover {
+    background: var(--bg-hover) !important;
+}
+
+/* ── Preservar bordas coloridas dos stat-cards (user dashboard e history) ── */
+.stat-card { border-left-color: var(--border) !important; border-right-color: var(--border) !important; border-bottom-color: var(--border) !important; }
+.stat-card:nth-child(1) { border-top-color: #f39c12 !important; }
+.stat-card:nth-child(2) { border-top-color: #28a745 !important; }
+.stat-card:nth-child(3) { border-top-color: #7b9fff !important; }
+.stat-card:nth-child(4) { border-top-color: #dc3545 !important; }
+

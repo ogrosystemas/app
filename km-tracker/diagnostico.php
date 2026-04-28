@@ -9,13 +9,13 @@ echo "<!DOCTYPE html>
 <head>
     <title>Diagnóstico do Sistema</title>
     <style>
-        body { font-family: monospace; background: #0d0f14; color: #eef0f8; padding: 20px; }
+        body { font-family: monospace; background:var(--bg-body); color:var(--text); padding: 20px; }
         .ok { color: #28a745; }
         .error { color: #dc3545; }
         .warning { color: #f39c12; }
-        .card { background: #14161c; border: 1px solid #2a2f3a; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
+        .card { background:var(--bg-card); border:1px solid var(--border); border-radius: 8px; padding: 15px; margin-bottom: 20px; }
         h3 { color: #f5b041; margin-top: 0; }
-        pre { background: #1f2229; padding: 10px; border-radius: 6px; overflow-x: auto; }
+        pre { background:var(--bg-input); padding: 10px; border-radius: 6px; overflow-x: auto; }
     </style>
 </head>
 <body>

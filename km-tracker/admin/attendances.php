@@ -125,11 +125,11 @@ pageOpen("Presenças", "attendances", "Gerenciar Presenças");
 <style>
 /* Filtros */
 .filter-bar {
-    background: #14161c;
+    background:var(--bg-card);
     border-radius: 12px;
     padding: 20px;
     margin-bottom: 24px;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
 }
 .filter-form {
     display: flex;
@@ -146,14 +146,14 @@ pageOpen("Presenças", "attendances", "Gerenciar Presenças");
 .filter-label {
     font-size: 0.7rem;
     font-weight: 500;
-    color: #6e7485;
+    color:var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
 .filter-select {
     padding: 10px 32px 10px 12px;
     border-radius: 8px;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
     background: white;
     color: #0d0f14;
     font-size: 0.85rem;
@@ -184,7 +184,7 @@ pageOpen("Presenças", "attendances", "Gerenciar Presenças");
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
     font-family: inherit;
     text-decoration: none;
     background: white;
@@ -215,11 +215,11 @@ pageOpen("Presenças", "attendances", "Gerenciar Presenças");
 
 /* Cards com bordas coloridas e efeito hover */
 .stat-card {
-    background: #14161c;
+    background:var(--bg-card);
     border-radius: 12px;
     padding: 20px;
     text-align: center;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
     transition: all 0.3s ease;
 }
 
@@ -258,7 +258,7 @@ pageOpen("Presenças", "attendances", "Gerenciar Presenças");
 }
 .stat-text {
     font-size: 0.7rem;
-    color: #6e7485;
+    color:var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-top: 8px;
@@ -266,9 +266,9 @@ pageOpen("Presenças", "attendances", "Gerenciar Presenças");
 
 /* Card de Sextas Confirmadas - Próxima Sexta */
 .card-sextas {
-    background: #14161c;
+    background:var(--bg-card);
     border-radius: 12px;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
     overflow: hidden;
     margin-bottom: 24px;
 }
@@ -277,7 +277,7 @@ pageOpen("Presenças", "attendances", "Gerenciar Presenças");
     justify-content: space-between;
     align-items: center;
     padding: 16px 20px;
-    border-bottom: 1px solid #2a2f3a;
+    border-bottom:1px solid var(--border);
     background: linear-gradient(135deg, #1a0f05, #14161c);
 }
 .card-sextas-header h3 {
@@ -291,17 +291,17 @@ pageOpen("Presenças", "attendances", "Gerenciar Presenças");
     gap: 0;
 }
 .sexta-group {
-    border-bottom: 1px solid #2a2f3a;
+    border-bottom:1px solid var(--border);
 }
 .sexta-date {
-    background: #1f2229;
+    background:var(--bg-input);
     padding: 12px 20px;
     font-weight: 600;
     color: #f5b041;
     font-size: 0.85rem;
 }
 .sexta-date span {
-    color: #6e7485;
+    color:var(--text-dim);
     font-weight: normal;
 }
 .sexta-users {
@@ -314,16 +314,16 @@ pageOpen("Presenças", "attendances", "Gerenciar Presenças");
     display: flex;
     align-items: center;
     gap: 10px;
-    background: #1f2229;
+    background:var(--bg-input);
     padding: 8px 16px;
     border-radius: 30px;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
     transition: all 0.2s;
 }
 .sexta-user:hover {
     transform: translateY(-2px);
     border-color: #f39c12;
-    background: #2a2f3a;
+    background:var(--border);
 }
 .sexta-user-avatar {
     width: 28px;
@@ -344,23 +344,23 @@ pageOpen("Presenças", "attendances", "Gerenciar Presenças");
 .sexta-user-name {
     font-size: 0.8rem;
     font-weight: 500;
-    color: #eef0f8;
+    color:var(--text);
 }
 .sexta-user-role {
     font-size: 0.6rem;
-    color: #6e7485;
+    color:var(--text-dim);
 }
 .empty-sextas {
     padding: 40px;
     text-align: center;
-    color: #6e7485;
+    color:var(--text-dim);
 }
 
 /* Card da tabela */
 .card-table {
-    background: #14161c;
+    background:var(--bg-card);
     border-radius: 12px;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
     overflow: hidden;
 }
 .table-responsive {
@@ -373,10 +373,10 @@ pageOpen("Presenças", "attendances", "Gerenciar Presenças");
 .users-table th, .users-table td {
     padding: 12px;
     text-align: left;
-    border-bottom: 1px solid #2a2f3a;
+    border-bottom:1px solid var(--border);
 }
 .users-table th {
-    color: #6e7485;
+    color:var(--text-dim);
     font-weight: 500;
     font-size: 0.7rem;
     text-transform: uppercase;
@@ -503,6 +503,10 @@ pageOpen("Presenças", "attendances", "Gerenciar Presenças");
         grid-template-columns: repeat(2, 1fr);
         gap: 12px;
     }
+    .stat-card:nth-child(1) { border-top: 3px solid #f39c12 !important; }
+    .stat-card:nth-child(2) { border-top: 3px solid #28a745 !important; }
+    .stat-card:nth-child(3) { border-top: 3px solid #7b9fff !important; }
+    .stat-card:nth-child(4) { border-top: 3px solid #dc3545 !important; }
     .sexta-users {
         padding: 12px;
     }
@@ -514,6 +518,10 @@ pageOpen("Presenças", "attendances", "Gerenciar Presenças");
     .grid-stats {
         grid-template-columns: 1fr;
     }
+    .stat-card:nth-child(1) { border-top: 3px solid #f39c12 !important; }
+    .stat-card:nth-child(2) { border-top: 3px solid #28a745 !important; }
+    .stat-card:nth-child(3) { border-top: 3px solid #7b9fff !important; }
+    .stat-card:nth-child(4) { border-top: 3px solid #dc3545 !important; }
     .sexta-user {
         width: 100%;
     }
@@ -630,10 +638,10 @@ pageOpen("Presenças", "attendances", "Gerenciar Presenças");
             <thead>
                 <tr>
                     <th>Evento</th>
-                    <th>Data</th>
+                    <th class="hide-mobile">Data</th>
                     <th>Integrante</th>
-                    <th>Email</th>
-                    <th>KM</th>
+                    <th class="hide-mobile">Email</th>
+                    <th class="hide-mobile">KM</th>
                     <th>Status</th>
                     <th>Ações</th>
                  </thead>
@@ -645,11 +653,17 @@ pageOpen("Presenças", "attendances", "Gerenciar Presenças");
     <?php else: ?>
         <?php foreach ($attendances as $att): ?>
             <tr>
-                <td><strong><?= htmlspecialchars($att['event_title']) ?></strong></td>
-                <td><?= date('d/m/Y', strtotime($att['event_date'])) ?></td>
+                <td>
+                    <strong><?= htmlspecialchars($att['event_title']) ?></strong>
+                    <div class="show-mobile" style="display:none;font-size:.7rem;color:var(--text-dim);margin-top:2px">
+                        <?= date('d/m/Y', strtotime($att['event_date'])) ?>
+                        · <?= number_format($att['km_awarded'],0,',','.') ?> km
+                    </div>
+                </td>
+                <td class="hide-mobile"><?= date('d/m/Y', strtotime($att['event_date'])) ?></td>
                 <td><?= htmlspecialchars($att['name']) ?></td>
-                <td><?= htmlspecialchars($att['email']) ?></td>
-                <td class="text-gold"><?= number_format($att['km_awarded'], 0, ',', '.') ?> km</td>
+                <td class="hide-mobile"><?= htmlspecialchars($att['email']) ?></td>
+                <td class="hide-mobile text-gold"><?= number_format($att['km_awarded'], 0, ',', '.') ?> km</td>
                 <td>
                     <?php if ($att['status'] === 'confirmado'): ?>
                         <span class="badge badge-confirmado">Confirmado</span>

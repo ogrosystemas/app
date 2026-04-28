@@ -22,9 +22,10 @@ function currentUser(): array
 {
     if (!isLoggedIn()) return [];
     return [
-        'id'   => (int)$_SESSION['user_id'],
-        'name' => $_SESSION['user_name'] ?? '',
-        'role' => $_SESSION['user_role'],
+        'id'     => (int)$_SESSION['user_id'],
+        'name'   => $_SESSION['user_name'] ?? '',
+        'role'   => $_SESSION['user_role'],
+        'avatar' => $_SESSION['user_avatar'] ?? null,
     ];
 }
 
@@ -72,7 +73,7 @@ function attemptLogin(string $email, string $password): bool|string
 
     // Busca o usuário — e-mail em lowercase para consistência
     $stmt = db()->prepare(
-        'SELECT id, name, password, role, active FROM users WHERE LOWER(email) = ? LIMIT 1'
+        'SELECT id, name, password, role, active, avatar FROM users WHERE LOWER(email) = ? LIMIT 1'
     );
     $stmt->execute([mb_strtolower(trim($email))]);
     $user = $stmt->fetch();
@@ -97,6 +98,7 @@ function attemptLogin(string $email, string $password): bool|string
     $_SESSION['user_id']         = (int)$user['id'];
     $_SESSION['user_name']       = $user['name'];
     $_SESSION['user_role']       = $user['role'];      // 'admin' ou 'user'
+    $_SESSION['user_avatar']     = $user['avatar'] ?? null;
     $_SESSION['_last_activity']  = time();
     $_SESSION['_regenerated_at'] = time();
 
@@ -189,6 +191,5 @@ function verifyCsrf(): void
         ));
     }
 
-    // Rotaciona o token após cada uso (one-time token)
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    // Token fixo por sessão (não rotaciona para evitar problemas com múltiplos POST)
 }

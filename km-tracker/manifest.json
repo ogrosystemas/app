@@ -2,22 +2,22 @@
   "name": "Mutantes KM Tracker",
   "short_name": "Mutantes KM",
   "description": "Gestão de quilometragem e eventos do Mutantes MC Brasil",
-  "start_url": "./",
+  "start_url": "./user/dashboard.php",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#0d0f14",
-  "theme_color": "#c9a84c",
+  "theme_color": "#0d0f14",
   "lang": "pt-BR",
   "scope": "./",
   "icons": [
     {
-      "src": "assets/logo.png",
+      "src": "assets/logo-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "assets/logo.png",
+      "src": "assets/logo-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -26,13 +26,21 @@
   "shortcuts": [
     {
       "name": "Meu Painel",
+      "short_name": "Painel",
       "url": "./user/dashboard.php",
-      "icons": [{ "src": "assets/logo.png", "sizes": "192x192" }]
+      "icons": [{ "src": "assets/logo-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Eventos",
+      "short_name": "Eventos",
       "url": "./user/events.php",
-      "icons": [{ "src": "assets/logo.png", "sizes": "192x192" }]
+      "icons": [{ "src": "assets/logo-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Enquetes",
+      "short_name": "Enquetes",
+      "url": "./user/enquetes.php",
+      "icons": [{ "src": "assets/logo-192.png", "sizes": "192x192" }]
     }
   ],
   "categories": ["lifestyle", "sports", "utilities"]

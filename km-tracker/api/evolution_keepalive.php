@@ -4,7 +4,7 @@
  * Mantém a conexão Evolution API ativa
  * 
  * Configure no crontab para rodar a cada 5 minutos:
- * */5 * * * * curl -s "https://mutanteskmtracker.com.br/api/evolution_keepalive.php?token=MotoClub@2024#Evolution!19962026" > /dev/null 2>&1
+ * */5 * * * * curl -s "https://seudominio.com.br/api/evolution_keepalive.php?token=SEU_APP_SECRET" > /dev/null 2>&1
  */
 
 $token = $_GET['token'] ?? '';

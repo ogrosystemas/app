@@ -29,7 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $moto_kml = (float)($_POST['moto_kml'] ?? 0);
         $moto_tanque = (float)($_POST['moto_tanque'] ?? 0);
         $gas_preco = (float)($_POST['gas_preco'] ?? 0);
-        $whatsapp = preg_replace('/\D/', '', $_POST['whatsapp'] ?? '');
+        $whatsapp  = preg_replace('/\D/', '', $_POST['whatsapp'] ?? '');
+        $graduacao = $_POST['graduacao'] ?? null; if (empty($graduacao)) $graduacao = null;
         
         if (empty($name) || empty($email) || empty($password)) {
             $_SESSION['flash_error'] = 'Preencha todos os campos obrigatórios.';
@@ -42,10 +43,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
                 $stmt = $db->prepare("
-                    INSERT INTO users (name, email, password, role, active, whatsapp, moto_modelo, moto_kml, moto_tanque, gas_preco, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                    INSERT INTO users (name, email, password, role, graduacao, active, whatsapp, moto_modelo, moto_kml, moto_tanque, gas_preco, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
                 ");
-                $stmt->execute([$name, $email, $hashedPassword, $role, $active, $whatsapp ?: null, $moto_modelo, $moto_kml, $moto_tanque, $gas_preco]);
+                $stmt->execute([$name, $email, $hashedPassword, $role, $graduacao, $active, $whatsapp ?: null, $moto_modelo, $moto_kml, $moto_tanque, $gas_preco]);
                 $_SESSION['flash_success'] = 'Usuário criado com sucesso!';
             }
         }
@@ -63,7 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $moto_kml = (float)($_POST['moto_kml'] ?? 0);
         $moto_tanque = (float)($_POST['moto_tanque'] ?? 0);
         $gas_preco = (float)($_POST['gas_preco'] ?? 0);
-        $whatsapp_edit = preg_replace('/\D/', '', $_POST['whatsapp'] ?? '');
+        $whatsapp_edit  = preg_replace('/\D/', '', $_POST['whatsapp'] ?? '');
+        $graduacao_edit = $_POST['graduacao'] ?? null; if (empty($graduacao_edit)) $graduacao_edit = null;
         $password = $_POST['password'] ?? '';
         
         if (empty($name) || empty($email)) {
@@ -78,18 +80,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!empty($password)) {
                     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
                     $stmt = $db->prepare("
-                        UPDATE users SET name = ?, email = ?, password = ?, role = ?, active = ?, whatsapp = ?,
+                        UPDATE users SET name = ?, email = ?, password = ?, role = ?, graduacao = ?, active = ?, whatsapp = ?,
                         moto_modelo = ?, moto_kml = ?, moto_tanque = ?, gas_preco = ?
                         WHERE id = ?
                     ");
-                    $stmt->execute([$name, $email, $hashedPassword, $role, $active, $whatsapp_edit ?: null, $moto_modelo, $moto_kml, $moto_tanque, $gas_preco, $userId]);
+                    $stmt->execute([$name, $email, $hashedPassword, $role, $graduacao_edit, $active, $whatsapp_edit ?: null, $moto_modelo, $moto_kml, $moto_tanque, $gas_preco, $userId]);
                 } else {
                     $stmt = $db->prepare("
-                        UPDATE users SET name = ?, email = ?, role = ?, active = ?, whatsapp = ?,
+                        UPDATE users SET name = ?, email = ?, role = ?, graduacao = ?, active = ?, whatsapp = ?,
                         moto_modelo = ?, moto_kml = ?, moto_tanque = ?, gas_preco = ?
                         WHERE id = ?
                     ");
-                    $stmt->execute([$name, $email, $role, $active, $whatsapp_edit ?: null, $moto_modelo, $moto_kml, $moto_tanque, $gas_preco, $userId]);
+                    $stmt->execute([$name, $email, $role, $graduacao_edit, $active, $whatsapp_edit ?: null, $moto_modelo, $moto_kml, $moto_tanque, $gas_preco, $userId]);
                 }
                 $_SESSION['flash_success'] = 'Usuário atualizado com sucesso!';
             }
@@ -161,11 +163,11 @@ pageOpen("Integrantes", "users", "Integrantes");
 <style>
 /* Filtros */
 .filter-bar {
-    background: #14161c;
+    background:var(--bg-card);
     border-radius: 12px;
     padding: 20px;
     margin-bottom: 24px;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
 }
 .filter-form {
     display: flex;
@@ -182,14 +184,14 @@ pageOpen("Integrantes", "users", "Integrantes");
 .filter-label {
     font-size: 0.7rem;
     font-weight: 500;
-    color: #6e7485;
+    color:var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
 .filter-select {
     padding: 10px 32px 10px 12px;
     border-radius: 8px;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
     background: white;
     color: #0d0f14;
     font-size: 0.85rem;
@@ -220,7 +222,7 @@ pageOpen("Integrantes", "users", "Integrantes");
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
     font-family: inherit;
     text-decoration: none;
     background: white;
@@ -249,11 +251,11 @@ pageOpen("Integrantes", "users", "Integrantes");
     margin-bottom: 30px;
 }
 .stat-card {
-    background: #14161c;
+    background:var(--bg-card);
     border-radius: 12px;
     padding: 20px;
     text-align: center;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
     transition: all 0.3s ease;
 }
 .stat-card:nth-child(1) { border-top: 3px solid #f39c12; }
@@ -271,7 +273,7 @@ pageOpen("Integrantes", "users", "Integrantes");
 }
 .stat-text {
     font-size: 0.7rem;
-    color: #6e7485;
+    color:var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-top: 8px;
@@ -279,9 +281,9 @@ pageOpen("Integrantes", "users", "Integrantes");
 
 /* Card da tabela */
 .card-table {
-    background: #14161c;
+    background:var(--bg-card);
     border-radius: 12px;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
     overflow: hidden;
 }
 .table-responsive {
@@ -294,10 +296,10 @@ pageOpen("Integrantes", "users", "Integrantes");
 .users-table th, .users-table td {
     padding: 12px;
     text-align: left;
-    border-bottom: 1px solid #2a2f3a;
+    border-bottom:1px solid var(--border);
 }
 .users-table th {
-    color: #6e7485;
+    color:var(--text-dim);
     font-weight: 500;
     font-size: 0.7rem;
     text-transform: uppercase;
@@ -339,8 +341,8 @@ pageOpen("Integrantes", "users", "Integrantes");
 }
 .btn-ghost {
     background: transparent;
-    border: 1px solid #2a2f3a;
-    color: #a0a5b5;
+    border:1px solid var(--border);
+    color:var(--text-muted);
     padding: 8px 16px;
     font-size: 0.8rem;
     border-radius: 6px;
@@ -351,8 +353,8 @@ pageOpen("Integrantes", "users", "Integrantes");
     gap: 6px;
 }
 .btn-ghost:hover {
-    background: #1f2229;
-    color: #eef0f8;
+    background:var(--bg-input);
+    color:var(--text);
 }
 .btn-danger {
     background: #dc3545;
@@ -427,16 +429,16 @@ pageOpen("Integrantes", "users", "Integrantes");
     justify-content: center;
     gap: 8px;
     padding: 16px;
-    border-top: 1px solid #2a2f3a;
+    border-top:1px solid var(--border);
 }
 .pagination a {
     display: inline-block;
     padding: 6px 12px;
     border-radius: 4px;
     text-decoration: none;
-    color: #a0a5b5;
-    background: #1f2229;
-    border: 1px solid #2a2f3a;
+    color:var(--text-muted);
+    background:var(--bg-input);
+    border:1px solid var(--border);
 }
 .pagination a.current {
     background: #f39c12;
@@ -476,21 +478,21 @@ pageOpen("Integrantes", "users", "Integrantes");
     display: flex;
 }
 .modal {
-    background: #14161c;
+    background:var(--bg-card);
     border-radius: 16px;
     width: 90%;
     max-width: 700px;
     max-height: 90vh;
     overflow-y: auto;
-    border: 1px solid #2a2f3a;
+    border:1px solid var(--border);
 }
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 20px 24px;
-    border-bottom: 1px solid #2a2f3a;
-    background: #1a1d24;
+    border-bottom:1px solid var(--border);
+    background:var(--bg-card2);
 }
 .modal-title {
     font-size: 1.2rem;
@@ -502,7 +504,7 @@ pageOpen("Integrantes", "users", "Integrantes");
     border: none;
     font-size: 1.4rem;
     cursor: pointer;
-    color: #a0a5b5;
+    color:var(--text-muted);
     padding: 0;
     width: 32px;
     height: 32px;
@@ -512,8 +514,8 @@ pageOpen("Integrantes", "users", "Integrantes");
     border-radius: 8px;
 }
 .modal-close:hover {
-    background: #1f2229;
-    color: #eef0f8;
+    background:var(--bg-input);
+    color:var(--text);
 }
 .modal form {
     padding: 24px;
@@ -533,7 +535,7 @@ pageOpen("Integrantes", "users", "Integrantes");
     margin-bottom: 6px;
     font-size: 0.75rem;
     font-weight: 500;
-    color: #6e7485;
+    color:var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -542,9 +544,9 @@ pageOpen("Integrantes", "users", "Integrantes");
     width: 100%;
     padding: 10px 12px;
     border-radius: 8px;
-    border: 1px solid #2a2f3a;
-    background: #1f2229;
-    color: #eef0f8;
+    border:1px solid var(--border);
+    background:var(--bg-input);
+    color:var(--text);
     font-family: inherit;
     font-size: 0.85rem;
 }
@@ -567,10 +569,10 @@ pageOpen("Integrantes", "users", "Integrantes");
     gap: 12px;
     margin-top: 24px;
     padding-top: 8px;
-    border-top: 1px solid #2a2f3a;
+    border-top:1px solid var(--border);
 }
 .text-muted {
-    color: #6e7485;
+    color:var(--text-dim);
     font-size: 0.7rem;
 }
 .section-title {
@@ -579,7 +581,7 @@ pageOpen("Integrantes", "users", "Integrantes");
     color: #f5b041;
     margin: 16px 0 12px 0;
     padding-bottom: 6px;
-    border-bottom: 1px solid #2a2f3a;
+    border-bottom:1px solid var(--border);
 }
 @media (max-width: 1000px) {
     .grid-stats {
@@ -609,11 +611,19 @@ pageOpen("Integrantes", "users", "Integrantes");
         grid-template-columns: repeat(2, 1fr);
         gap: 12px;
     }
+    .stat-card:nth-child(1) { border-top: 3px solid #f39c12 !important; }
+    .stat-card:nth-child(2) { border-top: 3px solid #28a745 !important; }
+    .stat-card:nth-child(3) { border-top: 3px solid #7b9fff !important; }
+    .stat-card:nth-child(4) { border-top: 3px solid #dc3545 !important; }
 }
 @media (max-width: 480px) {
     .grid-stats {
         grid-template-columns: 1fr;
     }
+    .stat-card:nth-child(1) { border-top: 3px solid #f39c12 !important; }
+    .stat-card:nth-child(2) { border-top: 3px solid #28a745 !important; }
+    .stat-card:nth-child(3) { border-top: 3px solid #7b9fff !important; }
+    .stat-card:nth-child(4) { border-top: 3px solid #dc3545 !important; }
 }
 </style>
 
@@ -689,39 +699,60 @@ pageOpen("Integrantes", "users", "Integrantes");
         <table class="users-table">
             <thead>
                     <th>Nome</th>
-                    <th>E-mail</th>
-                    <th>Moto</th>
-                    <th>Perfil</th>
-                    <th>Status</th>
-                    <th>Presenças</th>
-                    <th>KM Total</th>
+                    <th class="hide-mobile">E-mail</th>
+                    <th class="hide-mobile">Moto</th>
+                    <th class="hide-mobile">Perfil</th>
+                    <th class="hide-mobile">Status</th>
+                    <th class="hide-mobile">Presenças</th>
+                    <th class="hide-mobile">KM Total</th>
                     <th>Ações</th>
                 </thead>
             <tbody>
-                <?php foreach ($users as $user): ?>
-                    <td><strong><?= htmlspecialchars($user['name'] ?? '') ?></strong>
-                    <td><?= htmlspecialchars($user['email'] ?? '') ?>
+                <?php
+$gradLabels = [
+    'diretor'           => 'Diretor',
+    'subdiretor'        => 'Subdiretor',
+    'escudo_fechado'    => 'Escudo Fechado',
+    'meio_escudo_maior' => 'Meio Escudo Maior',
+    'meio_escudo_menor' => 'Meio Escudo Menor',
+    'pp'                => 'PP',
+    'veterano'          => 'Veterano',
+];
+?>
+<?php foreach ($users as $user): ?>
                     <td>
+                        <strong><?= htmlspecialchars($user['name'] ?? '') ?></strong>
+                        <div class="show-mobile" style="display:none;font-size:.7rem;color:var(--text-dim);margin-top:2px">
+                            <?= ($user['role']??'user')==='admin' ? 'Admin' : 'Integrante' ?>
+                            · <?= ($user['active']??1) ? 'Ativo' : 'Inativo' ?>
+                            · <?= number_format($user['total_km']??0,0,',','.') ?> km
+                        </div>
+                    </td>
+                    <td class="hide-mobile"><?= htmlspecialchars($user['email'] ?? '') ?></td>
+                    <td class="hide-mobile">
                         <?php if (!empty($user['moto_modelo'])): ?>
                             <span title="Consumo: <?= $user['moto_kml'] ?? 0 ?> km/L | Tanque: <?= $user['moto_tanque'] ?? 0 ?> L">
                                 🏍️ <?= htmlspecialchars($user['moto_modelo']) ?>
                             </span>
-                            <div style="font-size: 0.65rem; color: #6e7485;">
+                            <div style="font-size: 0.65rem; color:var(--text-dim);">
                                 <?= $user['moto_kml'] ?? 0 ?> km/L | <?= $user['moto_tanque'] ?? 0 ?> L
                             </div>
                         <?php else: ?>
                             <span class="text-muted" style="font-size: 0.7rem;">—</span>
                         <?php endif; ?>
-                    <td>
+                    </td>
+                    <td class="hide-mobile">
                         <span class="badge <?= ($user['role'] ?? 'user') === 'admin' ? 'badge-admin' : 'badge-user' ?>">
                             <?= ($user['role'] ?? 'user') === 'admin' ? 'Administrador' : 'Integrante' ?>
                         </span>
-                    <td>
+                    </td>
+                    <td class="hide-mobile">
                         <span class="badge <?= ($user['active'] ?? 1) ? 'badge-active' : 'badge-inactive' ?>">
                             <?= ($user['active'] ?? 1) ? 'Ativo' : 'Inativo' ?>
                         </span>
-                    <td><?= (int)($user['total_presencas'] ?? 0) ?>
-                    <td class="text-gold"><?= number_format($user['total_km'] ?? 0, 0, ',', '.') ?> km
+                    </td>
+                    <td class="hide-mobile"><?= (int)($user['total_presencas'] ?? 0) ?></td>
+                    <td class="hide-mobile text-gold"><?= number_format($user['total_km'] ?? 0, 0, ',', '.') ?> km</td>
                     <td style="white-space: nowrap;">
                         <div class="flex">
                             <button class="btn-sm btn-ghost" onclick="editarUsuario(<?= htmlspecialchars(json_encode($user)) ?>)">Editar</button>
@@ -791,6 +822,19 @@ pageOpen("Integrantes", "users", "Integrantes");
                     <input type="text" name="whatsapp" id="form-whatsapp" placeholder="Ex: 5547999990000 (DDI+DDD+número)">
                     <small class="text-muted">Somente números com DDI. Ex: 5547999990000</small>
                 </div>
+                <div class="form-group" style="grid-column:span 2">
+                    <label>🏆 Graduação no Clube</label>
+                    <select name="graduacao" id="form-graduacao">
+                        <option value="">Sem graduação</option>
+                        <option value="diretor">Diretor</option>
+                        <option value="subdiretor">Subdiretor</option>
+                        <option value="escudo_fechado">Escudo Fechado</option>
+                        <option value="meio_escudo_maior">Meio Escudo Maior</option>
+                        <option value="meio_escudo_menor">Meio Escudo Menor</option>
+                        <option value="pp">PP</option>
+                        <option value="veterano">Veterano</option>
+                    </select>
+                </div>
             </div>
             
             <div class="form-row">
@@ -852,7 +896,8 @@ function abrirModalCadastro() {
     document.getElementById('form-user-id').value = '';
     document.getElementById('form-name').value = '';
     document.getElementById('form-email').value = '';
-    document.getElementById('form-whatsapp').value = '';
+    document.getElementById('form-whatsapp').value  = '';
+    document.getElementById('form-graduacao').value = '';
     document.getElementById('form-password').value = '';
     document.getElementById('form-role').value = 'user';
     document.getElementById('form-moto-modelo').value = '';
@@ -869,7 +914,8 @@ function editarUsuario(user) {
     document.getElementById('form-user-id').value = user.id;
     document.getElementById('form-name').value = user.name || '';
     document.getElementById('form-email').value = user.email || '';
-    document.getElementById('form-whatsapp').value = user.whatsapp || '';
+    document.getElementById('form-whatsapp').value  = user.whatsapp   || '';
+    document.getElementById('form-graduacao').value = user.graduacao || '';
     document.getElementById('form-password').value = '';
     document.getElementById('form-role').value = user.role || 'user';
     document.getElementById('form-moto-modelo').value = user.moto_modelo || '';

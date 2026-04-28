@@ -4,7 +4,7 @@
  * Processa notificações agendadas
  * 
  * Configure no crontab para rodar a cada 5 minutos:
- * */5 * * * * curl -s https://mutanteskmtracker.ogrosystemas.com.br/api/whatsapp_cron.php > /dev/null 2>&1
+ * */5 * * * * curl -s https://seudominio.com.br/api/whatsapp_cron.php > /dev/null 2>&1
  * 
  * Ou via painel de agendamentos do hosting.
  */

@@ -53,6 +53,29 @@ pageOpen('Enquetes', 'enquetes', '📊 Enquetes');
 <div class="alert alert-error">⚠️ <?= htmlspecialchars($_SESSION['flash_error']); unset($_SESSION['flash_error']); ?></div>
 <?php endif; ?>
 
+<style>
+.enquete-opcao {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .15s;
+}
+.enquete-opcao:hover {
+    background: var(--bg-hover);
+}
+@media (max-width: 480px) {
+    .enquete-opcao {
+        padding: 10px 12px;
+        gap: 8px;
+    }
+    .card-body {
+        padding: 14px;
+    }
+}
+</style>
 <div class="page-header">
     <h2>📊 Enquetes</h2>
     <p>Participe das votações do clube</p>
@@ -61,8 +84,8 @@ pageOpen('Enquetes', 'enquetes', '📊 Enquetes');
 <?php if (empty($enquetes)): ?>
 <div class="card" style="text-align:center;padding:60px 20px">
     <div style="font-size:3rem;margin-bottom:12px">📊</div>
-    <div style="color:#6e7485">Nenhuma enquete ativa no momento.</div>
-    <div style="font-size:.78rem;color:#6e7485;margin-top:6px">Fique atento às notificações no WhatsApp!</div>
+    <div style="color:var(--text-dim)">Nenhuma enquete ativa no momento.</div>
+    <div style="font-size:.78rem;color:var(--text-dim);margin-top:6px">Fique atento às notificações no WhatsApp!</div>
 </div>
 <?php endif; ?>
 
@@ -79,11 +102,11 @@ pageOpen('Enquetes', 'enquetes', '📊 Enquetes');
     <div class="card-header">
         <h3 class="card-title"><?= htmlspecialchars($eq['titulo']) ?></h3>
         <?php if ($eq['evento_titulo']): ?>
-        <span style="font-size:.75rem;color:#6e7485">🏍️ <?= htmlspecialchars($eq['evento_titulo']) ?></span>
+        <span style="font-size:.75rem;color:var(--text-dim)">🏍️ <?= htmlspecialchars($eq['evento_titulo']) ?></span>
         <?php endif; ?>
     </div>
     <div class="card-body">
-        <p style="font-size:.92rem;margin-bottom:20px;color:#a0a5b5"><?= htmlspecialchars($eq['pergunta']) ?></p>
+        <p style="font-size:.92rem;margin-bottom:20px;color:var(--text-muted)"><?= htmlspecialchars($eq['pergunta']) ?></p>
 
         <?php if (!$jaRespondeu): ?>
         <form method="POST">
@@ -92,7 +115,7 @@ pageOpen('Enquetes', 'enquetes', '📊 Enquetes');
             <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
                 <?php foreach ($opcoes as $op): ?>
                 <label style="display:flex;align-items:center;gap:12px;padding:14px 16px;
-                              background:#0d0f14;border:2px solid #2a2f3a;border-radius:10px;
+                              background:var(--bg-body);border:2px solid #2a2f3a;border-radius:10px;
                               cursor:pointer;transition:border-color .15s"
                        onmouseover="this.style.borderColor='#f39c12'"
                        onmouseout="this.style.borderColor='#2a2f3a'">
@@ -120,16 +143,16 @@ pageOpen('Enquetes', 'enquetes', '📊 Enquetes');
                 <span style="font-weight:<?= $op===$minhaResp?'700':'400' ?>;color:<?= $op===$minhaResp?'#f5b041':'#a0a5b5' ?>">
                     <?= htmlspecialchars($op) ?> <?= $op===$minhaResp?'✅':'' ?>
                 </span>
-                <span style="color:#6e7485"><?= $qt ?> (<?= $pct ?>%)</span>
+                <span style="color:var(--text-dim)"><?= $qt ?> (<?= $pct ?>%)</span>
             </div>
-            <div style="height:8px;background:#2a2f3a;border-radius:4px">
+            <div style="height:8px;background:var(--border);border-radius:4px">
                 <div style="height:8px;background:<?= $op===$minhaResp?'#f39c12':'#2a2f3a' ?>;
                             border:<?= $op!==$minhaResp?'1px solid #3a3f4a':'' ?>;
                             border-radius:4px;width:<?= $pct ?>%;transition:width .5s;min-width:<?= $pct>0?'4px':'0' ?>"></div>
             </div>
         </div>
         <?php endforeach; ?>
-        <div style="font-size:.75rem;color:#6e7485;margin-top:10px"><?= $totalResp ?> voto(s) no total</div>
+        <div style="font-size:.75rem;color:var(--text-dim);margin-top:10px"><?= $totalResp ?> voto(s) no total</div>
         <?php endif; ?>
     </div>
 </div>

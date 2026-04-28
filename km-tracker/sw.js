@@ -1,7 +1,7 @@
 // sw.js — Mutantes KM Tracker (Versão Super Simplificada)
 // Esta versão NÃO cacheia páginas HTML para evitar o modo offline
 
-const CACHE_NAME = 'mutantes-km-v4';
+const CACHE_NAME = 'mutantes-km-v5';
 const STATIC_ASSETS = [
   '/assets/css/main.css',
   '/assets/logo.png',
@@ -65,7 +65,17 @@ self.addEventListener('fetch', event => {
   }
   
   // Para todo o resto (HTML, PHP, API) - SEMPRE vai para a rede
-  event.respondWith(fetch(request));
+  // Para google_auth.php (OAuth callback) - deixa passar sem interceptar
+  if (url.pathname.includes('google_auth.php')) {
+    return; // Não intercepta, deixa o browser lidar normalmente
+  }
+
+  event.respondWith(
+    fetch(request).catch(err => {
+      console.warn('[SW] Fetch falhou:', err);
+      throw err;
+    })
+  );
 });
 
 // Mensagem para pular espera

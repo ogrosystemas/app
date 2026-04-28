@@ -10,7 +10,8 @@ $uid = $me['id'];
 $eventId = (int)($_GET['event_id'] ?? 0);
 
 if (!$eventId) {
-    header('Location: ' . BASE_URL . '/user/events.php');
+    $backUrl = isAdmin() ? BASE_URL . '/admin/events.php' : BASE_URL . '/user/events.php';
+    header('Location: ' . $backUrl);
     exit;
 }
 
@@ -27,7 +28,7 @@ $eventStmt->execute([$uid, $eventId]);
 $event = $eventStmt->fetch();
 
 if (!$event) {
-    header('Location: ' . BASE_URL . '/user/events.php');
+    header('Location: ' . ($isAdmin ?? false ? BASE_URL . '/admin/events.php' : BASE_URL . '/user/events.php'));
     exit;
 }
 
@@ -37,7 +38,7 @@ $canView = ($isAdmin || $event['user_status'] == 'confirmado');
 
 if (!$canView) {
     $_SESSION['flash_error'] = 'Apenas participantes confirmados podem ver a galeria do evento.';
-    header('Location: ' . BASE_URL . '/user/events.php');
+    header('Location: ' . ($isAdmin ? BASE_URL . '/admin/events.php' : BASE_URL . '/user/events.php'));
     exit;
 }
 
@@ -261,7 +262,7 @@ pageOpen("Galeria", "events", "Galeria - " . htmlspecialchars($event['title']));
             <h2>📸 Galeria do Evento</h2>
         </div>
         <div class="page-header-actions">
-            <a href="<?= BASE_URL ?>/user/events.php" class="btn btn-ghost">← Voltar para eventos</a>
+            <a href="<?= isAdmin() ? BASE_URL . '/admin/events.php' : BASE_URL . '/user/events.php' ?>" class="btn btn-ghost">← Voltar para eventos</a>
         </div>
     </div>
 </div>
@@ -292,9 +293,9 @@ pageOpen("Galeria", "events", "Galeria - " . htmlspecialchars($event['title']));
 $eventDate = strtotime($event['event_date']);
 $today = strtotime(date('Y-m-d'));
 $isEventDay = ($eventDate == $today);
-$canUpload = ($isEventDay && $event['user_status'] == 'confirmado');
+$canUpload = ($isAdmin || ($isEventDay && $event['user_status'] == 'confirmado'));
 
-if ($canUpload || $isAdmin):
+if ($canUpload):
 ?>
     <div style="margin-bottom: 24px; text-align: right;">
         <a href="<?= BASE_URL ?>/user/upload_photo_form.php?event_id=<?= $eventId ?>" class="btn-upload">
@@ -308,18 +309,41 @@ if ($canUpload || $isAdmin):
         <div class="empty-icon">📸</div>
         <div class="empty-title">Nenhuma foto ainda</div>
         <div class="empty-text">Seja o primeiro a compartilhar um momento deste evento!</div>
-        <?php if ($canUpload || $isAdmin): ?>
-            <a href="<?= BASE_URL ?>/user/upload_photo_form.php?event_id=<?= $eventId ?>" class="btn-upload">Enviar primeira foto</a>
+        <?php if ($canUpload): ?>
+            <a href="<?= BASE_URL ?>/user/upload_photo_form.php?event_id=<?= $eventId ?>"
+               style="display:inline-flex;align-items:center;gap:8px;
+                      background:linear-gradient(135deg,#f39c12,#e67e22);
+                      color:#0d0f14;border-radius:30px;padding:12px 28px;
+                      font-weight:700;font-size:.9rem;text-decoration:none;
+                      box-shadow:0 4px 16px rgba(243,156,18,.3)">
+                📸 Enviar primeira foto
+            </a>
         <?php endif; ?>
     </div>
 <?php else: ?>
     <div class="photos-grid">
         <?php foreach ($photos as $photo): ?>
             <div class="photo-card">
-                <img src="<?= BASE_URL . '/' . $photo['photo_path'] ?>" 
-                     alt="Foto do evento" 
-                     class="photo-img"
-                     onclick="openModal('<?= BASE_URL . '/' . $photo['photo_path'] ?>', '<?= htmlspecialchars($photo['user_name']) ?>', '<?= htmlspecialchars(addslashes($photo['description'])) ?>')">
+                <?php
+                // Prioriza Drive URLs; fallback para arquivo local
+                if (!empty($photo['drive_file_id'])) {
+                    $thumbUrl = 'https://drive.google.com/thumbnail?id=' . $photo['drive_file_id'] . '&sz=w400';
+                    $viewUrl  = 'https://drive.google.com/thumbnail?id=' . $photo['drive_file_id'] . '&sz=w1200';
+                } else {
+                    $thumbUrl = BASE_URL . '/' . $photo['photo_path'];
+                    $viewUrl  = BASE_URL . '/' . $photo['photo_path'];
+                }
+                ?>
+                <div style="position:relative;width:100%;height:220px;background:#1a1f2a;overflow:hidden">
+                    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#3a3f4a;font-size:2rem">📸</div>
+                    <img src="<?= $thumbUrl ?>"
+                         alt="Foto do evento"
+                         class="photo-img"
+                         style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;cursor:pointer"
+                         onerror="this.style.opacity='0'"
+                         onload="this.style.opacity='1'"
+                         onclick="openModal('<?= $viewUrl ?>', '<?= $photo['drive_file_id'] ?>', '<?= htmlspecialchars($photo['user_name']) ?>', '<?= htmlspecialchars(addslashes($photo['description'] ?? '')) ?>')">
+                </div>
                 <div class="photo-info">
                     <div class="photo-user">
                         <div class="user-avatar-sm"><?= mb_strtoupper(mb_substr($photo['user_name'], 0, 1)) ?></div>
@@ -337,25 +361,56 @@ if ($canUpload || $isAdmin):
 
 <div id="modal-photo" class="modal-photo" onclick="closeModal()">
     <span class="modal-photo-close">&times;</span>
-    <img id="modal-img" src="">
-    <div id="modal-info" class="modal-info"></div>
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;max-width:90vw;max-height:85vh">
+        <img id="modal-img" src="" style="max-width:100%;max-height:80vh;object-fit:contain;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.8)"
+             onerror="this.src='';this.style.display='none';document.getElementById('modal-err').style.display='block'">
+        <div id="modal-err" style="display:none;color:#f39c12;padding:20px">
+            ⚠️ Não foi possível carregar a imagem.<br>
+            <a id="modal-drive-link" href="#" target="_blank" onclick="event.stopPropagation()"
+               style="color:#f39c12;text-decoration:underline;font-size:.85rem">Abrir no Google Drive →</a>
+        </div>
+    </div>
+    <div id="modal-info" class="modal-info" onclick="event.stopPropagation()">
+        <span id="modal-user-name"></span>
+        <span id="modal-desc"></span>
+        <a id="modal-open-drive" href="#" target="_blank"
+           style="margin-left:16px;color:#f39c12;font-size:.8rem;text-decoration:none"
+           onclick="event.stopPropagation()">🔗 Ver no Drive</a>
+    </div>
 </div>
 
 <script>
-function openModal(src, userName, description) {
-    document.getElementById('modal-img').src = src;
-    let infoHtml = '<span class="user">📸 ' + userName + '</span>';
-    if (description && description !== 'null' && description !== '') {
-        infoHtml += ' | ' + description;
-    }
-    document.getElementById('modal-info').innerHTML = infoHtml;
+function openModal(thumbSrc, driveFileId, userName, description) {
+    var img = document.getElementById('modal-img');
+    var err = document.getElementById('modal-err');
+    var driveLink = document.getElementById('modal-drive-link');
+    var openDrive = document.getElementById('modal-open-drive');
+
+    img.style.display = 'block';
+    err.style.display = 'none';
+
+    // Usa thumbnail grande para lightbox
+    img.src = thumbSrc;
+
+    // Link direto para o Drive
+    var driveUrl = driveFileId ? 'https://drive.google.com/file/d/' + driveFileId + '/view' : thumbSrc;
+    if (driveLink) driveLink.href = driveUrl;
+    if (openDrive) openDrive.href = driveUrl;
+
+    document.getElementById('modal-user-name').innerHTML = '<span class="user">📸 ' + userName + '</span>';
+    document.getElementById('modal-desc').textContent = (description && description !== 'null') ? ' | ' + description : '';
+
     document.getElementById('modal-photo').style.display = 'block';
     document.body.style.overflow = 'hidden';
 }
 function closeModal() {
     document.getElementById('modal-photo').style.display = 'none';
-    document.body.style.overflow = 'auto';
+    document.body.style.overflow = '';
 }
+// Reset overflow when navigating away
+window.addEventListener('pagehide', function() {
+    document.body.style.overflow = '';
+});
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         closeModal();

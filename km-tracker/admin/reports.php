@@ -185,6 +185,7 @@ pageOpen("Relatórios", "reports", "Relatórios do Sistema");
     margin-left: 6px;
 }
 @media (max-width: 768px) {
+    .grid-stats { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
     .filter-form {
         flex-direction: column;
         align-items: stretch;
@@ -274,11 +275,12 @@ pageOpen("Relatórios", "reports", "Relatórios do Sistema");
     <div class="table-wrap">
         <table class="users-table">
             <thead>
-                
+                <tr>
                     <th>Data</th>
-                    <th>Dia da Semana</th>
+                    <th class="hide-mobile">Dia da Semana</th>
                     <th>Integrantes</th>
-                    <th>Status</th>
+                    <th class="hide-mobile">Status</th>
+                </tr>
                 </thead>
             <tbody>
                 <tr>
@@ -299,7 +301,7 @@ pageOpen("Relatórios", "reports", "Relatórios do Sistema");
     ?>
     <tr>
         <td style="font-weight:600;"><?= $dataFormatada ?></td>
-        <td><?= $nomeDia ?></td>
+        <td class="hide-mobile"><?= $nomeDia ?></td>
         <td>
             <?php if ($participantes > 0): ?>
                 <span class="badge" style="background:#f39c12; color:#0d0f14; padding:6px 14px;"><?= $participantes ?></span>
@@ -307,7 +309,7 @@ pageOpen("Relatórios", "reports", "Relatórios do Sistema");
                 <span class="badge badge-muted">0</span>
             <?php endif; ?>
         </td>
-        <td>
+        <td class="hide-mobile">
             <?php if ($participantes > 0): ?>
                 <span style="color:#28a745;">Confirmada</span>
             <?php else: ?>
@@ -347,8 +349,8 @@ pageOpen("Relatórios", "reports", "Relatórios do Sistema");
                 <tr>
                     <th>#</th>
                     <th>Integrante</th>
-                    <th>Perfil</th>
-                    <th>Presenças</th>
+                    <th class="hide-mobile">Perfil</th>
+                    <th class="hide-mobile">Presenças</th>
                     <th>KM Total</th>
                 </tr>
             </thead>
@@ -362,12 +364,12 @@ pageOpen("Relatórios", "reports", "Relatórios do Sistema");
                             <span class="badge-admin">Admin</span>
                         <?php endif; ?>
                      </n></td>
-                    <td style="text-align: center;">
+                    <td class="hide-mobile" style="text-align: center;">
     <span class="badge" style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 500; min-width: 100px; text-align: center; background: <?= ($row['role'] ?? 'user') === 'admin' ? '#6c5ce7' : '#f39c12' ?>; color: <?= ($row['role'] ?? 'user') === 'admin' ? 'white' : '#0d0f14' ?>;">
         <?= ($row['role'] ?? 'user') === 'admin' ? 'Administrador' : 'Integrante' ?>
     </span>
 </td>
-                    <td><?= $row['presencas'] ?> </n></td>
+                    <td class="hide-mobile"><?= $row['presencas'] ?></td>
                     <td class="text-gold"><?= number_format($row['total_km'], 0, ',', '.') ?> km</n></td>
                 </tr>
                 <?php endforeach; ?>

@@ -1,12 +1,12 @@
 <?php
-// user/upload_photo_form.php
+// user/upload_photo_form.php — Upload de foto para evento (Google Drive)
 require_once __DIR__ . '/../includes/bootstrap.php';
 requireLogin();
 require_once __DIR__ . '/../includes/layout.php';
 
-$db = db();
-$me = currentUser();
-$uid = $me['id'];
+$db      = db();
+$me      = currentUser();
+$uid     = $me['id'];
 $eventId = (int)($_GET['event_id'] ?? 0);
 
 if (!$eventId) {
@@ -14,13 +14,7 @@ if (!$eventId) {
     exit;
 }
 
-// Verificar evento
-$eventStmt = $db->prepare("
-    SELECT e.*, a.status as user_status
-    FROM events e
-    LEFT JOIN attendances a ON a.event_id = e.id AND a.user_id = ?
-    WHERE e.id = ? AND e.active = 1
-");
+$eventStmt = $db->prepare("SELECT e.*, a.status as user_status FROM events e LEFT JOIN attendances a ON a.event_id=e.id AND a.user_id=? WHERE e.id=? AND e.active=1");
 $eventStmt->execute([$uid, $eventId]);
 $event = $eventStmt->fetch();
 
@@ -29,215 +23,120 @@ if (!$event) {
     exit;
 }
 
-// Verificar se pode enviar
-$eventDate = strtotime($event['event_date']);
-$today = strtotime(date('Y-m-d'));
-$isEventDay = ($eventDate == $today);
-$canUpload = ($isEventDay && $event['user_status'] == 'confirmado');
 $isAdmin = ($me['role'] === 'admin');
-
-if (!$canUpload && !$isAdmin) {
-    $_SESSION['flash_error'] = 'O upload de fotos só é permitido no dia do evento para participantes confirmados.';
-    header('Location: ' . BASE_URL . '/user/events.php');
+$eventDate = strtotime($event['event_date']);
+$today     = strtotime(date('Y-m-d'));
+$isEventDay = ($eventDate == $today);
+if (!$isAdmin && !$isEventDay) {
+    $_SESSION['flash_error'] = 'Upload permitido apenas no dia do evento.';
+    header('Location: ' . BASE_URL . '/user/event_gallery.php?event_id=' . $eventId);
     exit;
 }
 
-pageOpen("Enviar Foto", "events", "Enviar Foto - " . htmlspecialchars($event['title']));
+$error   = '';
+$success = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifyCsrf();
+
+    if (!empty($_FILES['photo']['tmp_name'])) {
+        $file     = $_FILES['photo'];
+        $maxSize  = 10 * 1024 * 1024; // 10MB
+        $allowed  = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        $finfo    = finfo_open(FILEINFO_MIME_TYPE);
+        $mimeType = finfo_file($finfo, $file['tmp_name']);
+        finfo_close($finfo);
+
+        if ($file['size'] > $maxSize) {
+            $error = 'Arquivo muito grande. Máximo 10MB.';
+        } elseif (!in_array($mimeType, $allowed)) {
+            $error = 'Formato não permitido. Use JPG, PNG, WebP ou GIF.';
+        } else {
+            try {
+                require_once __DIR__ . '/../includes/google_drive.php';
+                $drive = new GoogleDrive();
+
+                $ano      = date('Y', strtotime($event['event_date']));
+                $nomeEvento = preg_replace('/[^a-zA-Z0-9 áéíóúâêîôûãõàèìòùç]/u', '', $event['title']);
+                $ext      = pathinfo($file['name'], PATHINFO_EXTENSION) ?: 'jpg';
+                $fileName = date('Ymd_His') . '_' . $uid . '.' . $ext;
+
+                $driveData = $drive->uploadFotoEvento($file['tmp_name'], $fileName, $ano, $nomeEvento);
+
+                $desc = trim($_POST['description'] ?? '');
+                $fileId = $driveData['id'];
+                $db->prepare("INSERT INTO event_photos (event_id, user_id, photo_path, drive_file_id, drive_view_url, drive_thumb_url, description, created_at) VALUES (?,?,?,?,?,?,?,NOW())")
+                   ->execute([
+                       $eventId,
+                       $uid,
+                       'drive:' . $fileId,           // photo_path indica origem Drive
+                       $fileId,                       // drive_file_id — ID puro do arquivo
+                       GoogleDrive::viewUrl($fileId), // URL direta para lightbox
+                       GoogleDrive::thumbnailUrl($fileId), // URL de thumbnail
+                       $desc ?: null,
+                   ]);
+
+                $_SESSION['flash_success'] = 'Foto enviada com sucesso!';
+                header('Location: ' . BASE_URL . '/user/event_gallery.php?event_id=' . $eventId);
+                exit;
+
+            } catch (Throwable $e) {
+                $error = 'Erro ao enviar foto: ' . $e->getMessage();
+            }
+        }
+    } else {
+        $error = 'Selecione uma foto.';
+    }
+}
+
+pageOpen('Upload de Foto', 'events', '📸 Enviar Foto');
 ?>
 
-<style>
-.upload-area {
-    background: var(--bg-card);
-    border-radius: 12px;
-    border: 2px dashed var(--border);
-    padding: 40px;
-    text-align: center;
-    margin-bottom: 24px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.upload-area:hover {
-    border-color: var(--gold);
-    background: var(--bg-card2);
-}
-.upload-area.dragover {
-    border-color: var(--gold);
-    background: rgba(243, 156, 18, 0.1);
-}
-.upload-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
-}
-.upload-text {
-    color: var(--text-muted);
-    margin-bottom: 8px;
-}
-.upload-hint {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-}
-#file-input {
-    display: none;
-}
-.preview-area {
-    display: none;
-    margin-top: 20px;
-    text-align: center;
-}
-.preview-img {
-    max-width: 100%;
-    max-height: 300px;
-    border-radius: 8px;
-    margin-bottom: 16px;
-}
-.form-group {
-    margin-bottom: 16px;
-    text-align: left;
-}
-.form-group label {
-    display: block;
-    margin-bottom: 6px;
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-}
-.form-control {
-    width: 100%;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--bg-input);
-    color: var(--text-primary);
-    font-family: inherit;
-    resize: vertical;
-}
-.btn-group {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    margin-top: 16px;
-}
-.btn-primary {
-    background: var(--gold);
-    color: #0d0f14;
-    border: none;
-    padding: 10px 24px;
-    border-radius: 30px;
-    font-weight: 600;
-    cursor: pointer;
-}
-.btn-ghost {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
-    padding: 10px 24px;
-    border-radius: 30px;
-    cursor: pointer;
-}
-</style>
+<?php if ($error): ?>
+<div class="alert alert-error">⚠️ <?= htmlspecialchars($error) ?></div>
+<?php endif; ?>
 
 <div class="page-header">
     <div class="page-header-row">
-        <div>
-            <h2>Enviar Foto</h2>
-            <p><?= htmlspecialchars($event['title']) ?> - <?= date('d/m/Y', strtotime($event['event_date'])) ?></p>
-        </div>
+        <div><h2>📸 Enviar Foto</h2><p><?= htmlspecialchars($event['title']) ?></p></div>
         <div class="page-header-actions">
-            <a href="<?= BASE_URL ?>/user/event_gallery.php?event_id=<?= $eventId ?>" class="btn btn-ghost">← Voltar para galeria</a>
+            <a href="<?= BASE_URL ?>/user/event_gallery.php?event_id=<?= $eventId ?>" class="btn btn-ghost">← Voltar</a>
         </div>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header">
-        <span class="card-title">📸 Enviar foto do evento</span>
-    </div>
-    <div class="card-body">
-        <form method="POST" action="upload_photo.php" enctype="multipart/form-data" id="upload-form">
-            <input type="hidden" name="event_id" value="<?= $eventId ?>">
-            <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
-            
-            <div class="upload-area" id="upload-area">
-                <div class="upload-icon">📷</div>
-                <div class="upload-text">Clique ou arraste uma foto aqui</div>
-                <div class="upload-hint">Formatos: JPG, PNG, GIF, WEBP (máx. 5MB)</div>
-            </div>
-            <input type="file" name="photo" id="file-input" accept="image/jpeg,image/png,image/gif,image/webp">
-            
-            <div class="preview-area" id="preview-area">
-                <img class="preview-img" id="preview-img">
-                <div class="form-group">
-                    <label>Descrição (opcional)</label>
-                    <textarea name="description" class="form-control" rows="3" placeholder="Digite uma descrição para a foto..."></textarea>
+<div style="max-width:520px;margin:0 auto">
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
+
+                <div style="margin-bottom:20px">
+                    <label style="display:block;font-size:.8rem;font-weight:600;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">📷 Foto *</label>
+                    <input type="file" name="photo" accept="image/*" required
+                           style="width:100%;background:var(--bg-body);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:.85rem;cursor:pointer">
+                    <small style="font-size:.72rem;color:var(--text-dim);margin-top:4px;display:block">JPG, PNG, WebP ou GIF — máximo 10MB</small>
                 </div>
-                <div class="btn-group">
-                    <button type="submit" class="btn-primary">📤 Enviar foto</button>
-                    <button type="button" class="btn-ghost" id="cancel-preview">Cancelar</button>
+
+                <div style="margin-bottom:20px">
+                    <label style="display:block;font-size:.8rem;font-weight:600;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">💬 Descrição (opcional)</label>
+                    <input type="text" name="description" maxlength="255" placeholder="Ex: Chegada em Erechim"
+                           style="width:100%;background:var(--bg-body);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:.85rem">
                 </div>
-            </div>
-        </form>
+
+                <div style="background:#f39c1215;border:1px solid #f39c1240;border-radius:8px;padding:12px 16px;margin-bottom:24px;font-size:.78rem;color:#f5b041;line-height:1.5">
+                    📁 A foto será salva no Google Drive em:<br>
+                    <strong>Mutantes KM / Eventos / <?= date('Y', strtotime($event['event_date'])) ?> / <?= htmlspecialchars($event['title']) ?></strong>
+                </div>
+
+                <div style="text-align:center">
+                    <button type="submit" class="btn btn-primary" style="min-width:200px;padding:12px 32px;font-size:.95rem;font-weight:700">
+                        📤 Enviar Foto
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
-
-<script>
-const uploadArea = document.getElementById('upload-area');
-const fileInput = document.getElementById('file-input');
-const previewArea = document.getElementById('preview-area');
-const previewImg = document.getElementById('preview-img');
-const cancelPreview = document.getElementById('cancel-preview');
-
-uploadArea.addEventListener('click', () => fileInput.click());
-
-uploadArea.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    uploadArea.classList.add('dragover');
-});
-
-uploadArea.addEventListener('dragleave', () => {
-    uploadArea.classList.remove('dragover');
-});
-
-uploadArea.addEventListener('drop', (e) => {
-    e.preventDefault();
-    uploadArea.classList.remove('dragover');
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
-        handleFile(file);
-    } else {
-        alert('Por favor, envie um arquivo de imagem.');
-    }
-});
-
-fileInput.addEventListener('change', (e) => {
-    if (e.target.files[0]) {
-        handleFile(e.target.files[0]);
-    }
-});
-
-function handleFile(file) {
-    if (file.size > 5 * 1024 * 1024) {
-        alert('Arquivo muito grande. Máximo 5MB.');
-        return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        previewImg.src = e.target.result;
-        uploadArea.style.display = 'none';
-        previewArea.style.display = 'block';
-    };
-    reader.readAsDataURL(file);
-    
-    // Criar novo FileList com o arquivo
-    const dataTransfer = new DataTransfer();
-    dataTransfer.items.add(file);
-    fileInput.files = dataTransfer.files;
-}
-
-cancelPreview.addEventListener('click', () => {
-    uploadArea.style.display = 'block';
-    previewArea.style.display = 'none';
-    fileInput.value = '';
-});
-</script>
 
 <?php pageClose(); ?>

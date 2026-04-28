@@ -28,7 +28,7 @@ function applySecurityHeaders(): void
     header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
 
     // Content Security Policy
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self' https://nominatim.openstreetmap.org https://graphhopper.com;");
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.tile.openstreetmap.org https://lh3.googleusercontent.com https://drive.google.com https://*.googleusercontent.com; connect-src 'self' https://nominatim.openstreetmap.org https://graphhopper.com;");
 
     // Remove headers que expõem informações do servidor
     header_remove('X-Powered-By');
@@ -327,7 +327,7 @@ function renderSecurityBlock(string $title, string $msg, string $hint, string $i
     <title>' . htmlspecialchars($title) . '</title>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
-      body{font-family:Arial,sans-serif;background:#0d0f14;color:#eef0f8;
+      body{font-family:Arial,sans-serif;background:var(--bg-body);color:var(--text);
            min-height:100vh;display:grid;place-items:center}
       .box{max-width:460px;text-align:center;padding:40px}
       .icon{font-size:3rem;margin-bottom:20px}

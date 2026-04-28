@@ -10,7 +10,7 @@ $dest_lat = (float)($_GET['dlat'] ?? 0);
 $dest_lng = (float)($_GET['dlng'] ?? 0);
 
 if (!$origin_lat || !$origin_lng || !$dest_lat || !$dest_lng) {
-    echo '<div style="padding:20px;text-align:center;color:#6e7485;">⚠️ Coordenadas inválidas</div>';
+    echo '<div style="padding:20px;text-align:center;color:var(--text-dim);">⚠️ Coordenadas inválidas</div>';
     exit;
 }
 
@@ -32,7 +32,7 @@ $map_url = "https://graphhopper.com/maps/?point={$origin_lat},{$origin_lng}&poin
             align-items: center; 
             justify-content: center; 
             height: 100%; 
-            background: #1f2229; 
+            background:var(--bg-input); 
             color: #f5b041; 
             font-family: monospace;
             text-align: center;

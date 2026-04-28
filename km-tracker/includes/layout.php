@@ -18,8 +18,8 @@ function renderSidebar(string $activePage = ''): void
   <div class="sidebar-brand">
     <div class="logo-mark">
       <div>
-        <div class="logo-text">Mutantes</div>
-        <div class="logo-sub">KM Tracker</div>
+        <div class="logo-text"><?= htmlspecialchars(setting('sistema_nome','KM Tracker')) ?></div>
+        <div class="logo-sub">Sistema de Gestão</div>
       </div>
     </div>
     <button class="sidebar-close" id="sidebar-close">✕</button>
@@ -42,8 +42,21 @@ function renderSidebar(string $activePage = ''): void
     <a href="<?= $base ?>/admin/reports.php" class="nav-item <?= $activePage === 'reports' ? 'active' : '' ?>">
       <span class="nav-icon">📈</span> Relatórios
     </a>
+    <a href="<?= $base ?>/user/ranking.php" class="nav-item <?= $activePage === 'ranking' ? 'active' : '' ?>">
+      <span class="nav-icon">🏆</span> Ranking
+    </a>
+    <a href="<?= $base ?>/user/sextas_gallery.php" class="nav-item <?= $activePage === 'sextas' ? 'active' : '' ?>">
+      <span class="nav-icon">📸</span> Galeria Sextas
+    </a>
+    <div class="nav-section-label">Configurações</div>
     <a href="<?= $base ?>/admin/whatsapp.php" class="nav-item <?= $activePage === 'whatsapp' ? 'active' : '' ?>">
       <span class="nav-icon">📱</span> WhatsApp
+    </a>
+    <a href="<?= $base ?>/admin/escalas.php" class="nav-item <?= $activePage === 'escalas' ? 'active' : '' ?>">
+      <span class="nav-icon">📋</span> Escalas
+    </a>
+    <a href="<?= $base ?>/admin/sistema.php" class="nav-item <?= $activePage === 'sistema' ? 'active' : '' ?>">
+      <span class="nav-icon">⚙️</span> Sistema
     </a>
     <div class="nav-section-label">Conta</div>
     <?php else: ?>
@@ -54,8 +67,11 @@ function renderSidebar(string $activePage = ''): void
     <a href="<?= $base ?>/user/events.php" class="nav-item <?= $activePage === 'events' ? 'active' : '' ?>">
       <span class="nav-icon">📅</span> Eventos
     </a>
-    <a href="<?= $base ?>/user/enquetes.php" class="nav-item <?= $activePage === 'enquetes' ? 'active' : '' ?>">
-      <span class="nav-icon">📊</span> Enquetes
+    <a href="<?= $base ?>/user/ranking.php" class="nav-item <?= $activePage === 'ranking' ? 'active' : '' ?>">
+      <span class="nav-icon">🏆</span> Ranking
+    </a>
+    <a href="<?= $base ?>/user/sextas_gallery.php" class="nav-item <?= $activePage === 'sextas' ? 'active' : '' ?>">
+      <span class="nav-icon">📸</span> Galeria Sextas
     </a>
     <a href="<?= $base ?>/user/history.php" class="nav-item <?= $activePage === 'history' ? 'active' : '' ?>">
       <span class="nav-icon">🗂️</span> Histórico
@@ -63,15 +79,21 @@ function renderSidebar(string $activePage = ''): void
     <div class="nav-section-label">Conta</div>
     <?php endif; ?>
     <a href="<?= $base ?>/profile.php" class="nav-item <?= $activePage === 'profile' ? 'active' : '' ?>">
-      <span class="nav-icon">⚙️</span> Meu Perfil
+      <span class="nav-icon">👤</span> Meu Perfil
     </a>
-    <a href="<?= $base ?>/logout.php" class="nav-item">
+    <a href="<?= $base ?>/logout.php" class="nav-item" style="color:#dc3545">
       <span class="nav-icon">🚪</span> Sair
     </a>
   </nav>
   <div class="sidebar-footer">
     <div class="user-card">
-      <div class="user-avatar"><?= htmlspecialchars($userInitial) ?></div>
+      <div class="user-avatar" style="overflow:hidden;padding:0">
+        <?php if (!empty($currentUser['avatar'])): ?>
+        <img src="<?= BASE_URL . '/' . $currentUser['avatar'] ?>" style="width:100%;height:100%;object-fit:cover;border-radius:50%">
+        <?php else: ?>
+        <?= htmlspecialchars($userInitial) ?>
+        <?php endif; ?>
+      </div>
       <div class="user-info">
         <div class="user-name"><?= htmlspecialchars($currentUser['name'] ?? 'Integrante') ?></div>
         <div class="user-role"><?= htmlspecialchars($role) ?></div>
@@ -90,7 +112,19 @@ function renderTopbar(string $pageTitle): void
 <header class="topbar">
   <button class="topbar-hamburger" id="sidebar-toggle">☰</button>
   <div class="topbar-title"><?= htmlspecialchars($pageTitle) ?></div>
-  <a href="<?= BASE_URL ?>/profile.php" class="topbar-avatar"><?= htmlspecialchars($initial) ?></a>
+  <a href="<?= BASE_URL ?>/profile.php" style="display:flex;align-items:center;gap:10px;text-decoration:none;padding:4px 8px;border-radius:8px;transition:background .15s" onmouseover="this.style.background='var(--bg-hover,#1f2229)'" onmouseout="this.style.background='transparent'">
+    <div style="text-align:right;display:none" class="topbar-userinfo">
+      <div style="font-size:.82rem;font-weight:600;color:var(--text)"><?= htmlspecialchars($currentUser['name'] ?? '') ?></div>
+      <div style="font-size:.68rem;color:var(--text-dim)"><?= htmlspecialchars($role ?? 'Integrante') ?></div>
+    </div>
+    <div class="topbar-avatar" style="overflow:hidden;padding:0">
+      <?php if (!empty($currentUser['avatar'])): ?>
+      <img src="<?= BASE_URL . '/' . $currentUser['avatar'] ?>" style="width:100%;height:100%;object-fit:cover;border-radius:50%">
+      <?php else: ?>
+      <?= htmlspecialchars($initial) ?>
+      <?php endif; ?>
+    </div>
+  </a>
 </header>
 <?php
 }
@@ -104,9 +138,23 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title><?= htmlspecialchars($title) ?> — Mutantes KM Tracker</title>
-	<link rel="icon" type="image/x-icon" href="<?= BASE_URL ?>/favicon.png">
-<link rel="shortcut icon" href="<?= BASE_URL ?>/favicon.png">
+    <title><?= htmlspecialchars($title) ?> — <?= htmlspecialchars(setting('sistema_nome','KM Tracker')) ?></title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="<?= BASE_URL ?>/manifest.json">
+    <script>window.BASE_URL = '<?= BASE_URL ?>';</script>
+    <meta name="theme-color" content="#0d0f14">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="<?= htmlspecialchars(setting('sistema_nome','KM Tracker')) ?>">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="<?= htmlspecialchars(setting('sistema_nome','KM Tracker')) ?>">
+    <link rel="apple-touch-icon" href="<?= BASE_URL ?>/assets/logo.png">
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="<?= BASE_URL ?>/favicon.png">
+    <link rel="shortcut icon" href="<?= BASE_URL ?>/favicon.png">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/tema.css">
 
     <style>
         /* TODO O SEU CSS AQUI (MANTENHA O CSS ORIGINAL) */
@@ -115,10 +163,38 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
             padding: 0;
             box-sizing: border-box;
         }
+        /* ── Tema Escuro (padrão) ── */
+        :root {
+            --bg-body:    #0d0f14;
+            --bg-card:    #14161c;
+            --bg-input:   #1f2229;
+            --bg-hover:   #1f2229;
+            --border:     #2a2f3a;
+            --text:       #eef0f8;
+            --text-muted: #a0a5b5;
+            --text-dim:   #6e7485;
+            --accent:     #f39c12;
+            --sidebar-bg: #14161c;
+            --topbar-bg:  #14161c;
+        }
+        /* ── Tema Claro ── */
+        body.tema-light {
+            --bg-body:    #f0f2f5;
+            --bg-card:    #ffffff;
+            --bg-input:   #f8f9fa;
+            --bg-hover:   #f0f2f5;
+            --border:     #dee2e6;
+            --text:       #1a1d23;
+            --text-muted: #495057;
+            --text-dim:   #6c757d;
+            --accent:     #f39c12;
+            --sidebar-bg: #ffffff;
+            --topbar-bg:  #ffffff;
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-            background: #0d0f14;
-            color: #eef0f8;
+            background: var(--bg-body);
+            color: var(--text);
             line-height: 1.5;
         }
         .shell {
@@ -130,23 +206,36 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
             display: flex;
             flex-direction: column;
             min-width: 0;
-            width: 100%;
+            width: calc(100% - 260px);
+            margin-left: 260px;
         }
         .page-body {
             padding: 20px;
             width: 100%;
+            overflow-x: hidden;
+        }
+        /* Tabelas responsivas */
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
         .sidebar {
             width: 260px;
-            background: #14161c;
-            border-right: 1px solid #2a2f3a;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            height: 100dvh;
+            z-index: 100;
             display: flex;
             flex-direction: column;
             position: relative;
         }
         .sidebar-brand {
             padding: 20px;
-            border-bottom: 1px solid #2a2f3a;
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -158,16 +247,21 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
         }
         .logo-sub {
             font-size: 0.7rem;
-            color: #6e7485;
+            color: var(--text-dim);
         }
         .sidebar-nav {
             flex: 1;
             padding: 20px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
         }
+        .sidebar-nav::-webkit-scrollbar { display: none; }
         .nav-section-label {
             font-size: 0.7rem;
             text-transform: uppercase;
-            color: #6e7485;
+            color: var(--text-dim);
             margin: 16px 0 8px 0;
             letter-spacing: 0.05em;
         }
@@ -180,14 +274,14 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
             gap: 12px;
             padding: 10px 12px;
             border-radius: 8px;
-            color: #a0a5b5;
+            color: var(--text-muted);
             text-decoration: none;
             margin-bottom: 4px;
             transition: all 0.2s;
         }
         .nav-item:hover {
-            background: #1f2229;
-            color: #eef0f8;
+            background: var(--bg-hover);
+            color: var(--text);
         }
         .nav-item.active {
             background: rgba(243, 156, 18, 0.15);
@@ -198,7 +292,7 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
         }
         .sidebar-footer {
             padding: 20px;
-            border-top: 1px solid #2a2f3a;
+            border-top: 1px solid var(--border);
         }
         .user-card {
             display: flex;
@@ -222,22 +316,25 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
         }
         .user-role {
             font-size: 0.7rem;
-            color: #6e7485;
+            color: var(--text-dim);
         }
         .sidebar-close {
             display: none;
             background: none;
             border: none;
-            color: #a0a5b5;
+            color: var(--text-muted);
             font-size: 1.2rem;
             cursor: pointer;
         }
         .topbar {
-            background: #14161c;
+            background: var(--topbar-bg);
             padding: 12px 20px;
-            border-bottom: 1px solid #2a2f3a;
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 99;
             align-items: center;
             position: sticky;
             top: 0;
@@ -247,7 +344,7 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
             display: none;
             background: none;
             border: none;
-            color: #a0a5b5;
+            color: var(--text-muted);
             cursor: pointer;
             font-size: 1.2rem;
             padding: 8px;
@@ -269,9 +366,9 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
             font-weight: 600;
         }
         .card {
-            background: #14161c;
+            background: var(--bg-card, #14161c);
             border-radius: 12px;
-            border: 1px solid #2a2f3a;
+            border: 1px solid var(--border);
             overflow: hidden;
             margin-bottom: 24px;
         }
@@ -280,7 +377,7 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
             justify-content: space-between;
             align-items: center;
             padding: 16px 20px;
-            border-bottom: 1px solid #2a2f3a;
+            border-bottom: 1px solid var(--border);
             flex-wrap: wrap;
             gap: 10px;
         }
@@ -290,6 +387,8 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
         }
         .card-body {
             padding: 20px;
+            background: var(--bg-card, #14161c);
+            color: var(--text, #eef0f8);
         }
         .stats-grid {
             display: grid;
@@ -298,11 +397,11 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
             margin-bottom: 24px;
         }
         .stat-card {
-            background: #14161c;
+            background: var(--bg-card);
             border-radius: 12px;
             padding: 20px;
             text-align: center;
-            border: 1px solid #2a2f3a;
+            border: 1px solid var(--border);
         }
         .stat-value {
             font-size: 2rem;
@@ -311,13 +410,13 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
         }
         .stat-label {
             font-size: 0.7rem;
-            color: #6e7485;
+            color: var(--text-dim);
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
         .stat-sub {
             font-size: 0.7rem;
-            color: #6e7485;
+            color: var(--text-dim);
             margin-top: 4px;
         }
         .table-wrap {
@@ -330,10 +429,10 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
         .users-table th, .users-table td {
             padding: 12px;
             text-align: left;
-            border-bottom: 1px solid #2a2f3a;
+            border-bottom: 1px solid var(--border);
         }
         .users-table th {
-            color: #6e7485;
+            color: var(--text-dim);
             font-weight: 500;
             font-size: 0.75rem;
             text-transform: uppercase;
@@ -374,8 +473,8 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
         }
         .btn-ghost {
             background: transparent;
-            border: 1px solid #2a2f3a;
-            color: #a0a5b5;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
         }
         .btn-accent {
             background: #f39c12;
@@ -401,8 +500,8 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
             color: white;
         }
         .badge-muted {
-            background: #1f2229;
-            color: #6e7485;
+            background: var(--bg-input);
+            color: var(--text-dim);
         }
         .badge-gold {
             background: #f39c12;
@@ -431,7 +530,7 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
             margin-bottom: 4px;
         }
         .page-header p {
-            color: #6e7485;
+            color: var(--text-dim);
             font-size: 0.85rem;
         }
         .page-header-row {
@@ -447,7 +546,7 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
             align-items: center;
         }
         .sexta-card {
-            background: linear-gradient(135deg, #14161c, #1a0f05);
+            background: linear-gradient(135deg, var(--bg-card), var(--bg-card2));
             border: 1px solid #f39c12;
             border-radius: 12px;
             padding: 20px;
@@ -465,7 +564,7 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
             gap: 16px;
         }
         .sexta-item {
-            background: #1f2229;
+            background: var(--bg-input);
             border-radius: 8px;
             padding: 16px;
             display: flex;
@@ -482,11 +581,11 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
         .sexta-item-date {
             font-size: 0.85rem;
             margin-top: 4px;
-            color: #a0a5b5;
+            color: var(--text-muted);
         }
         .sexta-item-countdown {
             font-size: 0.7rem;
-            color: #6e7485;
+            color: var(--text-dim);
             margin-top: 4px;
         }
         .btn-sexta {
@@ -509,7 +608,7 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
             gap: 24px;
         }
         .text-muted {
-            color: #6e7485;
+            color: var(--text-dim);
         }
         .text-center {
             text-align: center;
@@ -534,16 +633,16 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
             justify-content: center;
             gap: 8px;
             padding: 16px;
-            border-top: 1px solid #2a2f3a;
+            border-top: 1px solid var(--border);
         }
         .pagination a {
             display: inline-block;
             padding: 6px 12px;
             border-radius: 4px;
             text-decoration: none;
-            color: #a0a5b5;
-            background: #1f2229;
-            border: 1px solid #2a2f3a;
+            color: var(--text-muted);
+            background: var(--bg-input);
+            border: 1px solid var(--border);
         }
         .pagination a.current {
             background: #f39c12;
@@ -552,11 +651,21 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
         }
         @media (min-width: 769px) {
             .sidebar {
-                position: relative;
+                position: fixed !important;
                 left: 0 !important;
+                overflow-y: auto;
             }
             .sidebar-overlay {
                 display: none !important;
+            }
+            .topbar-hamburger {
+                display: none !important;
+            }
+            .sidebar-close {
+                display: none !important;
+            }
+            .topbar-userinfo {
+                display: block !important;
             }
         }
         @media (max-width: 768px) {
@@ -565,8 +674,17 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
                 left: -260px;
                 top: 0;
                 height: 100%;
+                height: 100dvh;
                 z-index: 1000;
                 transition: left 0.3s ease;
+                overflow-y: auto;
+                overflow-x: hidden;
+                display: flex;
+                flex-direction: column;
+            }
+            .sidebar-footer {
+                position: relative;
+                flex-shrink: 0;
             }
             .sidebar.open {
                 left: 0;
@@ -590,6 +708,9 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
             .topbar-hamburger {
                 display: block;
             }
+            .main-content {
+                margin-left: 0 !important;
+            }
             .page-body {
                 padding: 16px;
             }
@@ -606,6 +727,11 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
             }
         }
         @media (max-width: 480px) {
+            /* Tabs responsivos */
+            [style*="width:fit-content"] {
+                max-width: 100%;
+                overflow-x: auto;
+            }
             .page-body {
                 padding: 12px;
             }
@@ -650,7 +776,7 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
 }
     </style>
 </head>
-<body>
+<body class="<?= setting('tema','dark') === 'light' ? 'tema-light' : '' ?>">
 <div class="shell">
 <?php renderSidebar($activePage); ?>
   <div class="main-content">
@@ -662,6 +788,15 @@ function pageOpen(string $title, string $activePage, string $pageTitle = ''): vo
 function pageClose(): void
 {
 ?>
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('<?= BASE_URL ?>/sw.js')
+                .then(function(reg) { console.log('[PWA] SW registrado:', reg.scope); })
+                .catch(function(err) { console.warn('[PWA] SW falhou:', err); });
+        });
+    }
+    </script>
     </div>
   </div>
 </div>

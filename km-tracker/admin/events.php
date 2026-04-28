@@ -20,11 +20,14 @@ $precoGasolina = (float)($motoData['gas_preco'] ?? 0);
 
 // Buscar lista de eventos para o filtro
 $eventsListStmt = $db->prepare("SELECT id, title FROM events WHERE YEAR(event_date) = ? AND active = 1 ORDER BY event_date DESC");
+
+// Lixeira - eventos desativados
+$lixeira = $db->query("SELECT id, title, event_date, location, deleted_at FROM events WHERE active=0 ORDER BY deleted_at DESC")->fetchAll();
 $eventsListStmt->execute([$year]);
 $eventsList = $eventsListStmt->fetchAll();
 
 // Buscar eventos
-$total = $db->prepare("SELECT COUNT(*) FROM events WHERE YEAR(event_date)=?");
+$total = $db->prepare("SELECT COUNT(*) FROM events WHERE YEAR(event_date)=? AND active=1");
 $total->execute([$year]);
 $totalCount = (int)$total->fetchColumn();
 $totalPages = ceil($totalCount / $perPage);
@@ -35,7 +38,7 @@ $evStmt = $db->prepare("
            COUNT(CASE WHEN a.status = 'confirmado' AND e.event_date <= CURDATE() THEN 1 END) AS presentes
     FROM events e 
     LEFT JOIN attendances a ON a.event_id = e.id
-    WHERE YEAR(e.event_date)=?
+    WHERE YEAR(e.event_date)=? AND e.active=1
     GROUP BY e.id ORDER BY e.event_date DESC
     LIMIT ? OFFSET ?
 ");
@@ -65,7 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $route_dest_lng    = (float)($_POST['route_dest_lng'] ?? 0);
         $litros_gastos     = (float)($_POST['litros_gastos'] ?? 0);
         $custo_combustivel = (float)($_POST['custo_combustivel'] ?? 0);
-        $valor_pedagios    = (float)($_POST['valor_pedagios'] ?? 0);
+        $avoid_tolls       = isset($_POST['avoid_tolls']) && $_POST['avoid_tolls'] === '1' ? 1 : 0;
+        $valor_pedagios    = $avoid_tolls ? 0.00 : (float)($_POST['valor_pedagios'] ?? 0);
         
         if ($route_km > 0) {
             $km_awarded = $route_km * 2;
@@ -126,6 +130,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $db->prepare('UPDATE events SET active=? WHERE id=?')
            ->execute([(int)($_POST['active']??0), $eid]);
         $_SESSION['flash_success'] = 'Status do evento atualizado.';
+    } elseif ($action === 'excluir_permanente') {
+        $eid = (int)($_POST['event_id'] ?? 0);
+        if ($eid) {
+            // Remove fotos, arquivos e presenças relacionadas
+            $db->prepare('DELETE FROM event_photos WHERE event_id=?')->execute([$eid]);
+            $db->prepare('DELETE FROM event_files WHERE event_id=?')->execute([$eid]);
+            $db->prepare('DELETE FROM attendances WHERE event_id=?')->execute([$eid]);
+            $db->prepare('DELETE FROM events WHERE id=? AND active=0')->execute([$eid]);
+            $_SESSION['flash_success'] = 'Evento excluído permanentemente.';
+        }
+    } elseif ($action === 'esvaziar_lixeira') {
+        $lixeiraIds = $db->query('SELECT id FROM events WHERE active=0')->fetchAll(PDO::FETCH_COLUMN);
+        foreach ($lixeiraIds as $eid) {
+            $db->prepare('DELETE FROM event_photos WHERE event_id=?')->execute([$eid]);
+            $db->prepare('DELETE FROM event_files WHERE event_id=?')->execute([$eid]);
+            $db->prepare('DELETE FROM attendances WHERE event_id=?')->execute([$eid]);
+        }
+        $db->query('DELETE FROM events WHERE active=0');
+        $_SESSION['flash_success'] = 'Lixeira esvaziada com sucesso.';
     }
     header('Location: ' . BASE_URL . '/admin/events.php');
     exit;
@@ -133,6 +156,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 pageOpen("Eventos", "events", "Gerenciar Eventos");
 ?>
+<link rel="stylesheet" href="<?= BASE_URL ?>/api/assets/leaflet.css">
+<script src="<?= BASE_URL ?>/api/assets/leaflet.js"></script>
 
 <style>
 /* ===== TODOS OS SEUS ESTILOS EXISTENTES ===== */
@@ -222,10 +247,11 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
     color: white;
 }
 .card-table {
-    background: var(--bg-card);
+    background: var(--bg-card, #14161c);
     border-radius: 12px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border, #2a2f3a);
     overflow: hidden;
+    margin-bottom: 0;
 }
 .table-wrap {
     overflow-x: auto;
@@ -240,9 +266,8 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
 .users-table td {
     padding: 12px;
     text-align: left;
-    border: 1px solid #2a2f3a !important;
-    border-top: 1px solid #2a2f3a !important;
-    border-radius: 12px;
+    border: none !important;
+    border-bottom: 1px solid var(--border) !important;
 }
 .users-table th {
     color: var(--text-muted);
@@ -371,14 +396,14 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
     display: flex;
 }
 .modal {
-    background: #14161c;
+    background: var(--bg-card);
     border-radius: 16px;
     width: 90%;
     max-width: 850px;
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    border: 1px solid #2a2f3a;
+    border: 1px solid var(--border);
 }
 .modal-lg {
     max-width: 950px;
@@ -388,8 +413,8 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
     justify-content: space-between;
     align-items: center;
     padding: 20px 24px;
-    border-bottom: 1px solid #2a2f3a;
-    background: #1a1d24;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card2);
     border-radius: 16px 16px 0 0;
 }
 .modal-title {
@@ -402,7 +427,7 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
     border: none;
     font-size: 1.4rem;
     cursor: pointer;
-    color: #a0a5b5;
+    color:var(--text-muted);
     padding: 0;
     width: 32px;
     height: 32px;
@@ -412,8 +437,8 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
     border-radius: 8px;
 }
 .modal-header .btn-ghost:hover {
-    background: #1f2229;
-    color: #eef0f8;
+    background: var(--bg-input);
+    color:var(--text);
 }
 .modal form {
     padding: 24px;
@@ -433,7 +458,7 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
     margin-bottom: 6px;
     font-size: 0.75rem;
     font-weight: 500;
-    color: #6e7485;
+    color:var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -443,9 +468,9 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
     width: 100%;
     padding: 10px 12px;
     border-radius: 8px;
-    border: 1px solid #2a2f3a;
-    background: #1f2229;
-    color: #eef0f8;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color:var(--text);
     font-family: inherit;
     font-size: 0.85rem;
 }
@@ -458,8 +483,8 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
 .ac-list {
     position: absolute;
     z-index: 600;
-    background: #14161c;
-    border: 1px solid #2a2f3a;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
     border-top: none;
     border-radius: 0 0 8px 8px;
     max-height: 220px;
@@ -474,12 +499,12 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
     padding: 10px 14px;
     cursor: pointer;
     font-size: 0.84rem;
-    color: #a0a5b5;
+    color:var(--text-muted);
     border-bottom: 1px solid rgba(42,47,69,.4);
 }
 .ac-item:hover {
-    background: #1f2229;
-    color: #eef0f8;
+    background: var(--bg-input);
+    color:var(--text);
 }
 .field-wrap {
     position: relative;
@@ -490,9 +515,9 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
     gap: 12px;
     margin-top: 12px;
     padding: 14px;
-    background: #1f2229;
+    background: var(--bg-input);
     border-radius: 8px;
-    border: 1px solid #2a2f3a;
+    border: 1px solid var(--border);
 }
 .route-box-item {
     text-align: center;
@@ -505,7 +530,7 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
 }
 .route-box-lbl {
     font-size: 0.6rem;
-    color: #6e7485;
+    color:var(--text-dim);
     text-transform: uppercase;
     margin-top: 4px;
 }
@@ -530,13 +555,13 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
 
 .btn-ghost {
     background: transparent;
-    border: 1px solid #2a2f3a;
-    color: #a0a5b5;
+    border: 1px solid var(--border);
+    color:var(--text-muted);
 }
 
 .btn-ghost:hover {
-    background: #1f2229;
-    color: #eef0f8;
+    background: var(--bg-input);
+    color:var(--text);
 }
 
 .btn-accent {
@@ -592,8 +617,8 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
     height: 400px;
     width: 100%;
     border-radius: 8px;
-    background: #1f2229;
-    border: 1px solid #2a2f3a;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
     z-index: 1;
 }
 .map-loading {
@@ -610,15 +635,15 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
     pointer-events: none;
 }
 .leaflet-container {
-    background: #1f2229;
+    background: var(--bg-input);
     border-radius: 8px;
 }
 .leaflet-popup-content-wrapper {
-    background: #14161c;
-    color: #eef0f8;
+    background: var(--bg-card);
+    color:var(--text);
 }
 .leaflet-popup-tip {
-    background: #14161c;
+    background: var(--bg-card);
 }
 @media (max-width: 768px) {
     #route-map {
@@ -680,44 +705,92 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
     <div class="alert alert-error">⚠️ <?= htmlspecialchars($_SESSION['flash_error']); unset($_SESSION['flash_error']); ?></div>
 <?php endif; ?>
 
-<div class="card">
+<div class="card-table">
     <div class="table-wrap">
-        <table class="users-table">
-            <thead>
+        <table class="users-table events-table" style="width:100%">
+            <thead class="hide-mobile">
                 <tr>
-                    <th>Título</th>
-                    <th>Data</th>
-                    <th class="hide-mobile">Local</th>
-                    <th>KM</th>
-                    <th>Pres.</th>
-                    <th>Status</th>
-                    <th>Ações</th>
+                    <th style="width:20%">Título</th>
+                    <th style="width:9%">Data</th>
+                    <th style="width:11%">Local</th>
+                    <th style="width:8%">KM</th>
+                    <th style="width:6%">Pres.</th>
+                    <th style="width:8%">Status</th>
+                    <th style="text-align:center">Ações</th>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ($events as $ev): ?>
-                <tr>
-                    <td style="max-width: 250px;">
-                        <strong><?= htmlspecialchars($ev['title']) ?></strong>
-                        <?php if($ev['description']): ?>
-                            <div style="font-size:.73rem;color:var(--text-muted);margin-top:1px"><?= htmlspecialchars(mb_substr($ev['description'],0,50)) ?>…</div>
-                        <?php endif; ?>
-                    </td>
-                    <td style="white-space:nowrap"><?= date('d/m/Y', strtotime($ev['event_date'])) ?></td>
-                    <td class="hide-mobile"><?= htmlspecialchars($ev['location'] ?: '—') ?></td>
-                    <td class="text-gold"><?= number_format($ev['km_awarded'], 0, ',', '.') ?> km</td>
-                    <td><span class="badge badge-accent"><?= $ev['presentes'] ?></span></td>
-                    <td><span class="badge <?= $ev['active'] ? 'badge-success' : 'badge-muted' ?>"><?= $ev['active'] ? 'Ativo' : 'Inativo' ?></span></td>
+                <tr class="event-row">
                     <td>
-    <div class="flex" style="justify-content: flex-start; gap: 8px;">
-        <button class="btn-sm btn-ghost" style="padding: 6px 12px; min-width: 70px;" onclick='editarEvento(<?= json_encode($ev, JSON_HEX_APOS|JSON_HEX_QUOT) ?>)'>Editar</button>
-        <a href="<?= BASE_URL ?>/admin/attendances.php?event_id=<?= $ev['id'] ?>&year=<?= $year ?>" class="btn-sm btn-accent" style="padding: 6px 12px; min-width: 70px; text-align: center; text-decoration: none;">Presenças</a>
-        <form method="POST" style="display:inline; margin:0;">
+                        <strong><?= htmlspecialchars($ev['title']) ?></strong>
+                        <!-- Mobile only: data + local + km + status -->
+                        <div class="show-mobile" style="display:none;margin-top:4px;font-size:.72rem;color:var(--text-dim)"><?= date('d/m/Y', strtotime($ev['event_date'])) ?><?= $ev['location'] ? ' · ' . htmlspecialchars($ev['location']) : '' ?></div>
+                        <div class="show-mobile" style="display:none;margin-top:6px;gap:6px;align-items:center">
+                            <span style="font-size:.78rem;color:#f39c12;font-weight:700"><?= number_format($ev['km_awarded'], 0, ',', '.') ?> km</span>
+                            <span class="badge <?= $ev['active'] ? 'badge-success' : 'badge-muted' ?>" style="font-size:.65rem"><?= $ev['active'] ? 'Ativo' : 'Inativo' ?></span>
+                        </div>
+                    </td>
+                    <td class="hide-mobile" style="white-space:nowrap"><?= date('d/m/Y', strtotime($ev['event_date'])) ?></td>
+                    <td class="hide-mobile"><?= htmlspecialchars($ev['location'] ?: '—') ?></td>
+                    <td class="hide-mobile" style="color:#f39c12;font-weight:700"><?= number_format($ev['km_awarded'], 0, ',', '.') ?> km</td>
+                    <td class="hide-mobile"><span class="badge badge-accent"><?= $ev['presentes'] ?></span></td>
+                    <td class="hide-mobile"><span class="badge <?= $ev['active'] ? 'badge-success' : 'badge-muted' ?>"><?= $ev['active'] ? 'Ativo' : 'Inativo' ?></span></td>
+                    <td style="text-align:center;padding:8px">
+    <!-- Desktop: flex row -->
+    <div class="ev-btns-desktop" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center">
+        <button style="padding:6px 12px;background:#3b82f6;color:white;border:none;border-radius:6px;font-size:.78rem;cursor:pointer;height:30px" onclick='editarEvento(<?= json_encode($ev, JSON_HEX_APOS|JSON_HEX_QUOT) ?>)'>✏️ Editar</button>
+        <a href="<?= BASE_URL ?>/admin/attendances.php?event_id=<?= $ev['id'] ?>&year=<?= $year ?>" style="padding:6px 12px;background:#f39c12;color:#0d0f14;border:none;border-radius:6px;font-size:.78rem;text-decoration:none;display:inline-flex;align-items:center;height:30px">✅ Presenças</a>
+        <a href="<?= BASE_URL ?>/user/event_gallery.php?event_id=<?= $ev['id'] ?>" style="padding:6px 12px;background:#8b5cf6;color:white;border:none;border-radius:6px;font-size:.78rem;text-decoration:none;display:inline-flex;align-items:center;height:30px">📸 Fotos</a>
+        <?php if (!empty($ev['route_polyline']) && $ev['route_polyline'] !== '{}'): ?>
+        <button style="padding:6px 12px;background:#e67e22;color:white;border:none;border-radius:6px;font-size:.78rem;cursor:pointer;height:30px"
+                onclick='verRotaAdmin(<?= json_encode([
+                    "id"=>$ev["id"],"title"=>$ev["title"],"event_date"=>$ev["event_date"],
+                    "route_km"=>(float)$ev["route_km"],"route_duration_min"=>(int)$ev["route_duration_min"],
+                    "route_origin"=>$ev["route_origin"],"route_destination"=>$ev["route_destination"],
+                    "route_origin_lat"=>(float)$ev["route_origin_lat"],"route_origin_lng"=>(float)$ev["route_origin_lng"],
+                    "route_dest_lat"=>(float)$ev["route_dest_lat"],"route_dest_lng"=>(float)$ev["route_dest_lng"],
+                    "route_polyline"=>$ev["route_polyline"],"valor_pedagios"=>(float)$ev["valor_pedagios"],
+                    "avoid_tolls"=>(bool)$ev["avoid_tolls"],"litros_gastos"=>(float)$ev["litros_gastos"],
+                    "custo_combustivel"=>(float)$ev["custo_combustivel"]
+                ], JSON_HEX_APOS|JSON_HEX_QUOT) ?>)'>🗺️ Rota</button>
+        <?php endif; ?>
+        <form method="POST" style="display:inline;margin:0">
             <input type="hidden" name="action" value="toggle">
             <input type="hidden" name="event_id" value="<?= $ev['id'] ?>">
             <input type="hidden" name="active" value="<?= $ev['active'] ? 0 : 1 ?>">
             <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
-            <button class="btn-sm <?= $ev['active'] ? 'btn-danger' : 'btn-ghost' ?>" style="padding: 6px 12px; min-width: 70px;">
+            <button style="padding:6px 12px;border:none;border-radius:6px;font-size:.78rem;cursor:pointer;height:30px;<?= $ev['active'] ? 'background:#dc3545;color:white' : 'background:var(--border);color:var(--text)' ?>">
+                <?= $ev['active'] ? 'Desativar' : 'Ativar' ?>
+            </button>
+        </form>
+    </div>
+    <!-- Mobile: 2x2 grid -->
+    <div class="ev-btns-mobile" style="display:none;grid-template-columns:1fr 1fr;gap:5px;width:100%">
+        <button style="padding:5px 8px;background:#3b82f6;color:white;border:none;border-radius:6px;font-size:.72rem;cursor:pointer;height:28px" onclick='editarEvento(<?= json_encode($ev, JSON_HEX_APOS|JSON_HEX_QUOT) ?>)'>✏️ Editar</button>
+        <a href="<?= BASE_URL ?>/admin/attendances.php?event_id=<?= $ev['id'] ?>&year=<?= $year ?>" style="padding:5px 8px;background:#f39c12;color:#0d0f14;border-radius:6px;font-size:.72rem;text-decoration:none;display:flex;align-items:center;justify-content:center;height:28px">✅ Presenças</a>
+        <a href="<?= BASE_URL ?>/user/event_gallery.php?event_id=<?= $ev['id'] ?>" style="padding:5px 8px;background:#8b5cf6;color:white;border-radius:6px;font-size:.72rem;text-decoration:none;display:flex;align-items:center;justify-content:center;height:28px">📸 Fotos</a>
+        <?php if (!empty($ev['route_polyline']) && $ev['route_polyline'] !== '{}'): ?>
+        <button style="padding:5px 8px;background:#e67e22;color:white;border:none;border-radius:6px;font-size:.72rem;cursor:pointer;height:28px"
+                onclick='verRotaAdmin(<?= json_encode([
+                    "id"=>$ev["id"],"title"=>$ev["title"],"event_date"=>$ev["event_date"],
+                    "route_km"=>(float)$ev["route_km"],"route_duration_min"=>(int)$ev["route_duration_min"],
+                    "route_origin"=>$ev["route_origin"],"route_destination"=>$ev["route_destination"],
+                    "route_origin_lat"=>(float)$ev["route_origin_lat"],"route_origin_lng"=>(float)$ev["route_origin_lng"],
+                    "route_dest_lat"=>(float)$ev["route_dest_lat"],"route_dest_lng"=>(float)$ev["route_dest_lng"],
+                    "route_polyline"=>$ev["route_polyline"],"valor_pedagios"=>(float)$ev["valor_pedagios"],
+                    "avoid_tolls"=>(bool)$ev["avoid_tolls"],"litros_gastos"=>(float)$ev["litros_gastos"],
+                    "custo_combustivel"=>(float)$ev["custo_combustivel"]
+                ], JSON_HEX_APOS|JSON_HEX_QUOT) ?>)'>🗺️ Rota</button>
+        <?php else: ?>
+        <div></div>
+        <?php endif; ?>
+        <form method="POST" style="grid-column:1/-1;margin:0">
+            <input type="hidden" name="action" value="toggle">
+            <input type="hidden" name="event_id" value="<?= $ev['id'] ?>">
+            <input type="hidden" name="active" value="<?= $ev['active'] ? 0 : 1 ?>">
+            <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
+            <button style="width:100%;padding:5px 8px;border:none;border-radius:6px;font-size:.72rem;cursor:pointer;height:28px;<?= $ev['active'] ? 'background:#dc3545;color:white' : 'background:var(--border);color:var(--text)' ?>">
                 <?= $ev['active'] ? 'Desativar' : 'Ativar' ?>
             </button>
         </form>
@@ -733,6 +806,7 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
             </tbody>
         </table>
     </div>
+    </div>
     <?php if ($totalPages > 1): ?>
         <div class="pagination">
             <?php for ($p = 1; $p <= $totalPages; $p++): ?>
@@ -740,8 +814,6 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
             <?php endfor; ?>
         </div>
     <?php endif; ?>
-</div>
-
 <!-- MODAL EVENTO -->
 <div class="modal-overlay" id="modal-ev">
     <div class="modal modal-lg">
@@ -764,6 +836,7 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
             <input type="hidden" name="litros_gastos" id="f-litros">
             <input type="hidden" name="custo_combustivel" id="f-custo">
             <input type="hidden" name="valor_pedagios" id="f-pedagios">
+            <input type="hidden" name="avoid_tolls" id="f-avoid-tolls" value="0">
 
             <div class="form-row">
                 <div class="form-group">
@@ -813,11 +886,26 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
                         <div class="route-box-item"><div class="route-box-val" id="rb-km-total">—</div><div class="route-box-lbl">Distância (ida+volta)</div></div>
                         <div class="route-box-item"><div class="route-box-val" id="rb-dur">—</div><div class="route-box-lbl">Tempo estimado</div></div>
                         <div class="route-box-item"><div class="route-box-val" id="rb-litros">—</div><div class="route-box-lbl">⛽ Combustível</div></div>
-                        <div class="route-box-item"><div class="route-box-val" id="rb-pedagios">—</div><div class="route-box-lbl">💰 Pedágio</div></div>
+                        <div class="route-box-item" id="rb-pedagio-box">
+                            <div class="route-box-val" id="rb-pedagios">—</div>
+                            <div class="route-box-lbl">💰 Pedágio estimado</div>
+                        </div>
                     </div>
                     <div class="alert alert-success" style="margin-top:12px;padding:10px;font-size:0.75rem">
                         ✓ Rota calculada! KM total (ida+volta) preenchido automaticamente.
                     </div>
+                    <!-- Checkbox sem pedágios -->
+                    <label style="display:flex;align-items:center;gap:10px;margin-top:12px;cursor:pointer;
+                                  background:var(--bg-body);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">
+                        <input type="checkbox" id="cb-sem-pedagio" onchange="togglePedagio(this.checked)"
+                               style="accent-color:#f39c12;width:18px;height:18px;flex-shrink:0">
+                        <span style="font-size:.85rem;font-weight:600;color:var(--text-muted)">
+                            🚫 Sem pedágios neste trecho
+                        </span>
+                        <span style="font-size:.75rem;color:var(--text-dim);margin-left:auto">
+                            Pedágio estimado será zerado
+                        </span>
+                    </label>
                 </div>
             </div>
 
@@ -852,8 +940,8 @@ pageOpen("Eventos", "events", "Gerenciar Eventos");
 </div>
 
 <!-- Leaflet via CDN (confiável) -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="<?= BASE_URL ?>/api/assets/leaflet.css" />
+<script src="<?= BASE_URL ?>/api/assets/leaflet.js"></script>
 
 <script>
 // URL da API - caminho absoluto
@@ -864,7 +952,18 @@ let acTimers = {};
 let routeMap = null;
 let currentRouteLayer = null;
 
-function calcularPedagioEstimado(km) { return km * 0.12; }
+function calcularPedagioEstimado(km) {
+    if (document.getElementById('cb-sem-pedagio') && document.getElementById('cb-sem-pedagio').checked) return 0;
+    return km * 0.12;
+}
+function togglePedagio(semPedagio) {
+    document.getElementById('f-avoid-tolls').value = semPedagio ? '1' : '0';
+    const kmTotal = parseFloat(document.getElementById('f-km').value) || 0;
+    const valorPedagios = semPedagio ? 0 : calcularPedagioEstimado(kmTotal);
+    document.getElementById('f-pedagios').value = valorPedagios.toFixed(2);
+    document.getElementById('rb-pedagios').textContent = semPedagio ? 'R$ 0,00' : 'R$ ' + valorPedagios.toFixed(2);
+    document.getElementById('rb-pedagio-box').style.opacity = semPedagio ? '0.4' : '1';
+}
 
 // Função para desenhar a rota no mapa
 function drawRouteOnMap(points, originLat, originLng, destLat, destLng, km) {
@@ -1045,7 +1144,15 @@ window.calcularRota = async function() {
         document.getElementById('f-dlat').value = data.destination.lat;
         document.getElementById('f-dlng').value = data.destination.lon;
         document.getElementById('f-km').value = kmTotal;
-        document.getElementById('f-rpoly').value = JSON.stringify(data.geojson || {});
+        // Converter data.points para formato geojson para compatibilidade com Leaflet
+        var geoJsonPoly = {};
+        if (data.points && data.points.length > 0) {
+            geoJsonPoly = {
+                type: 'LineString',
+                coordinates: data.points.map(function(p) { return [p[1], p[0]]; })
+            };
+        }
+        document.getElementById('f-rpoly').value = JSON.stringify(geoJsonPoly);
         document.getElementById('f-litros').value = litrosGastos.toFixed(1);
         document.getElementById('f-custo').value = custoCombustivel.toFixed(2);
         document.getElementById('f-pedagios').value = valorPedagios.toFixed(2);
@@ -1106,6 +1213,61 @@ window.abrirCriar = function() {
     document.getElementById('modal-ev').classList.add('open');
 };
 
+// Previsão do tempo no admin
+window.buscarPrevisaoAdmin = function() {
+    var date = document.getElementById('ev-date').value;
+    var lat  = parseFloat(document.getElementById('ev-origin-lat')?.value || 0);
+    var lng  = parseFloat(document.getElementById('ev-origin-lng')?.value || 0);
+
+    if (!date) return;
+    if (!lat || !lng) {
+        document.getElementById('admin-weather').style.display = 'block';
+        document.getElementById('admin-w-loading').textContent = 'Defina a rota para ver a previsão do tempo.';
+        return;
+    }
+
+    document.getElementById('admin-weather').style.display = 'block';
+    document.getElementById('admin-w-loading').style.display = 'block';
+    document.getElementById('admin-w-data').style.display   = 'none';
+    document.getElementById('admin-w-error').style.display  = 'none';
+
+    fetch('<?= BASE_URL ?>/api/weather.php?lat=' + lat + '&lng=' + lng + '&date=' + date)
+        .then(r => r.json())
+        .then(w => {
+            document.getElementById('admin-w-loading').style.display = 'none';
+            if (w.ok) {
+                document.getElementById('admin-w-emoji').textContent = w.emoji;
+                document.getElementById('admin-w-desc').textContent  = w.description;
+                document.getElementById('admin-w-temp').textContent  = w.temp_min + '°C – ' + w.temp_max + '°C';
+                document.getElementById('admin-w-rain').textContent  = w.rain_prob + '% chuva (' + w.rain_mm + 'mm)';
+                document.getElementById('admin-w-wind').textContent  = w.wind_max + ' km/h';
+                var alert = document.getElementById('admin-w-alert');
+                if (w.rain_prob >= 60) {
+                    alert.textContent = '⚠️ Alta chance de chuva!';
+                    alert.style.display = 'block';
+                } else if (w.rain_prob >= 30) {
+                    alert.style.background = '#f39c1220';
+                    alert.style.borderColor = '#f39c1240';
+                    alert.style.color = '#f39c12';
+                    alert.textContent = '🌂 Leve chance de chuva';
+                    alert.style.display = 'block';
+                }
+                document.getElementById('admin-w-data').style.display = 'flex';
+            } else if (w.error === 'Fora do alcance') {
+                document.getElementById('admin-w-error').textContent = '📅 Previsão disponível apenas para os próximos 16 dias.';
+                document.getElementById('admin-w-error').style.display = 'block';
+            } else {
+                document.getElementById('admin-w-error').textContent = 'Previsão indisponível.';
+                document.getElementById('admin-w-error').style.display = 'block';
+            }
+        })
+        .catch(() => {
+            document.getElementById('admin-w-loading').style.display = 'none';
+            document.getElementById('admin-w-error').textContent = 'Erro ao carregar previsão.';
+            document.getElementById('admin-w-error').style.display = 'block';
+        });
+};
+
 window.fecharModal = function() {
     document.getElementById('modal-ev').classList.remove('open');
 };
@@ -1140,6 +1302,13 @@ window.editarEvento = function(ev) {
             document.getElementById('rb-litros').textContent = (kmTotal / CONSUMO_MOTO).toFixed(1) + ' L';
         }
         
+        // Populate sem pedagio checkbox
+        if (ev.avoid_tolls == 1) {
+            document.getElementById('cb-sem-pedagio').checked = true;
+            document.getElementById('f-avoid-tolls').value = '1';
+            document.getElementById('rb-pedagios').textContent = 'R$ 0,00';
+            document.getElementById('rb-pedagio-box').style.opacity = '0.4';
+        }
         if (ev.valor_pedagios && ev.valor_pedagios > 0) {
             document.getElementById('rb-pedagios').textContent = 'R$ ' + parseFloat(ev.valor_pedagios).toFixed(2);
         } else {
@@ -1162,8 +1331,24 @@ window.editarEvento = function(ev) {
                     }
                     L.marker([ev.route_origin_lat, ev.route_origin_lng]).addTo(routeMap).bindPopup('🚩 Partida: ' + (ev.route_origin || 'Origem'));
                     L.marker([ev.route_dest_lat, ev.route_dest_lng]).addTo(routeMap).bindPopup('🏁 Destino: ' + (ev.route_destination || 'Destino'));
-                    routeMap.fitBounds([[ev.route_origin_lat, ev.route_origin_lng], [ev.route_dest_lat, ev.route_dest_lng]]);
-                    document.getElementById('map-info').innerHTML = '📍 Pontos de origem e destino marcados.';
+                    // Draw polyline if available
+                    var bounds = [[ev.route_origin_lat, ev.route_origin_lng], [ev.route_dest_lat, ev.route_dest_lng]];
+                    try {
+                        var poly = ev.route_polyline ? JSON.parse(ev.route_polyline) : null;
+                        if (poly && poly.coordinates && poly.coordinates.length > 0) {
+                            var ll = poly.coordinates.map(function(c){return[c[1],c[0]];});
+                            currentRouteLayer = L.polyline(ll, {color:'#f39c12',weight:5,opacity:0.8}).addTo(routeMap);
+                            bounds = ll;
+                            document.getElementById('map-info').innerHTML = '✅ Rota carregada do banco.';
+                        } else {
+                            document.getElementById('map-info').innerHTML = '📍 Pontos de origem e destino marcados.';
+                        }
+                    } catch(e) {
+                        document.getElementById('map-info').innerHTML = '📍 Pontos de origem e destino marcados.';
+                    }
+                    routeMap.fitBounds(bounds, {padding:[20,20]});
+                    // Restore polyline value
+                    document.getElementById('f-rpoly').value = ev.route_polyline || '{}';
                     const loadingDiv = document.getElementById('map-loading');
                     if (loadingDiv) loadingDiv.style.display = 'none';
                 }
@@ -1205,5 +1390,250 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+
+<!-- Modal Ver Rota Admin -->
+<div id="modalRotaAdmin" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;overflow-y:auto">
+    <div style="background:var(--bg-card,#14161c);border:1px solid var(--border,#2a2f3a);border-radius:14px;max-width:860px;margin:20px auto;padding:0;overflow:hidden;width:95%">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid var(--border,#2a2f3a)">
+            <div>
+                <h3 id="adm-modal-titulo" style="margin:0;font-size:1.05rem;color:var(--text,#eef0f8)"></h3>
+                <div id="adm-modal-data" style="font-size:.78rem;color:var(--text-dim,#6e7485);margin-top:2px"></div>
+            </div>
+            <button onclick="fecharRotaAdmin()" style="background:none;border:none;color:var(--text-dim,#6e7485);font-size:1.4rem;cursor:pointer;padding:4px 8px">✕</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid var(--border,#2a2f3a)" class="adm-modal-stats">
+            <div style="padding:16px;text-align:center;border-right:1px solid var(--border,#2a2f3a)">
+                <div id="adm-m-km" style="font-size:1.3rem;font-weight:700;color:#f5b041">—</div>
+                <div style="font-size:.7rem;color:var(--text-dim,#6e7485);margin-top:2px">KM ida+volta</div>
+            </div>
+            <div style="padding:16px;text-align:center;border-right:1px solid var(--border,#2a2f3a)">
+                <div id="adm-m-dur" style="font-size:1.3rem;font-weight:700;color:#f5b041">—</div>
+                <div style="font-size:.7rem;color:var(--text-dim,#6e7485);margin-top:2px">Tempo estimado</div>
+            </div>
+            <div style="padding:16px;text-align:center;border-right:1px solid var(--border,#2a2f3a)">
+                <div id="adm-m-comb" style="font-size:1.3rem;font-weight:700;color:#28a745">—</div>
+                <div style="font-size:.7rem;color:var(--text-dim,#6e7485);margin-top:2px">⛽ Combustível médio</div>
+            </div>
+            <div style="padding:16px;text-align:center">
+                <div id="adm-m-ped" style="font-size:1.3rem;font-weight:700;color:#e67e22">—</div>
+                <div style="font-size:.7rem;color:var(--text-dim,#6e7485);margin-top:2px">💰 Pedágio</div>
+            </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:12px 24px;border-bottom:1px solid var(--border,#2a2f3a);font-size:.82rem">
+            <span style="color:#28a745">📍</span>
+            <span id="adm-m-origem" style="color:var(--text-muted,#a0a5b5)"></span>
+            <span style="color:var(--text-dim,#6e7485)">→</span>
+            <span id="adm-m-destino" style="color:var(--text-muted,#a0a5b5)"></span>
+        </div>
+        <!-- Previsão do Tempo -->
+        <div id="adm-weather-section" style="display:none;padding:14px 20px;border-top:1px solid var(--border,#2a2f3a);background:var(--bg-card,#14161c);color:var(--text,#eef0f8)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div style="font-size:.72rem;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em">🌤️ Previsão do Tempo</div>
+                <button onclick="atualizarPrevisaoAdmin()" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-dim);font-size:.7rem;padding:3px 10px;cursor:pointer">🔄 Atualizar</button>
+            </div>
+            <div id="adm-weather-loading" style="font-size:.8rem;color:var(--text-dim)">Carregando previsão...</div>
+            <div id="adm-weather-data" style="display:none">
+                <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+                    <div style="font-size:2.5rem" id="adm-w-emoji">☀️</div>
+                    <div>
+                        <div id="adm-w-desc" style="font-size:.9rem;font-weight:600;color:var(--text)"></div>
+                        <div style="font-size:.78rem;color:var(--text-dim);margin-top:2px">
+                            🌡️ <span id="adm-w-temp"></span> &nbsp;
+                            🌧️ <span id="adm-w-rain"></span> &nbsp;
+                            💨 <span id="adm-w-wind"></span>
+                        </div>
+                    </div>
+                    <div id="adm-w-alert" style="display:none"></div>
+                </div>
+            </div>
+            <div id="adm-weather-error" style="display:none;font-size:.78rem;color:var(--text-dim)"></div>
+        </div>
+        <div id="mapaRotaAdmin" style="height:380px;width:100%"></div>
+        <div style="padding:16px 24px;border-top:1px solid var(--border,#2a2f3a);display:flex;justify-content:flex-end;background:var(--bg-card,#14161c)">
+            <button onclick="fecharRotaAdmin()" class="btn btn-ghost btn-sm">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<style>
+@media (max-width: 768px) {
+    .adm-modal-stats { grid-template-columns: repeat(2,1fr) !important; }
+    .adm-modal-stats > div:nth-child(2) { border-right: none !important; }
+}
+@media (max-width: 768px) {
+    /* Events table mobile */
+    .events-table thead { display: none; }
+    .events-table .event-row { display: block; border-bottom: 1px solid var(--border); padding: 12px 16px; }
+    .events-table .event-row td { display: block; border: none; padding: 0; }
+    .events-table .hide-mobile { display: none !important; }
+    .events-table .show-mobile { display: flex !important; }
+    .events-table .event-row td:last-child { margin-top: 10px; }
+    .ev-btns-desktop { display: none !important; }
+    .ev-btns-mobile { display: grid !important; }
+    /* Lixeira table mobile */
+    .users-table .lixeira-row td.hide-mobile { display: none !important; }
+    .users-table .lixeira-row .show-mobile { display: block !important; }
+    /* General table mobile — hide non-essential columns */
+    .hide-mobile { display: none !important; }
+}
+</style>
+<script>
+var mapaAdminInstance = null;
+function verRotaAdmin(ev) {
+    document.getElementById('adm-modal-titulo').textContent = ev.title;
+    document.getElementById('adm-modal-data').textContent = new Date(ev.event_date + 'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    document.getElementById('adm-m-origem').textContent  = ev.route_origin || '—';
+    document.getElementById('adm-m-destino').textContent = ev.route_destination || '—';
+    var kmTotal = ev.route_km * 2;
+    document.getElementById('adm-m-km').textContent = kmTotal.toLocaleString('pt-BR',{maximumFractionDigits:0}) + ' km';
+    var dur = ev.route_duration_min * 2;
+    var h = Math.floor(dur/60), m = dur%60;
+    document.getElementById('adm-m-dur').textContent = h + 'h' + (m > 0 ? m + 'min' : '');
+    document.getElementById('adm-m-comb').textContent = ev.custo_combustivel > 0 ? 'R$ ' + parseFloat(ev.custo_combustivel).toFixed(2).replace('.',',') : '—';
+    if (ev.avoid_tolls) {
+        document.getElementById('adm-m-ped').textContent = 'Sem pedágio';
+        document.getElementById('adm-m-ped').style.color = '#6e7485';
+    } else {
+        document.getElementById('adm-m-ped').textContent = ev.valor_pedagios > 0 ? 'R$ ' + parseFloat(ev.valor_pedagios).toFixed(2).replace('.',',') : '—';
+    }
+    document.getElementById('modalRotaAdmin').style.display = 'block';
+
+    // Previsão do tempo
+    window._admWLat  = ev.route_origin_lat || ev.route_dest_lat;
+    window._admWLng  = ev.route_origin_lng || ev.route_dest_lng;
+    window._admWDate = ev.event_date;
+
+    window.atualizarPrevisaoAdmin = function() {
+        var ws = document.getElementById('adm-weather-section');
+        var wl = document.getElementById('adm-weather-loading');
+        var wd = document.getElementById('adm-weather-data');
+        var we = document.getElementById('adm-weather-error');
+        var wa = document.getElementById('adm-w-alert');
+        if (!window._admWLat || !window._admWLng || !window._admWDate) { if(ws) ws.style.display='none'; return; }
+        ws.style.display='block'; wl.style.display='block';
+        wd.style.display='none'; we.style.display='none'; wa.style.display='none';
+        fetch(window.BASE_URL+'/api/weather.php?lat='+window._admWLat+'&lng='+window._admWLng+'&date='+window._admWDate+'&t='+Date.now())
+            .then(r=>r.json())
+            .then(w=>{
+                wl.style.display='none';
+                if(w.ok){
+                    document.getElementById('adm-w-emoji').textContent=w.emoji;
+                    document.getElementById('adm-w-desc').textContent=w.description;
+                    document.getElementById('adm-w-temp').textContent=w.temp_min+'°C – '+w.temp_max+'°C';
+                    document.getElementById('adm-w-rain').textContent=w.rain_prob+'% chuva ('+w.rain_mm+'mm)';
+                    document.getElementById('adm-w-wind').textContent=w.wind_max+' km/h';
+                    if(w.rain_prob>=60){wa.textContent='⚠️ Alta chance de chuva!';wa.style.cssText='display:block;margin-left:auto;background:#dc354520;border:1px solid #dc354540;border-radius:8px;padding:6px 12px;font-size:.75rem;color:#dc3545';}
+                    else if(w.rain_prob>=30){wa.textContent='🌂 Leve chance de chuva';wa.style.cssText='display:block;margin-left:auto;background:#f39c1220;border:1px solid #f39c1240;border-radius:8px;padding:6px 12px;font-size:.75rem;color:#f39c12';}
+                    wd.style.display='flex';
+                } else if(w.error==='Fora do alcance'){
+                    we.textContent='📅 Previsão disponível apenas para os próximos 16 dias.';we.style.display='block';
+                } else { we.textContent='Previsão indisponível.';we.style.display='block'; }
+            })
+            .catch(()=>{ wl.style.display='none'; we.textContent='Erro ao carregar previsão.';we.style.display='block'; });
+    };
+    if(window._admWLat && window._admWLng) atualizarPrevisaoAdmin();
+    document.body.style.overflow = 'hidden';
+    setTimeout(function() {
+        if (mapaAdminInstance) { mapaAdminInstance.remove(); mapaAdminInstance = null; }
+        mapaAdminInstance = L.map('mapaRotaAdmin');
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapaAdminInstance);
+        var bounds = [];
+        if (ev.route_origin_lat) {
+            var iO = L.divIcon({html:'<div style="background:#28a745;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,.4)"></div>',iconSize:[14,14],iconAnchor:[7,7],className:''});
+            L.marker([ev.route_origin_lat, ev.route_origin_lng],{icon:iO}).addTo(mapaAdminInstance).bindPopup('📍 '+ev.route_origin);
+            bounds.push([ev.route_origin_lat, ev.route_origin_lng]);
+        }
+        if (ev.route_dest_lat) {
+            var iD = L.divIcon({html:'<div style="background:#f39c12;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,.4)"></div>',iconSize:[14,14],iconAnchor:[7,7],className:''});
+            L.marker([ev.route_dest_lat, ev.route_dest_lng],{icon:iD}).addTo(mapaAdminInstance).bindPopup('🏁 '+ev.route_destination);
+            bounds.push([ev.route_dest_lat, ev.route_dest_lng]);
+        }
+        try {
+            var poly = JSON.parse(ev.route_polyline);
+            if (poly && poly.coordinates && poly.coordinates.length > 0) {
+                var ll = poly.coordinates.map(function(c){return[c[1],c[0]];});
+                L.polyline(ll,{color:'#f39c12',weight:4,opacity:.8}).addTo(mapaAdminInstance);
+                bounds = ll;
+            }
+        } catch(e){}
+        if (bounds.length > 0) mapaAdminInstance.fitBounds(bounds,{padding:[20,20]});
+        else if (ev.route_origin_lat) mapaAdminInstance.setView([ev.route_origin_lat,ev.route_origin_lng],8);
+    }, 200);
+}
+function fecharRotaAdmin() {
+    document.getElementById('modalRotaAdmin').style.display = 'none';
+    document.body.style.overflow = '';
+    if (mapaAdminInstance) { mapaAdminInstance.remove(); mapaAdminInstance = null; }
+}
+document.getElementById('modalRotaAdmin').addEventListener('click', function(e){ if(e.target===this) fecharRotaAdmin(); });
+</script>
+
+<!-- Lixeira -->
+<?php if (!empty($lixeira)): ?>
+<div style="margin-top:24px">
+    <div class="card-table">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)">
+        <h3 style="font-size:.9rem;font-weight:700;color:#dc3545;margin:0">🗑️ Lixeira <span style="font-size:.72rem;background:#dc354520;color:#dc3545;padding:2px 8px;border-radius:20px;margin-left:6px"><?= count($lixeira) ?> evento(s)</span></h3>
+        <form method="POST" onsubmit="return confirm('Esvaziar a lixeira? Esta ação não pode ser desfeita.')">
+            <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
+            <input type="hidden" name="action" value="esvaziar_lixeira">
+            <button type="submit" style="padding:5px 14px;background:#dc354520;border:1px solid #dc354540;border-radius:6px;color:#dc3545;font-size:.72rem;cursor:pointer;font-weight:600">🗑️ Esvaziar lixeira</button>
+        </form>
+    </div>
+    <div class="table-wrap">
+        <table class="users-table" style="width:100%">
+            <thead class="hide-mobile">
+                <tr>
+                    <th style="color:#dc3545;width:35%">Título</th>
+                    <th style="color:#dc3545;width:12%">Data</th>
+                    <th style="color:#dc3545;width:15%">Local</th>
+                    <th style="color:#dc3545;width:18%">Desativado em</th>
+                    <th style="color:#dc3545;text-align:center;width:20%">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($lixeira as $ev): ?>
+            <tr class="lixeira-row">
+                <td>
+                    <?= htmlspecialchars($ev['title']) ?>
+                    <div class="show-mobile" style="display:none;font-size:.72rem;color:var(--text-dim);margin-top:3px">
+                        <?= date('d/m/Y', strtotime($ev['event_date'])) ?>
+                        <?= $ev['location'] ? ' · ' . htmlspecialchars($ev['location']) : '' ?>
+                        <?= $ev['deleted_at'] ? ' · Desativado: ' . date('d/m/Y', strtotime($ev['deleted_at'])) : '' ?>
+                    </div>
+                </td>
+                <td class="hide-mobile"><?= date('d/m/Y', strtotime($ev['event_date'])) ?></td>
+                <td class="hide-mobile"><?= htmlspecialchars($ev['location'] ?: '—') ?></td>
+                <td class="hide-mobile"><?= $ev['deleted_at'] ? date('d/m/Y H:i', strtotime($ev['deleted_at'])) : '—' ?></td>
+                <td style="text-align:center">
+                    <div style="display:flex;gap:6px;justify-content:center">
+                        <!-- Restaurar -->
+                        <form method="POST" style="display:inline">
+                            <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
+                            <input type="hidden" name="action" value="toggle">
+                            <input type="hidden" name="event_id" value="<?= $ev['id'] ?>">
+                            <input type="hidden" name="active" value="1">
+                            <button type="submit" style="padding:5px 12px;background:#28a74520;border:1px solid #28a74540;border-radius:6px;color:#28a745;font-size:.72rem;cursor:pointer">♻️ Restaurar</button>
+                        </form>
+                        <!-- Excluir permanente -->
+                        <form method="POST" style="display:inline" onsubmit="return confirm('Excluir PERMANENTEMENTE o evento '<?= htmlspecialchars(addslashes($ev['title'])) ?>'?
+
+Esta ação não pode ser desfeita!')">
+                            <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
+                            <input type="hidden" name="action" value="excluir_permanente">
+                            <input type="hidden" name="event_id" value="<?= $ev['id'] ?>">
+                            <button type="submit" style="padding:5px 12px;background:#dc354520;border:1px solid #dc354540;border-radius:6px;color:#dc3545;font-size:.72rem;cursor:pointer">🗑️ Excluir</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <?php pageClose(); ?>

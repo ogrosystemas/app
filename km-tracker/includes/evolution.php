@@ -11,17 +11,36 @@ class Evolution {
     private string $instance;
 
     public function __construct() {
-        $db  = db();
-        $cfg = $db->query("SELECT * FROM evolution_config LIMIT 1")->fetch();
-        if (!$cfg) throw new RuntimeException('Evolution API não configurada.');
-        $this->url      = rtrim($cfg['evolution_url'], '/');
-        $this->key      = $cfg['evolution_key'];
-        $this->instance = $cfg['instance_name'];
+        $this->url      = rtrim(setting('evo_url', ''), '/');
+        $this->key      = setting('evo_apikey', '');
+        $this->instance = setting('evo_instancia', '');
+        if (!$this->url || !$this->instance) {
+            throw new RuntimeException('Evolution API não configurada. Configure em Sistema → WhatsApp.');
+        }
     }
 
     // ── Status da instância ───────────────────────────────
     public function status(): array {
-        return $this->request('GET', "/instance/connectionState/{$this->instance}");
+        $res = $this->request('GET', "/instance/connectionState/{$this->instance}");
+        return $res;
+    }
+
+    // ── Configurar webhook ────────────────────────────────
+    public function configurarWebhook(string $webhookUrl): array {
+        return $this->request('POST', "/webhook/set/{$this->instance}", [
+            'webhook' => [
+                'url'            => $webhookUrl,
+                'byEvents'       => false,
+                'base64'         => false,
+                'enabled'        => true,
+                'events'         => [
+                    'MESSAGES_UPDATE',
+                    'MESSAGES_UPSERT',
+                    'SEND_MESSAGE',
+                    'CONNECTION_UPDATE',
+                ],
+            ],
+        ]);
     }
 
     // ── QR Code para conectar ─────────────────────────────
@@ -33,9 +52,32 @@ class Evolution {
     public function enviarTexto(string $numero, string $mensagem): array {
         $numero = self::limparNumero($numero);
         return $this->request('POST', "/message/sendText/{$this->instance}", [
+            'number'  => $numero,
+            'text'    => $mensagem,
+            'options' => ['delay' => 500],
+        ]);
+    }
+
+    // ── Enviar mensagem para grupo ───────────────────────
+    public function enviarGrupo(string $groupId, string $mensagem): array {
+        return $this->request('POST', "/message/sendText/{$this->instance}", [
+            'number'  => $groupId,
+            'text'    => $mensagem,
+            'options' => ['delay' => 500],
+        ]);
+    }
+
+    // ── Enviar enquete nativa do WhatsApp ────────────────
+    public function enviarEnquete(string $numero, string $pergunta, array $opcoes): array {
+        // Não limpar número para grupos (@g.us)
+        if (!str_contains($numero, '@g.us')) {
+            $numero = self::limparNumero($numero);
+        }
+        return $this->request('POST', "/message/sendPoll/{$this->instance}", [
             'number' => $numero,
-            'text'   => $mensagem,
-            'delay'  => 500,
+            'name'   => $pergunta,
+            'selectableCount' => 1,
+            'values' => $opcoes,
         ]);
     }
 
@@ -51,11 +93,58 @@ class Evolution {
             return ['success' => false, 'message' => 'Notificação não encontrada ou já processada.'];
         }
 
+        // Envio para grupo
+        if ($notif['destinatario'] === 'grupo' && !empty($notif['grupo_id'])) {
+            $stmt = $db->prepare("SELECT * FROM whatsapp_grupos WHERE id=? AND ativo=1");
+            $stmt->execute([$notif['grupo_id']]);
+            $grupo = $stmt->fetch();
+
+            if (!$grupo) {
+                $db->prepare("UPDATE notificacoes SET status='erro', erro_detalhe=? WHERE id=?")
+                   ->execute(['Grupo não encontrado ou inativo.', $notifId]);
+                return ['success' => false, 'message' => 'Grupo não encontrado.'];
+            }
+
+            $db->prepare("UPDATE notificacoes SET status='enviando', total_destinatarios=1, enviado_em=NOW() WHERE id=?")
+               ->execute([$notifId]);
+
+            try {
+                // Para enquetes, usar poll nativo do WhatsApp
+                if ($notif['tipo'] === 'enquete') {
+                    // Buscar dados da enquete para pegar as opções
+                    $stmtEq = $db->prepare("SELECT * FROM enquetes WHERE notificacao_id=? ORDER BY id DESC LIMIT 1");
+                    $stmtEq->execute([$notifId]);
+                    $enquete = $stmtEq->fetch();
+                    if ($enquete) {
+                        $opcoes = json_decode($enquete['opcoes'], true) ?? [];
+                        $res = $this->enviarEnquete($grupo['group_id'], $enquete['pergunta'], $opcoes);
+                    } else {
+                        $res = $this->enviarGrupo($grupo['group_id'], $notif['mensagem']);
+                    }
+                } else {
+                    $res = $this->enviarGrupo($grupo['group_id'], $notif['mensagem']);
+                }
+                $ok  = isset($res['key']['id']) || isset($res['messageTimestamp']) ||
+                       (isset($res['status']) && in_array($res['status'], ['success','PENDING','sent']));
+                $logMsg = $ok ? null : json_encode($res, JSON_UNESCAPED_UNICODE);
+                $db->prepare("INSERT INTO notificacoes_log (notificacao_id, user_id, whatsapp, status, erro_msg) VALUES (?,?,?,?,?)")
+                   ->execute([$notifId, null, $grupo['group_id'], $ok ? 'enviado' : 'erro', $logMsg]);
+                $status = $ok ? 'enviado' : 'erro';
+                $db->prepare("UPDATE notificacoes SET status=?, total_enviados=?, total_erros=? WHERE id=?")
+                   ->execute([$status, $ok ? 1 : 0, $ok ? 0 : 1, $notifId]);
+                return ['success' => $ok, 'enviados' => $ok ? 1 : 0, 'erros' => $ok ? 0 : 1];
+            } catch (Throwable $e) {
+                $db->prepare("UPDATE notificacoes SET status='erro', erro_detalhe=? WHERE id=?")
+                   ->execute([$e->getMessage(), $notifId]);
+                return ['success' => false, 'message' => $e->getMessage()];
+            }
+        }
+
         $usuarios = $this->buscarDestinatarios($notif);
 
         if (empty($usuarios)) {
-            $db->prepare("UPDATE notificacoes SET status='erro', erro_detalhe=? WHERE id=?")
-               ->execute(['Nenhum destinatário com WhatsApp cadastrado.', $notifId]);
+            $db->prepare("UPDATE notificacoes SET status='erro', erro_detalhe=?, enviado_em=NOW() WHERE id=?")
+               ->execute(['Nenhum destinatário com WhatsApp cadastrado. Cadastre os números em Admin → Integrantes → editar → campo WhatsApp.', $notifId]);
             return ['success' => false, 'message' => 'Nenhum destinatário com WhatsApp cadastrado.'];
         }
 
@@ -68,12 +157,28 @@ class Evolution {
         foreach ($usuarios as $u) {
             if (empty($u['whatsapp'])) continue;
             try {
-                $res = $this->enviarTexto($u['whatsapp'], $notif['mensagem']);
-                $ok  = isset($res['key']['id']) || (isset($res['status']) && $res['status'] !== 'error');
+                // Enquetes: enviar como poll nativo do WhatsApp
+                if ($notif['tipo'] === 'enquete') {
+                    $enqStmt = $db->prepare("SELECT titulo, pergunta, opcoes FROM enquetes WHERE notificacao_id=?");
+                    $enqStmt->execute([$notifId]);
+                    $enq = $enqStmt->fetch();
+                    if ($enq) {
+                        $opcoes = json_decode($enq['opcoes'], true) ?? [];
+                        $res = $this->enviarEnquete($u['whatsapp'], $enq['pergunta'], $opcoes);
+                    } else {
+                        $res = $this->enviarTexto($u['whatsapp'], $notif['mensagem']);
+                    }
+                } else {
+                    $res = $this->enviarTexto($u['whatsapp'], $notif['mensagem']);
+                }
+                // Evolution v1.8.2 returns: {"key":{"id":"..."},"message":{...},"messageTimestamp":...}
+                $ok  = isset($res['key']['id']) || isset($res['messageTimestamp']) || 
+                       (isset($res['status']) && in_array($res['status'], ['success','PENDING','sent']));
+                $logMsg = $ok ? null : json_encode($res, JSON_UNESCAPED_UNICODE);
                 $db->prepare("INSERT INTO notificacoes_log (notificacao_id, user_id, whatsapp, status, erro_msg) VALUES (?,?,?,?,?)")
-                   ->execute([$notifId, $u['id'] ?? null, $u['whatsapp'], $ok ? 'enviado' : 'erro', $ok ? null : json_encode($res)]);
+                   ->execute([$notifId, $u['id'] ?? null, $u['whatsapp'], $ok ? 'enviado' : 'erro', $logMsg]);
                 $ok ? $enviados++ : $erros++;
-                usleep(600000); // 600ms entre mensagens
+                usleep(600000);
             } catch (Throwable $e) {
                 $erros++;
                 $db->prepare("INSERT INTO notificacoes_log (notificacao_id, user_id, whatsapp, status, erro_msg) VALUES (?,?,?,?,?)")
@@ -119,7 +224,8 @@ class Evolution {
         $ch = curl_init($this->url . $path);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 15,
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_CONNECTTIMEOUT => 10,
             CURLOPT_HTTPHEADER     => [
                 'Content-Type: application/json',
                 'apikey: ' . $this->key,

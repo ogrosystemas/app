@@ -19,12 +19,14 @@ ServerSignature Off
     RewriteRule ^tmp(/|$) - [F,L]
     RewriteRule ^cache(/|$) - [F,L]
     
-    RewriteRule \.(sql|log|json|lock|md|env|ini|sh|bat|bak|swp|old|gz|zip|tar)$ - [F,L]
+    RewriteRule \.(sql|log|lock|md|env|ini|sh|bat|bak|swp|old|gz|zip|tar)$ - [F,L]
     RewriteRule \.(git|gitignore|htaccess|htpasswd)$ - [F,L]
     RewriteRule (^|/)\.(?!well-known) - [F,L]
     
     # REMOVA a regra que bloqueia arquivos .json da pasta assets
     # Se quiser manter, mas permitir a pasta assets:
+    RewriteCond %{REQUEST_URI} !^/manifest\.json$ [NC]
+    RewriteCond %{REQUEST_URI} !^/sw\.js$ [NC]
     RewriteCond %{REQUEST_URI} !^/api/assets/ [NC]
     RewriteRule \.(json)$ - [F,L]
     
