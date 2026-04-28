@@ -1,0 +1,117 @@
+======================================================================
+MEMORIAL DESCRITIVO: ERP MASTER MERCADO LIVRE (DOMINGO 21H)
+======================================================================
+
+1. INFRAESTRUTURA (Onde o sistema mora)
+-------------------------------------------
+- Provedor: VPS Contabo (Configurada).
+- Painel: aaPanel (Instalado).
+- Banco de Dados: PostgreSQL (via Docker ou nativo no aaPanel).
+- Runtime: Node.js (Next.js 15).
+- Gerenciador de Processos: PM2.
+
+2. ARQUITETURA DO SOFTWARE
+-------------------------------------------
+- Framework: Next.js 15 (App Router).
+- Estilização: Tailwind CSS.
+- ORM/DB: Prisma (PostgreSQL).
+- Autenticação: Auth.js (ou similar) com níveis de permissão.
+- Integração: API Oficial do Mercado Livre (OAuth 2.0).
+
+3. MÓDULOS CORE (A "Vibe" do Sistema)
+-------------------------------------------
+A. SISTEMA DE LICENCIAMENTO (O Cérebro Financeiro):
+   - Controle de mensalidades, bloqueio automático por inadimplência.
+   - Painel Admin para gerar chaves de acesso para novos clientes.
+
+B. MÓDULO SAC (Atendimento):
+   - Integração com mensagens do Meli.
+   - Histórico de conversas e agilidade nas respostas.
+
+C. MÓDULO WMS (Estoque/Depósito):
+   - Gestão de entrada/saída, separação de pedidos.
+   - Sincronização em tempo real com o estoque do Mercado Livre.
+
+D. MÓDULO FINANCEIRO:
+   - Dashboard de lucro real (descontando taxas Meli e impostos).
+   - Fluxo de caixa e relatórios de vendas.
+
+4. DIRETRIZES DE DEBUG (O que passar para a IA se cair):
+-------------------------------------------
+- Contexto: "Estamos construindo um ERP SaaS para vendedores do Mercado Livre."
+- Stack: "Next.js 15, Prisma, Tailwind, VPS Contabo com aaPanel."
+- Regra de Ouro: "O sistema deve ser escalável, permitindo múltiplos usuários com bases de dados isoladas ou multi-tenant."
+- Ponto de Parada: "Configuramos o ambiente de desenvolvimento e as diretrizes de licenciamento. Falta iniciar a codificação dos módulos de integração API."
+
+5. PROMPT DE RETOMADA (Caso o chat resete):
+-------------------------------------------
+"Olá, sou o dono do projeto ERP Meli Master. Tivemos uma queda de energia/sessão. Já configurei minha VPS Contabo com aaPanel e meu Sublime Text para Next.js 15. Precisamos continuar de onde paramos: a criação da estrutura base do sistema e o módulo de licenciamento/login. Use o Prisma para o banco de dados."
+
+======================================================================
+ESTADO DO PROJETO: PRÉ-LANÇAMENTO / ARQUITETURA DEFINIDA.
+======================================================================
+
+======================================================================
+JOURNAL DE CONFIGURAÇÃO - PROJETO ERP MELI MASTER
+======================================================================
+Data da Configuração: Abril/2024
+Ferramenta: Sublime Text (Tunado)
+Objetivo: Desenvolvimento ERP (Next.js 15, Tailwind, TS, VPS Contabo)
+----------------------------------------------------------------------
+
+1. PLUGINS INSTALADOS (VIA PACKAGE CONTROL)
+-------------------------------------------
+- TypeScript: Realce de sintaxe para .ts e .tsx.
+- Tailwind CSS: Autocomplete e cores para classes Tailwind.
+- Prisma: Para os arquivos de banco de dados (.prisma).
+- A File Icon: Ícones coloridos na barra lateral.
+- Emmet: Atalhos poderosos para HTML/JSX.
+- JSpetty: Formatador de código.
+
+2. CONFIGURAÇÃO GERAL DO SUBLIME (Preferences -> Settings)
+----------------------------------------------------------
+Configuração de User (Lado Direito):
+{
+  "tab_size": 2,
+  "translate_tabs_to_spaces": true,
+  "detect_indentation": false,
+  "trim_trailing_white_space_on_save": true,
+  "save_on_focus_lost": true,
+  "preview_on_click": false,
+  "open_files_in_new_window": false
+}
+
+3. CONFIGURAÇÃO EMMET (Preferences -> Package Settings -> Emmet -> Settings)
+----------------------------------------------------------------------------
+Configurado para suportar React (JSX), PHP, SCSS e Telemetria:
+{
+  "telemetry": true,
+  "uid": "99f87ee0-5823-417e-8fa3-482d116b5498",
+  "config": { "jsx.enabled": true, "markup.substitutions": { "class": "className" } },
+  "languages": {
+    "html": { "filters": "html" },
+    "css": { "filters": "css" },
+    "php": { "extends": "html", "filters": "html, php" },
+    "javascript": { "extends": "jsx" },
+    "typescript": { "extends": "jsx" }
+  }
+}
+
+4. ATALHOS DE SOBREVIVÊNCIA
+---------------------------
+- Ctrl + E: Comando universal do Emmet para expandir código (caso o Tab falhe).
+- html:5 + Tab: Gera a estrutura inicial do HTML5.
+- Ctrl + P: Busca rápida de arquivos dentro do projeto.
+- Ctrl + Shift + P: Abre o Package Control (Comandos do Sublime).
+
+5. FLUXO DE DOMINGO (21H)
+-------------------------
+1. Receber código do Claude (Módulos: SAC, WMS, FINANCEIRO, LICENCIAMENTO).
+2. Colar no Sublime (Usar abas para organizar cada módulo).
+3. Salvar os arquivos na pasta local do projeto.
+4. Subir para o aaPanel via Gerenciador de Arquivos ou SFTP.
+5. Rodar "npm install" e "npm run dev" no Terminal da VPS.
+
+----------------------------------------------------------------------
+ESTADO ATUAL: SISTEMA PRONTO PARA OPERAÇÃO.
+======================================================================
