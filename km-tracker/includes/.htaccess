@@ -1,3 +1,0 @@
-# Bloqueia qualquer acesso HTTP direto a esta pasta
-Order deny,allow
-Deny from all
