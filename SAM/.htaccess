@@ -1,0 +1,23 @@
+Options -Indexes
+RewriteEngine On
+RewriteBase /
+
+# Bloqueia acesso direto a arquivos sensíveis
+<FilesMatch "\.(sql|log|sh|md)$">
+    Require all denied
+</FilesMatch>
+
+# Bloqueia acesso direto a storage
+RewriteRule ^storage/ - [F,L]
+
+# Arquivos reais passam direto
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+
+# Rotas ML OAuth
+RewriteRule ^meli/connect$ /api/meli_connect.php [QSA,L]
+RewriteRule ^api/webhooks/meli$ /api/webhooks/meli.php [QSA,L]
+# Tudo o mais vai para index.php
+RewriteRule ^ index.php [QSA,L]

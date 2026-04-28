@@ -1,0 +1,61 @@
+# ============================================================
+# SAM — Crontab completo
+# Instalar: crontab -e (cole as linhas abaixo)
+#
+# Confirme o binário PHP correto com:
+#   /usr/local/lsws/lsphp83/bin/php8.3 -m 2>/dev/null | grep openssl
+#
+# Instalação limpa do banco:
+#   mysql -u lupa_user -pLupa2026 lupa_erp < /home/www/lupa/database/install.sql
+# ============================================================
+
+PHP="/usr/local/lsws/lsphp83/bin/php8.3 2>/dev/null"
+
+# Worker de filas — a cada minuto
+* * * * * /usr/local/lsws/lsphp83/bin/php8.3 /home/www/lupa/api/worker.php >> /home/www/lupa/storage/logs/worker.log 2>&1
+
+# Refresh tokens ML — a cada 30 minutos
+*/30 * * * * /usr/local/lsws/lsphp83/bin/php8.3 /home/www/lupa/api/meli_refresh_token.php >> /home/www/lupa/storage/logs/token_refresh.log 2>/dev/null
+
+# Sincronização de pedidos — a cada 15 minutos
+*/15 * * * * /usr/local/lsws/lsphp83/bin/php8.3 /home/www/lupa/api/sync_orders.php --days=1 >> /home/www/lupa/storage/logs/sync_orders.log 2>/dev/null
+
+# Backup do banco — todo dia às 02:00
+0 2 * * * /home/www/lupa/backup.sh >> /home/www/lupa/storage/logs/backup.log 2>&1
+
+# Limpeza de jobs concluídos — todo dia às 03:00
+0 3 * * * mysql -u lupa_user -pLupa2026 -h 127.0.0.1 lupa_erp -e "DELETE FROM queue_jobs WHERE status='DONE' AND created_at < DATE_SUB(NOW(), INTERVAL 7 DAY);" 2>&1
+
+# Limpeza de sessões expiradas — todo dia às 03:30
+30 3 * * * mysql -u lupa_user -pLupa2026 -h 127.0.0.1 lupa_erp -e "DELETE FROM sessions WHERE expires_at < NOW();" 2>&1
+
+# Limpeza de tentativas de login antigas — todo dia às 04:00
+0 4 * * * mysql -u lupa_user -pLupa2026 -h 127.0.0.1 lupa_erp -e "DELETE FROM login_attempts WHERE created_at < DATE_SUB(NOW(), INTERVAL 24 HOUR);" 2>&1
+
+# Auto-recovery de jobs travados — a cada 5 minutos
+*/5 * * * * mysql -u lupa_user -pLupa2026 -h 127.0.0.1 lupa_erp -e "UPDATE queue_jobs SET status='PENDING', attempts=attempts-1 WHERE status='PROCESSING' AND updated_at < DATE_SUB(NOW(), INTERVAL 5 MINUTE) AND attempts < 3;" 2>&1
+
+
+# Worker de filas — a cada minuto
+* * * * * $PHP /home/www/lupa/api/worker.php >> /home/www/lupa/storage/logs/worker.log 2>&1
+
+# Refresh tokens ML — a cada 30 minutos (token dura 6h, renova quando faltam 2h)
+*/30 * * * * $PHP /home/www/lupa/api/meli_refresh_token.php >> /home/www/lupa/storage/logs/token_refresh.log 2>&1
+
+# Sincronização de pedidos — a cada 15 minutos
+*/15 * * * * $PHP /home/www/lupa/api/sync_orders.php --days=1 >> /home/www/lupa/storage/logs/sync_orders.log 2>&1
+
+# Backup do banco — todo dia às 02:00
+0 2 * * * /home/www/lupa/backup.sh >> /home/www/lupa/storage/logs/backup.log 2>&1
+
+# Limpeza de jobs concluídos — todo dia às 03:00
+0 3 * * * mysql -u lupa_user -pLupa2026 -h 127.0.0.1 lupa_erp -e "DELETE FROM queue_jobs WHERE status='DONE' AND created_at < DATE_SUB(NOW(), INTERVAL 7 DAY);" 2>&1
+
+# Limpeza de sessões expiradas — todo dia às 03:30
+30 3 * * * mysql -u lupa_user -pLupa2026 -h 127.0.0.1 lupa_erp -e "DELETE FROM sessions WHERE expires_at < NOW();" 2>&1
+
+# Limpeza de tentativas de login antigas — todo dia às 04:00
+0 4 * * * mysql -u lupa_user -pLupa2026 -h 127.0.0.1 lupa_erp -e "DELETE FROM login_attempts WHERE created_at < DATE_SUB(NOW(), INTERVAL 24 HOUR);" 2>&1
+
+# Auto-recovery de jobs travados — a cada 5 minutos
+*/5 * * * * mysql -u lupa_user -pLupa2026 -h 127.0.0.1 lupa_erp -e "UPDATE queue_jobs SET status='PENDING', attempts=attempts-1 WHERE status='PROCESSING' AND updated_at < DATE_SUB(NOW(), INTERVAL 5 MINUTE) AND attempts < 3;" 2>&1
