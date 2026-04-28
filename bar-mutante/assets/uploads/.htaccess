@@ -1,0 +1,6 @@
+# Permitir acesso a imagens, bloquear execução de PHP
+<FilesMatch "\.php$">
+    Order deny,allow
+    Deny from all
+</FilesMatch>
+Options -Indexes
