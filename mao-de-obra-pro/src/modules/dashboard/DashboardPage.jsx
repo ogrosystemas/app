@@ -1,58 +1,177 @@
-import { useLiveQuery } from 'dexie-react-hooks';
-import { TrendingUp, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, FileText, TrendingUp, Clock, Users, DollarSign } from 'lucide-react';
 import db from '../../database/db';
+import { formatarMoeda } from '../../core/calculadora';
 import { useFinanceiro } from '../../hooks/useFinanceiro';
 
-export const DashboardPage = () => {
-  const { metricas, dados } = useFinanceiro();
-  const orcamentos = useLiveQuery(() => db.orcamentos.toArray()) || [];
+const DashboardPage = ({ onNewBudget }) => {
+  const [recentBudgets, setRecentBudgets] = useState([]);
+  const [stats, setStats] = useState({
+    totalBudgets: 0,
+    totalValue: 0,
+    activeClients: 0
+  });
+  const { config } = useFinanceiro();
 
-  const pagos = orcamentos.filter(o => o.status === 'pago');
-  const pendentes = orcamentos.filter(o => o.status === 'rascunho' || o.status === 'enviado');
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
 
-  const faturamentoTotal = pagos.reduce((acc, cur) => acc + cur.total, 0);
-  const faturamentoPendente = pendentes.reduce((acc, cur) => acc + cur.total, 0);
+  const loadDashboardData = async () => {
+    try {
+      // Load recent budgets
+      const budgets = await db.orcamentos
+        .orderBy('data')
+        .reverse()
+        .limit(5)
+        .toArray();
 
-  // Lógica de Decomposição do Caixa
-  const totalMetaMensal = Number(dados.salarioDesejado) + metricas.totalDespesas;
-  const proporcaoCusto = metricas.totalDespesas / (totalMetaMensal || 1);
+      // Load clients for budget stats
+      const clients = await db.clientes.toArray();
+      const allBudgets = await db.orcamentos.toArray();
 
-  const valorCustos = faturamentoTotal * proporcaoCusto;
-  const valorSalario = faturamentoTotal * (1 - proporcaoCusto);
-  const progressoMeta = (faturamentoTotal / (totalMetaMensal || 1)) * 100;
+      // Calculate stats
+      const totalValue = allBudgets.reduce((sum, b) => sum + (b.total || 0), 0);
+
+      setRecentBudgets(budgets);
+      setStats({
+        totalBudgets: allBudgets.length,
+        totalValue: totalValue,
+        activeClients: clients.length
+      });
+    } catch (error) {
+      console.error('Error loading dashboard:', error);
+    }
+  };
+
+  const getClientName = async (clienteId) => {
+    const client = await db.clientes.get(clienteId);
+    return client ? client.nome : 'Cliente não encontrado';
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-        <p className="text-slate-500 text-sm font-medium">Faturamento Pago</p>
-        <h3 className="text-2xl font-black text-slate-800">
-          R$ {faturamentoTotal.toFixed(2)}
-          <span className="text-slate-400 text-lg font-normal"> / {totalMetaMensal.toFixed(0)}</span>
-        </h3>
-        <div className="w-full bg-slate-100 h-3 rounded-full mt-4 overflow-hidden">
-          <div className="bg-blue-600 h-full transition-all" style={{ width: `${Math.min(progressoMeta, 100)}%` }} />
+    <div className="space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Dashboard</h1>
+          <p className="text-slate-500 mt-1">Visão geral do seu negócio</p>
+        </div>
+        <button
+          onClick={onNewBudget}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:bg-blue-700 transition-colors"
+        >
+          <Plus size={20} />
+          Novo Orçamento
+        </button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm opacity-90">Valor/Minuto</p>
+              <p className="text-2xl font-bold mt-1">{formatarMoeda(config.valorMinuto)}</p>
+            </div>
+            <Clock size={24} className="opacity-80" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm text-slate-500">Orçamentos</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">{stats.totalBudgets}</p>
+            </div>
+            <FileText size={24} className="text-blue-500" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm text-slate-500">Total em Orçamentos</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">{formatarMoeda(stats.totalValue)}</p>
+            </div>
+            <DollarSign size={24} className="text-green-500" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm text-slate-500">Clientes Ativos</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">{stats.activeClients}</p>
+            </div>
+            <Users size={24} className="text-purple-500" />
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white p-4 rounded-xl border-l-4 border-orange-400 shadow-sm">
-          <p className="text-[10px] uppercase font-bold text-slate-400">Gaveta: Custos</p>
-          <p className="font-bold text-slate-700">R$ {valorCustos.toFixed(2)}</p>
+      {/* Recent Budgets */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+        <div className="p-6 border-b border-slate-200">
+          <h2 className="text-xl font-semibold text-slate-900">Últimos Orçamentos</h2>
         </div>
-        <div className="bg-white p-4 rounded-xl border-l-4 border-green-500 shadow-sm">
-          <p className="text-[10px] uppercase font-bold text-slate-400">Gaveta: Salário</p>
-          <p className="font-bold text-slate-700">R$ {valorSalario.toFixed(2)}</p>
+        <div className="divide-y divide-slate-200">
+          {recentBudgets.length === 0 ? (
+            <div className="p-8 text-center text-slate-500">
+              <FileText size={48} className="mx-auto mb-3 opacity-50" />
+              <p>Nenhum orçamento criado ainda</p>
+              <button
+                onClick={onNewBudget}
+                className="mt-3 text-blue-600 font-semibold hover:text-blue-700"
+              >
+                Criar primeiro orçamento
+              </button>
+            </div>
+          ) : (
+            recentBudgets.map((budget) => (
+              <div key={budget.id} className="p-4 hover:bg-slate-50 transition-colors">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-semibold text-slate-900">
+                      Orçamento #{budget.id}
+                    </p>
+                    <p className="text-sm text-slate-500 mt-1">
+                      {new Date(budget.data).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-blue-600">{formatarMoeda(budget.total)}</p>
+                    <span className={`
+                      text-xs px-2 py-1 rounded-full mt-1 inline-block
+                      ${budget.status === 'aprovado' ? 'bg-green-100 text-green-700' : ''}
+                      ${budget.status === 'pendente' ? 'bg-yellow-100 text-yellow-700' : ''}
+                      ${budget.status === 'recusado' ? 'bg-red-100 text-red-700' : ''}
+                    `}>
+                      {budget.status === 'aprovado' ? 'Aprovado' :
+                       budget.status === 'pendente' ? 'Pendente' : 'Recusado'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
-      <section>
-        <h3 className="text-sm font-bold text-slate-500 mb-3 flex items-center gap-2">
-          <AlertCircle size={16} /> PENDENTE DE RECEBIMENTO
-        </h3>
-        <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl">
-          <p className="text-orange-700 font-bold text-xl">R$ {faturamentoPendente.toFixed(2)}</p>
+      {/* Tips Card */}
+      <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl p-4 border border-amber-200">
+        <div className="flex items-start gap-3">
+          <TrendingUp className="text-amber-600 flex-shrink-0 mt-0.5" size={20} />
+          <div>
+            <p className="font-semibold text-amber-800">Dica Profissional</p>
+            <p className="text-sm text-amber-700 mt-1">
+              Sempre fotografe o antes e depois do serviço. Isso gera credibilidade
+              e protege você contra possíveis questionamentos.
+            </p>
+          </div>
         </div>
-      </section>
+      </div>
     </div>
   );
 };
+
+export default DashboardPage;
