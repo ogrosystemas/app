@@ -1,65 +1,6 @@
 import { useState, useEffect } from 'react';
-import db from '../database/db.js';
-
-export function calcularValorMinuto(metaSalarial, horasTrabalhadas) {
-  if (horasTrabalhadas <= 0) return 0;
-  const valorHora = metaSalarial / horasTrabalhadas;
-  return valorHora / 60;
-}
-
-export function calcularPrecoServico(tempo, valorMinuto, dificuldade, margemReserva) {
-  if (tempo <= 0) return 0;
-  if (valorMinuto <= 0) return 0;
-
-  const custoBase = tempo * valorMinuto;
-  const custoAjustado = custoBase * dificuldade;
-  const preco = custoAjustado / (1 - margemReserva);
-
-  return Math.round(preco * 100) / 100;
-}
-
-export function calcularTotalOrcamento(itens, taxaDeslocamento) {
-  if (!itens || itens.length === 0) {
-    return {
-      subtotal: 0,
-      taxaDeslocamento: taxaDeslocamento || 0,
-      total: taxaDeslocamento || 0,
-      totalServicos: 0
-    };
-  }
-
-  const totalServicos = itens.reduce((sum, item) => sum + (item.preco || 0), 0);
-  const transporte = taxaDeslocamento || 0;
-
-  return {
-    subtotal: totalServicos,
-    taxaDeslocamento: transporte,
-    total: totalServicos + transporte,
-    totalServicos: totalServicos
-  };
-}
-
-export function formatarMoeda(valor) {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL'
-  }).format(valor);
-}
-
-export function formatarTempo(minutos) {
-  const horas = Math.floor(minutos / 60);
-  const mins = minutos % 60;
-
-  if (horas === 0) return `${mins}min`;
-  if (mins === 0) return `${horas}h`;
-  return `${horas}h ${mins}min`;
-}
-
-export const DIFICULDADE = {
-  NORMAL: { fator: 1.0, label: 'Normal' },
-  MEDIO: { fator: 1.3, label: 'Médio' },
-  ALTO: { fator: 1.6, label: 'Alto' }
-};
+import db from '../database/db';
+import { calcularValorMinuto } from '../core/calculadora';
 
 export function useFinanceiro() {
   const [config, setConfig] = useState({
@@ -71,6 +12,7 @@ export function useFinanceiro() {
   });
   const [loading, setLoading] = useState(true);
 
+  // Load config from database
   useEffect(() => {
     loadConfig();
   }, []);
@@ -103,6 +45,17 @@ export function useFinanceiro() {
     }
   };
 
+  const updateConfig = async (chave, valor) => {
+    try {
+      await db.config.where('chave').equals(chave).modify({ valor });
+      await loadConfig();
+      return true;
+    } catch (error) {
+      console.error('Error updating config:', error);
+      return false;
+    }
+  };
+
   const updateAllConfig = async (newConfig) => {
     try {
       for (const [chave, valor] of Object.entries(newConfig)) {
@@ -116,7 +69,7 @@ export function useFinanceiro() {
       await loadConfig();
       return true;
     } catch (error) {
-      console.error('Error updating config:', error);
+      console.error('Error updating all config:', error);
       return false;
     }
   };
@@ -124,6 +77,7 @@ export function useFinanceiro() {
   return {
     config,
     loading,
+    updateConfig,
     updateAllConfig,
     refresh: loadConfig
   };
