@@ -25,7 +25,6 @@ const ServicosPage = () => {
   }, [profissao]);
 
   const loadServicos = async () => {
-    // Filtrar serviços apenas da profissão selecionada
     const allServicos = await db.servicos
       .where('profissaoId')
       .equals(profissao.id)
@@ -48,7 +47,7 @@ const ServicosPage = () => {
         nome: formData.nome,
         tempoPadrao: parseInt(formData.tempoPadrao),
         categoria: formData.categoria || 'Geral',
-        profissaoId: profissao.id // Vincula serviço à profissão atual
+        profissaoId: profissao.id
       };
 
       if (editingServico) {
@@ -122,7 +121,6 @@ const ServicosPage = () => {
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* Header com profissão atual */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Catálogo de Serviços</h1>
@@ -142,7 +140,6 @@ const ServicosPage = () => {
         </button>
       </div>
 
-      {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
         <input
@@ -154,7 +151,6 @@ const ServicosPage = () => {
         />
       </div>
 
-      {/* Services Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {filteredServicos.length === 0 ? (
           <div className="col-span-full bg-white rounded-xl p-8 text-center text-slate-500 border border-slate-200">
@@ -205,7 +201,6 @@ const ServicosPage = () => {
         )}
       </div>
 
-      {/* Modal - igual ao original, mas sem opção de profissaoId pois já é fixo */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 animate-fade-in">
           <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
