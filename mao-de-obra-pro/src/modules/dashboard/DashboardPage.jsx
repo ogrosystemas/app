@@ -4,7 +4,7 @@ import db from '../../database/db';
 import { formatarMoeda } from '../../core/calculadora';
 import { useFinanceiro } from '../../hooks/useFinanceiro';
 
-const DashboardPage = ({ onNewBudget }) => {
+const DashboardPage = ({ onNewBudget, onViewBudget }) => {
   const { config, profissao } = useFinanceiro();
   const [recentBudgets, setRecentBudgets] = useState([]);
   const [stats, setStats] = useState({
@@ -22,7 +22,7 @@ const DashboardPage = ({ onNewBudget }) => {
       const budgets = await db.orcamentos
         .orderBy('data')
         .reverse()
-        .limit(5)
+        .limit(10)
         .toArray();
 
       const clients = await db.clientes.toArray();
@@ -56,7 +56,7 @@ const DashboardPage = ({ onNewBudget }) => {
   }, [recentBudgets]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in pb-20">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Dashboard</h1>
@@ -134,7 +134,7 @@ const DashboardPage = ({ onNewBudget }) => {
             recentBudgets.map((budget) => (
               <div key={budget.id} className="p-4 hover:bg-slate-50 transition-colors">
                 <div className="flex justify-between items-start">
-                  <div>
+                  <div className="flex-1">
                     <p className="font-semibold text-slate-900">
                       {clientNames[budget.id] || `Orçamento #${budget.id}`}
                     </p>
@@ -147,6 +147,12 @@ const DashboardPage = ({ onNewBudget }) => {
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-blue-600">{formatarMoeda(budget.total)}</p>
+                    <button
+                      onClick={() => onViewBudget(budget.id)}
+                      className="text-xs text-blue-500 hover:text-blue-700 mt-1 mr-2"
+                    >
+                      Visualizar
+                    </button>
                     <span className={`
                       text-xs px-2 py-1 rounded-full mt-1 inline-block
                       ${budget.status === 'aprovado' ? 'bg-green-100 text-green-700' : ''}
