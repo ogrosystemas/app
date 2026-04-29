@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, TrendingUp, Car, Save, ArrowRight, Zap, UserPlus } from 'lucide-react';
+import { Briefcase, TrendingUp, Car, Save, ArrowRight, Zap } from 'lucide-react';
 import ProfissaoSelector from '../../components/ProfissaoSelector';
 import { useFinanceiro } from '../../hooks/useFinanceiro';
 import { formatarMoeda } from '../../core/calculadora';
@@ -32,13 +32,22 @@ const SetupPage = ({ onComplete }) => {
   };
 
   const handleSaveConfig = async () => {
+    // Salvar configurações
     await updateAllConfig({
       metaSalarial: formData.metaSalarial,
       horasTrabalhadas: formData.horasTrabalhadas,
       taxaDeslocamento: formData.taxaDeslocamento,
-      margemReserva: 0.2,
-      primeiroAcesso: false
+      margemReserva: 0.2
     });
+
+    // Garantir que primeiroAcesso seja salvo como 0
+    const existing = await db.config.where('chave').equals('primeiroAcesso').first();
+    if (existing) {
+      await db.config.where('chave').equals('primeiroAcesso').modify({ valor: 0 });
+    } else {
+      await db.config.add({ chave: 'primeiroAcesso', valor: 0 });
+    }
+
     onComplete();
   };
 
