@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Camera, X, Check, RotateCcw } from 'lucide-react';
 
 const CameraModal = ({ isOpen, onClose, onCapture }) => {
@@ -63,7 +63,7 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
     onClose();
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       startCamera();
     } else {
@@ -77,7 +77,6 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-95 flex items-center justify-center animate-fade-in">
       <div className="relative w-full h-full max-w-lg flex flex-col">
-        {/* Header */}
         <div className="flex justify-between items-center p-4 bg-black text-white">
           <h3 className="text-lg font-semibold">Tirar Foto</h3>
           <button onClick={handleClose} className="p-2 hover:bg-white hover:bg-opacity-10 rounded-lg">
@@ -85,7 +84,6 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
           </button>
         </div>
 
-        {/* Camera or Photo Preview */}
         <div className="flex-1 flex items-center justify-center bg-black">
           {!photo ? (
             <video
@@ -99,10 +97,8 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
           )}
         </div>
 
-        {/* Hidden Canvas */}
         <canvas ref={canvasRef} className="hidden" />
 
-        {/* Controls */}
         <div className="p-4 bg-black">
           {!photo ? (
             <button
