@@ -13,10 +13,6 @@ const DashboardPage = ({ onNewBudget, onViewBudget }) => {
     activeClients: 0
   });
 
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
-
   const loadDashboardData = async () => {
     try {
       const budgets = await db.orcamentos
@@ -41,6 +37,10 @@ const DashboardPage = ({ onNewBudget, onViewBudget }) => {
     }
   };
 
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
   const [clientNames, setClientNames] = useState({});
 
   useEffect(() => {
@@ -54,6 +54,10 @@ const DashboardPage = ({ onNewBudget, onViewBudget }) => {
     };
     if (recentBudgets.length > 0) loadNames();
   }, [recentBudgets]);
+
+  const handleBudgetDeleted = () => {
+    loadDashboardData();
+  };
 
   return (
     <div className="space-y-6 animate-fade-in pb-20">
@@ -131,41 +135,49 @@ const DashboardPage = ({ onNewBudget, onViewBudget }) => {
               </button>
             </div>
           ) : (
-            recentBudgets.map((budget) => (
-              <div key={budget.id} className="p-4 hover:bg-slate-50 transition-colors">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <p className="font-semibold text-slate-900">
-                      {clientNames[budget.id] || `Orçamento #${budget.id}`}
-                    </p>
-                    <p className="text-sm text-slate-500 mt-1">
-                      {new Date(budget.data).toLocaleDateString('pt-BR')}
-                    </p>
-                    {budget.profissaoNome && (
-                      <p className="text-xs text-slate-400 mt-1">{budget.profissaoNome}</p>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-blue-600">{formatarMoeda(budget.total)}</p>
-                    <button
-                      onClick={() => onViewBudget(budget.id)}
-                      className="text-xs text-blue-500 hover:text-blue-700 mt-1 mr-2"
-                    >
-                      Visualizar
-                    </button>
-                    <span className={`
-                      text-xs px-2 py-1 rounded-full mt-1 inline-block
-                      ${budget.status === 'aprovado' ? 'bg-green-100 text-green-700' : ''}
-                      ${budget.status === 'pendente' ? 'bg-yellow-100 text-yellow-700' : ''}
-                      ${budget.status === 'recusado' ? 'bg-red-100 text-red-700' : ''}
-                    `}>
-                      {budget.status === 'aprovado' ? 'Aprovado' :
-                       budget.status === 'pendente' ? 'Pendente' : 'Recusado'}
-                    </span>
+            recentBudgets.map((budget) => {
+              const dataVencimento = budget.dataVencimento ? new Date(budget.dataVencimento) : null;
+              const isVencido = dataVencimento && dataVencimento < new Date() && budget.status === 'pendente';
+
+              return (
+                <div key={budget.id} className="p-4 hover:bg-slate-50 transition-colors">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <p className="font-semibold text-slate-900">
+                        {clientNames[budget.id] || `Orçamento #${budget.id}`}
+                      </p>
+                      <p className="text-sm text-slate-500 mt-1">
+                        {new Date(budget.data).toLocaleDateString('pt-BR')}
+                      </p>
+                      {budget.profissaoNome && (
+                        <p className="text-xs text-slate-400 mt-1">{budget.profissaoNome}</p>
+                      )}
+                      {isVencido && (
+                        <p className="text-xs text-red-500 mt-1">Vencido em {dataVencimento.toLocaleDateString('pt-BR')}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-blue-600">{formatarMoeda(budget.total)}</p>
+                      <button
+                        onClick={() => onViewBudget(budget.id)}
+                        className="text-xs text-blue-500 hover:text-blue-700 mt-1 mr-2"
+                      >
+                        Visualizar
+                      </button>
+                      <span className={`
+                        text-xs px-2 py-1 rounded-full mt-1 inline-block
+                        ${budget.status === 'aprovado' ? 'bg-green-100 text-green-700' : ''}
+                        ${budget.status === 'pendente' ? 'bg-yellow-100 text-yellow-700' : ''}
+                        ${budget.status === 'recusado' ? 'bg-red-100 text-red-700' : ''}
+                      `}>
+                        {budget.status === 'aprovado' ? 'Aprovado' :
+                         budget.status === 'pendente' ? 'Pendente' : 'Recusado'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
