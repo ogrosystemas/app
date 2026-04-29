@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Plus, Camera, Save, Trash2, ChevronLeft } from 'lucide-react';
-import db from '../../database/db';
-import { useFinanceiro } from '../../hooks/useFinanceiro';
-import { calcularPrecoServico } from '../../core/calculadora';
-import { CameraModal } from '../../components/CameraModal';
+
+// Adicionada a extensão .js ou .jsx nos imports internos para o Netlify não se perder
+import db from '../../database/db.js';
+import { useFinanceiro } from '../../hooks/useFinanceiro.jsx';
+import { calcularPrecoServico } from '../../core/calculadora.js';
+import { CameraModal } from '../../components/CameraModal.jsx';
 
 export const NovoOrcamento = ({ aoSalvar }) => {
   const { metricas, dados } = useFinanceiro();
@@ -25,19 +27,28 @@ export const NovoOrcamento = ({ aoSalvar }) => {
       nome: s.nome,
       tempoAjustado: s.tempoPadrao,
       dificuldade: 1.0,
-      valorFinal: calcularPrecoServico(s.tempoPadrao, metricas.valorMinuto, 1.0, dados.margemReserva)
+      // Garantindo que valores iniciais existam para não quebrar o cálculo
+      valorFinal: calcularPrecoServico(
+        s.tempoPadrao,
+        metricas?.valorMinuto || 0,
+        1.0,
+        dados?.margemReserva || 0
+      )
     };
     setItens([...itens, novoItem]);
   };
 
   const atualizarItem = (index, campo, valor) => {
     const novosItens = [...itens];
-    novosItens[index][campo] = Number(valor);
+    // Correção: Garantir que o valor seja zero se o campo for limpo pelo usuário
+    const valorNumerico = valor === "" ? 0 : Number(valor);
+    novosItens[index][campo] = valorNumerico;
+
     novosItens[index].valorFinal = calcularPrecoServico(
       novosItens[index].tempoAjustado,
-      metricas.valorMinuto,
+      metricas?.valorMinuto || 0,
       novosItens[index].dificuldade,
-      dados.margemReserva
+      dados?.margemReserva || 0
     );
     setItens(novosItens);
   };
@@ -46,7 +57,7 @@ export const NovoOrcamento = ({ aoSalvar }) => {
     setItens(itens.filter((_, i) => i !== index));
   };
 
-  const totalGeral = itens.reduce((acc, i) => acc + i.valorFinal, 0) + Number(taxaDeslocamento);
+  const totalGeral = itens.reduce((acc, i) => acc + (i.valorFinal || 0), 0) + Number(taxaDeslocamento || 0);
 
   const salvarOrcamento = async () => {
     if (!clienteId || itens.length === 0) {
@@ -59,7 +70,7 @@ export const NovoOrcamento = ({ aoSalvar }) => {
         clienteId: Number(clienteId),
         data: new Date(),
         itens,
-        fotos, // Salva as fotos em Base64 comprimido
+        fotos,
         taxaDeslocamento: Number(taxaDeslocamento),
         total: totalGeral,
         status: 'rascunho'
@@ -74,15 +85,17 @@ export const NovoOrcamento = ({ aoSalvar }) => {
   return (
     <div className="space-y-4 pb-24 animate-in fade-in duration-300">
       <div className="flex items-center gap-2 mb-2">
-        <button onClick={aoSalvar} className="p-2 -ml-2 text-slate-400"><ChevronLeft /></button>
+        <button onClick={aoSalvar} className="p-2 -ml-2 text-slate-400">
+          <ChevronLeft />
+        </button>
         <h2 className="text-xl font-bold text-slate-800">Novo Orçamento</h2>
       </div>
 
       {/* Seletor Cliente */}
       <div className="space-y-1">
-        <label className="text-xs font-bold text-slate-400 uppercase">Cliente</label>
+        <label className="text-[10px] font-bold text-slate-400 uppercase">Cliente</label>
         <select
-          className="w-full bg-white border-slate-200"
+          className="w-full bg-white border border-slate-200 p-3 rounded-xl outline-none"
           value={clienteId}
           onChange={e => setClienteId(e.target.value)}
         >
@@ -93,9 +106,9 @@ export const NovoOrcamento = ({ aoSalvar }) => {
 
       {/* Seletor Serviços */}
       <div className="space-y-1">
-        <label className="text-xs font-bold text-slate-400 uppercase">Adicionar Mão de Obra</label>
+        <label className="text-[10px] font-bold text-slate-400 uppercase">Adicionar Mão de Obra</label>
         <select
-          className="w-full bg-blue-50 border-blue-200 text-blue-700 font-medium"
+          className="w-full bg-blue-50 border border-blue-200 text-blue-700 font-bold p-3 rounded-xl outline-none"
           onChange={e => { if(e.target.value) adicionarServico(e.target.value); e.target.value = ""; }}
         >
           <option value="">+ Toque para buscar serviço...</option>
@@ -116,20 +129,20 @@ export const NovoOrcamento = ({ aoSalvar }) => {
             <p className="font-bold text-slate-700 pr-6">{item.nome}</p>
             <div className="grid grid-cols-2 gap-4 mt-3">
               <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase">Tempo (min)</label>
+                <label className="text-[9px] font-bold text-slate-400 uppercase">Tempo (min)</label>
                 <input
                   type="number"
                   value={item.tempoAjustado}
                   onChange={e => atualizarItem(index, 'tempoAjustado', e.target.value)}
-                  className="w-full mt-1 bg-slate-50 border-none"
+                  className="w-full mt-1 bg-slate-50 border-none p-2 rounded-lg"
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase">Dificuldade</label>
+                <label className="text-[9px] font-bold text-slate-400 uppercase">Dificuldade</label>
                 <select
                   value={item.dificuldade}
                   onChange={e => atualizarItem(index, 'dificuldade', e.target.value)}
-                  className="w-full mt-1 bg-slate-50 border-none"
+                  className="w-full mt-1 bg-slate-50 border-none p-2 rounded-lg"
                 >
                   <option value="1.0">Normal</option>
                   <option value="1.3">Média (+30%)</option>
@@ -144,7 +157,7 @@ export const NovoOrcamento = ({ aoSalvar }) => {
 
       {/* Fotos */}
       <div className="space-y-2">
-        <label className="text-xs font-bold text-slate-400 uppercase">Evidências (Fotos)</label>
+        <label className="text-[10px] font-bold text-slate-400 uppercase">Evidências (Fotos)</label>
         <div className="flex gap-2 overflow-x-auto pb-2">
           <button
             onClick={() => setShowCamera(true)}
@@ -169,7 +182,7 @@ export const NovoOrcamento = ({ aoSalvar }) => {
 
       {/* Taxa Final */}
       <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200">
-        <span className="text-sm font-bold text-slate-500 uppercase">Taxa de Deslocamento</span>
+        <span className="text-xs font-bold text-slate-500 uppercase">Taxa de Deslocamento</span>
         <div className="flex items-center gap-2">
           <span className="text-slate-400 font-bold">R$</span>
           <input
@@ -181,8 +194,8 @@ export const NovoOrcamento = ({ aoSalvar }) => {
         </div>
       </div>
 
-      {/* Rodapé Fixo de Ação */}
-      <div className="fixed bottom-20 left-0 right-0 p-4 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent">
+      {/* Botão Salvar Fixo */}
+      <div className="fixed bottom-6 left-0 right-0 p-4 z-50">
         <button
           onClick={salvarOrcamento}
           className="w-full bg-blue-600 text-white p-4 rounded-2xl font-black shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-transform"
