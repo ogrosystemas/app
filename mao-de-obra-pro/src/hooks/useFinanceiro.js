@@ -1,39 +1,84 @@
-import { useLiveQuery } from "dexie-react-hooks";
-import db from "../database/db";
+import { useState, useEffect } from 'react';
+import db from '../database/db';
+import { calcularValorMinuto } from '../core/calculadora';
 
-export const useFinanceiro = () => {
-  const perfil = useLiveQuery(() => db.configuracoes.get("perfil"));
+export function useFinanceiro() {
+  const [config, setConfig] = useState({
+    metaSalarial: 5000,
+    horasTrabalhadas: 160,
+    margemReserva: 0.2,
+    taxaDeslocamento: 50,
+    valorMinuto: 0
+  });
+  const [loading, setLoading] = useState(true);
 
-  const dados = perfil || {
-    salarioDesejado: 0,
-    custosFixos: 0,
-    custoAjudante: 0,
-    diasTrabalhados: 22,
-    horasPorDia: 8,
-    margemReserva: 5,
-    nomeEmpresa: ''
+  // Load config from database
+  useEffect(() => {
+    loadConfig();
+  }, []);
+
+  const loadConfig = async () => {
+    try {
+      setLoading(true);
+      const configs = await db.config.toArray();
+      const configObj = {};
+      configs.forEach(c => {
+        configObj[c.chave] = c.valor;
+      });
+
+      const valorMinuto = calcularValorMinuto(
+        configObj.metaSalarial || 5000,
+        configObj.horasTrabalhadas || 160
+      );
+
+      setConfig({
+        metaSalarial: configObj.metaSalarial || 5000,
+        horasTrabalhadas: configObj.horasTrabalhadas || 160,
+        margemReserva: configObj.margemReserva || 0.2,
+        taxaDeslocamento: configObj.taxaDeslocamento || 50,
+        valorMinuto: valorMinuto
+      });
+    } catch (error) {
+      console.error('Error loading config:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const calcularMetricas = () => {
-    const totalDespesas = Number(dados.salarioDesejado) + Number(dados.custosFixos) + Number(dados.custoAjudante);
-    const totalHorasMes = (Number(dados.diasTrabalhados) || 1) * (Number(dados.horasPorDia) || 1);
-
-    const valorHoraBase = totalDespesas / totalHorasMes;
-    const valorMinutoBase = valorHoraBase / 60;
-
-    return {
-      valorHora: valorHoraBase || 0,
-      valorMinuto: valorMinutoBase || 0,
-      totalDespesas,
-      totalHorasMes
-    };
+  const updateConfig = async (chave, valor) => {
+    try {
+      await db.config.where('chave').equals(chave).modify({ valor });
+      await loadConfig(); // Reload config
+      return true;
+    } catch (error) {
+      console.error('Error updating config:', error);
+      return false;
+    }
   };
 
-  const metricas = calcularMetricas();
-
-  const salvarPerfil = async (novosDados) => {
-    await db.configuracoes.put({ id: "perfil", ...novosDados });
+  const updateAllConfig = async (newConfig) => {
+    try {
+      for (const [chave, valor] of Object.entries(newConfig)) {
+        const existing = await db.config.where('chave').equals(chave).first();
+        if (existing) {
+          await db.config.where('chave').equals(chave).modify({ valor });
+        } else {
+          await db.config.add({ chave, valor });
+        }
+      }
+      await loadConfig();
+      return true;
+    } catch (error) {
+      console.error('Error updating all config:', error);
+      return false;
+    }
   };
 
-  return { dados, metricas, salvarPerfil, carregando: !perfil };
-};
+  return {
+    config,
+    loading,
+    updateConfig,
+    updateAllConfig,
+    refresh: loadConfig
+  };
+}
