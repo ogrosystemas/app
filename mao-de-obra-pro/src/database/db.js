@@ -5,7 +5,7 @@ export const db = new Dexie('MaoDeObraPro');
 db.version(1).stores({
   clientes: '++id, nome, whatsapp, endereco',
   servicos: '++id, nome, tempoPadrao, categoria',
-  orcamentos: '++id, clienteId, data, total, status, itens, fotos',
+  orcamentos: '++id, clienteId, data, total, status, itens, fotos, taxaDeslocamento, subtotal',
   config: 'id, chave, valor'
 });
 
@@ -17,7 +17,10 @@ db.on('populate', async () => {
     { nome: 'Troca de resistência', tempoPadrao: 45, categoria: 'Hidráulica' },
     { nome: 'Desentupimento', tempoPadrao: 60, categoria: 'Hidráulica' },
     { nome: 'Instalação de chuveiro', tempoPadrao: 40, categoria: 'Elétrica/Hidráulica' },
-    { nome: 'Manutenção geral', tempoPadrao: 120, categoria: 'Geral' }
+    { nome: 'Manutenção geral', tempoPadrao: 120, categoria: 'Geral' },
+    { nome: 'Pintura de parede', tempoPadrao: 90, categoria: 'Pintura' },
+    { nome: 'Reparo de encanamento', tempoPadrao: 50, categoria: 'Hidráulica' },
+    { nome: 'Instalação de ventilador', tempoPadrao: 35, categoria: 'Elétrica' }
   ]);
 
   // Default config
