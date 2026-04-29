@@ -46,6 +46,33 @@ const ConfiguracoesPage = () => {
   };
 
   return (
+    {/* Profession Selector */}
+<div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+  <div className="p-6 border-b border-slate-200">
+    <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+      <Briefcase size={20} className="text-blue-600" />
+      Perfil Profissional
+    </h2>
+  </div>
+  <div className="p-6">
+    <ProfissaoSelector
+      onSelect={async (prof) => {
+        await selecionarProfissao(prof);
+        refresh();
+      }}
+      selectedSlug={config.profissaoSelecionada}
+    />
+    {profissao && (
+      <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+        <p className="text-sm text-blue-800">
+          <strong>Multiplicador de risco:</strong> {profissao.riscoBase}x
+          <br />
+          <strong>Custo ferramental mensal:</strong> {formatarMoeda(profissao.custoFerramental)}
+        </p>
+      </div>
+    )}
+  </div>
+</div>
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Configurações Financeiras</h1>
