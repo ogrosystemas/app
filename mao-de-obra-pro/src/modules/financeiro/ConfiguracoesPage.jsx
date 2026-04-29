@@ -103,13 +103,6 @@ const ConfiguracoesPage = () => {
     setSaving(false);
   };
 
-  const valorMinutoAtual = calcularValorMinuto(formData.metaSalarial, formData.horasTrabalhadas);
-  const calcularValorHora = () => formData.metaSalarial / formData.horasTrabalhadas;
-
-  const totalEntradas = lancamentos.filter(l => l.tipo === 'entrada').reduce((sum, l) => sum + l.valor, 0);
-  const totalSaidas = lancamentos.filter(l => l.tipo === 'saida').reduce((sum, l) => sum + l.valor, 0);
-  const saldo = totalEntradas - totalSaidas;
-
   const menus = [
     { id: 'config', label: 'Configurações', icon: Settings },
     { id: 'profissao', label: 'Perfil Profissional', icon: Briefcase },
@@ -155,8 +148,11 @@ const ConfiguracoesPage = () => {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm opacity-90">Seu valor atual por minuto</p>
-                <p className="text-3xl font-bold mt-1">{formatarMoeda(valorMinutoAtual)}</p>
-                <p className="text-sm opacity-90 mt-2">Equivalente a {formatarMoeda(calcularValorHora())}/hora</p>
+                <p className="text-3xl font-bold mt-1">{formatarMoeda(config.valorMinuto)}</p>
+                <p className="text-sm opacity-90 mt-2">Com base na profissão e meta salarial</p>
+                {profissao && (
+                  <p className="text-xs opacity-80 mt-1">Risco: {Math.round((profissao.riscoBase - 1) * 100)}%</p>
+                )}
               </div>
               <DollarSign size={32} className="opacity-80" />
             </div>
@@ -288,7 +284,7 @@ const ConfiguracoesPage = () => {
             <ProfissaoSelector
               onSelect={async (prof) => {
                 await selecionarProfissao(prof);
-                refresh();
+                await refresh();
               }}
               selectedSlug={config.profissaoSelecionada}
             />
@@ -435,5 +431,4 @@ const ConfiguracoesPage = () => {
     </div>
   );
 };
-
 export default ConfiguracoesPage;
