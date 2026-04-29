@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mão de Obra Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .active-tab { border-bottom: 4px solid #facc15; font-weight: bold; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-900 font-sans">
+
+    <header class="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-10">
+        <h1 class="text-xl font-bold text-yellow-400">MÃO DE OBRA PRO</h1>
+        <p class="text-xs opacity-75 text-white">Calculadora de Lucro Real</p>
+    </header>
+
+    <nav class="flex bg-white shadow-sm mb-4 justify-around text-sm">
+        <button onclick="showTab('config')" id="tab-config" class="p-3 w-full active-tab">CONFIG</button>
+        <button onclick="showTab('obra')" id="tab-obra" class="p-3 w-full">NOVA OBRA</button>
+        <button onclick="showTab('resumo')" id="tab-resumo" class="p-3 w-full">RESUMO</button>
+    </nav>
+
+    <main class="p-4 max-w-md mx-auto">
+        
+        <section id="content-config">
+            <h2 class="font-bold mb-4 border-b pb-2">Configuração do seu Valor</h2>
+            <div class="space-y-4 bg-white p-4 rounded-xl shadow">
+                <div>
+                    <label class="block text-sm font-medium">Meta de Lucro Mensal (R$)</label>
+                    <input type="number" id="metaLucro" value="5000" class="w-full border p-2 rounded mt-1 outline-yellow-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Custos Fixos (MEI, Carro, Ferramentas)</label>
+                    <input type="number" id="custoFixo" value="1500" class="w-full border p-2 rounded mt-1 outline-yellow-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Dias de Trabalho por Mês</label>
+                    <input type="number" id="diasTrabalho" value="22" class="w-full border p-2 rounded mt-1 outline-yellow-500">
+                </div>
+                <button onclick="salvarConfig()" class="w-full bg-slate-900 text-white p-3 rounded-lg font-bold hover:bg-slate-800 transition">
+                    SALVAR VALOR DA HORA
+                </button>
+                <div id="valorHoraCalculado" class="mt-4 text-center p-3 bg-yellow-50 rounded border border-yellow-200 hidden text-sm"></div>
+            </div>
+        </section>
+
+        <section id="content-obra" class="hidden">
+            <h2 class="font-bold mb-4 border-b pb-2 text-slate-800">Cálculo da Obra</h2>
+            <div class="bg-white p-4 rounded-xl shadow space-y-4">
+                <div>
+                    <label class="block text-sm font-medium">Horas Estimadas de Trabalho</label>
+                    <input type="number" id="horasObra" placeholder="Ex: 4" class="w-full border p-2 rounded mt-1 outline-yellow-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-red-600 font-bold">Dificuldade/Risco (%)</label>
+                    <input type="range" id="risco" min="0" max="100" value="10" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-yellow-500">
+                    <span id="riscoValor" class="text-xs">+10% de margem de segurança</span>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Gasto com Deslocamento (R$)</label>
+                    <input type="number" id="kmGasto" value="30" class="w-full border p-2 rounded mt-1 outline-yellow-500">
+                </div>
+                <button onclick="calcularObra()" class="w-full bg-yellow-400 text-slate-900 p-3 rounded-lg font-bold shadow-md hover:bg-yellow-500">
+                    CALCULAR PREÇO FINAL
+                </button>
+            </div>
+        </section>
+
+        <section id="content-resumo" class="hidden">
+            <div id="resultadoFinal" class="bg-white p-6 rounded-2xl shadow-xl border-t-8 border-yellow-400">
+                <h3 class="text-center text-gray-500 uppercase tracking-widest text-xs mb-2">Sugestão de Cobrança</h3>
+                <div id="precoSugerido" class="text-4xl font-black text-center text-slate-900 mb-4">R$ 0,00</div>
+                
+                <div class="border-t pt-4 space-y-2 text-sm">
+                    <p class="flex justify-between"><span>Custo Operacional:</span> <span id="resumoCusto" class="font-mono text-red-500">R$ 0,00</span></p>
+                    <p class="flex justify-between font-bold"><span>Lucro Limpo:</span> <span id="resumoLucro" class="font-mono text-green-600">R$ 0,00</span></p>
+                </div>
+
+                <button onclick="window.print()" class="w-full mt-6 border-2 border-slate-900 p-3 rounded-lg font-bold flex items-center justify-center gap-2">
+                    📄 GERAR ORÇAMENTO (PDF)
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        let valorHora = 0;
+
+        function showTab(tab) {
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active-tab'));
+            document.getElementById('content-' + tab).classList.remove('hidden');
+            document.getElementById('tab-' + tab).classList.add('active-tab');
+        }
+
+        function salvarConfig() {
+            const lucro = parseFloat(document.getElementById('metaLucro').value);
+            const custo = parseFloat(document.getElementById('custoFixo').value);
+            const dias = parseInt(document.getElementById('diasTrabalho').value);
+            
+            // Baseado em 8 horas por dia
+            valorHora = (lucro + custo) / (dias * 8);
+            
+            const div = document.getElementById('valorHoraCalculado');
+            div.innerHTML = `Sua hora vale <strong>R$ ${valorHora.toFixed(2)}</strong>.<br>Não aceite serviços abaixo disso!`;
+            div.classList.remove('hidden');
+        }
+
+        document.getElementById('risco').oninput = function() {
+            document.getElementById('riscoValor').innerText = "+" + this.value + "% de margem de segurança";
+        };
+
+        function calcularObra() {
+            if(valorHora === 0) {
+                alert("Primeiro, configure seus valores na aba CONFIG.");
+                showTab('config');
+                return;
+            }
+
+            const horas = parseFloat(document.getElementById('horasObra').value);
+            const riscoPerc = parseFloat(document.getElementById('risco').value) / 100;
+            const deslocamento = parseFloat(document.getElementById('kmGasto').value);
+
+            const subtotalMaoDeObra = horas * valorHora;
+            const valorRisco = subtotalMaoDeObra * riscoPerc;
+            const totalGeral = subtotalMaoDeObra + valorRisco + deslocamento;
+
+            const lucroDoServico = totalGeral - ( (deslocamento) + ( (parseFloat(document.getElementById('custoFixo').value) / (parseInt(document.getElementById('diasTrabalho').value) * 8)) * horas ) );
+
+            document.getElementById('precoSugerido').innerText = "R$ " + totalGeral.toFixed(2);
+            document.getElementById('resumoCusto').innerText = "R$ " + (totalGeral - lucroDoServico).toFixed(2);
+            document.getElementById('resumoLucro').innerText = "R$ " + lucroDoServico.toFixed(2);
+            
+            showTab('resumo');
+        }
+    </script>
+</body>
+</html>
