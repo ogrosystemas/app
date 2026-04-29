@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DollarSign, Clock, TrendingUp, Car, Save, AlertCircle } from 'lucide-react';
 import { useFinanceiro } from '../../hooks/useFinanceiro';
 import { formatarMoeda, calcularValorMinuto } from '../../core/calculadora';
+import ProfissaoSelector from '../../components/ProfissaoSelector';
 
 const ConfiguracoesPage = () => {
   const { config, updateAllConfig, loading, refresh } = useFinanceiro();
