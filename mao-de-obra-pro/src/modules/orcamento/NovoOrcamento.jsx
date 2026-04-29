@@ -35,6 +35,7 @@ const NovoOrcamento = ({ onSave }) => {
   const [newCliente, setNewCliente] = useState({ nome: '', whatsapp: '', endereco: '' });
   const [showServicoModal, setShowServicoModal] = useState(false);
   const [validade, setValidade] = useState(30);
+  const [enviando, setEnviando] = useState(false);
 
   const opcoesValidade = [
     { dias: 1, label: '1 dia' },
@@ -45,7 +46,6 @@ const NovoOrcamento = ({ onSave }) => {
 
   useEffect(() => {
     loadData();
-    // Carregar validade padrão das configurações
     const loadValidadePadrao = async () => {
       const configValidade = await db.config.where('chave').equals('validadePadrao').first();
       if (configValidade) setValidade(configValidade.valor);
@@ -153,6 +153,36 @@ const NovoOrcamento = ({ onSave }) => {
     return data;
   };
 
+  const sendWhatsApp = async (orcamentoSalvo) => {
+    if (!selectedCliente?.whatsapp) {
+      alert('Cliente não possui WhatsApp cadastrado');
+      return false;
+    }
+
+    const dataVencimento = new Date(orcamentoSalvo.dataVencimento).toLocaleDateString('pt-BR');
+
+    const message = `*ORÇAMENTO MÃO DE OBRA PRO*
+*Nº:* ${orcamentoSalvo.id}
+*Cliente:* ${selectedCliente.nome}
+*Data:* ${new Date(orcamentoSalvo.data).toLocaleDateString('pt-BR')}
+*Válido até:* ${dataVencimento}
+
+*SERVIÇOS:*
+${selectedServicos.map(item => `✓ ${item.nome}`).join('\n')}
+
+*TOTAL: ${formatarMoeda(orcamentoSalvo.total)}*
+
+---
+Orçamento válido até ${dataVencimento}.
+Entre em contato para mais informações.`;
+
+    const whatsappNumber = selectedCliente.whatsapp.replace(/\D/g, '');
+    const url = `https://wa.me/55${whatsappNumber}?text=${encodeURIComponent(message)}`;
+
+    window.open(url, '_blank');
+    return true;
+  };
+
   const handleSaveBudget = async () => {
     if (!selectedCliente) {
       alert('Selecione um cliente');
@@ -162,6 +192,8 @@ const NovoOrcamento = ({ onSave }) => {
       alert('Adicione pelo menos um serviço');
       return;
     }
+
+    setEnviando(true);
 
     const dataVencimento = calcularDataVencimento();
 
@@ -186,8 +218,13 @@ const NovoOrcamento = ({ onSave }) => {
       dataVencimento: dataVencimento.toISOString()
     };
 
-    await db.orcamentos.add(budget);
-    alert('Orçamento salvo com sucesso!');
+    const id = await db.orcamentos.add(budget);
+    const budgetSalvo = { ...budget, id };
+
+    await sendWhatsApp(budgetSalvo);
+
+    alert('Orçamento salvo e enviado com sucesso!');
+    setEnviando(false);
     if (onSave) onSave();
   };
 
@@ -545,10 +582,11 @@ const NovoOrcamento = ({ onSave }) => {
             </button>
             <button
               onClick={handleSaveBudget}
+              disabled={enviando}
               className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2"
             >
               <Send size={20} />
-              Salvar Orçamento
+              {enviando ? 'Enviando...' : 'Salvar e Enviar WhatsApp'}
             </button>
           </div>
         </div>
