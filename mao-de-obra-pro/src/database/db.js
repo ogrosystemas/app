@@ -2,9 +2,9 @@ import Dexie from 'dexie';
 
 export const db = new Dexie('MaoDeObraPro');
 
-db.version(3).stores({
+db.version(4).stores({
   clientes: '++id, nome, whatsapp, endereco',
-  servicos: '++id, nome, tempoPadrao, categoria, profissaoId',
+  servicos: '++id, nome, tempoPadrao, categoria, profissaoId, precoFixo',
   orcamentos: '++id, clienteId, data, total, status, itens, fotos, taxaDeslocamento, subtotal, profissaoId, profissaoNome',
   config: 'id, chave, valor',
   profissoes: '++id, slug, nome, icone, riscoBase, custoFerramental, descricao, ativo'
@@ -27,46 +27,31 @@ db.on('populate', async () => {
     profissoesIds[prof.slug] = id;
   }
 
-  // Serviços por profissão
+  // Serviços por profissão com preço fixo opcional
   await db.servicos.bulkAdd([
     // Eletricista
-    { nome: 'Instalação de tomada', tempoPadrao: 30, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista },
-    { nome: 'Troca de disjuntor', tempoPadrao: 45, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista },
-    { nome: 'Instalação de chuveiro elétrico', tempoPadrao: 60, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista },
-    { nome: 'Instalação de ventilador', tempoPadrao: 40, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista },
-    { nome: 'Manutenção de rede elétrica', tempoPadrao: 120, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista },
-    { nome: 'Instalação de quadro de disjuntores', tempoPadrao: 180, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista },
-    { nome: 'Instalação de iluminação LED', tempoPadrao: 50, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista },
-    { nome: 'Aterramento elétrico', tempoPadrao: 90, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista },
+    { nome: 'Instalação de tomada', tempoPadrao: 30, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista, precoFixo: null },
+    { nome: 'Troca de disjuntor', tempoPadrao: 45, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista, precoFixo: null },
+    { nome: 'Instalação de chuveiro elétrico', tempoPadrao: 60, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista, precoFixo: 150.00 },
+    { nome: 'Instalação de ventilador', tempoPadrao: 40, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista, precoFixo: null },
+    { nome: 'Manutenção de rede elétrica', tempoPadrao: 120, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista, precoFixo: null },
     // Encanador
-    { nome: 'Desentupimento de pia', tempoPadrao: 60, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador },
-    { nome: 'Troca de registro', tempoPadrao: 45, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador },
-    { nome: 'Reparo de vazamento', tempoPadrao: 90, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador },
-    { nome: 'Instalação de torneira', tempoPadrao: 30, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador },
-    { nome: 'Troca de caixa acoplada', tempoPadrao: 60, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador },
-    { nome: 'Desentupimento de vaso sanitário', tempoPadrao: 45, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador },
-    { nome: 'Instalação de chuveiro a gás', tempoPadrao: 90, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador },
-    { nome: 'Manutenção de caixa d\'água', tempoPadrao: 120, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador },
-    // Técnico de AC
-    { nome: 'Instalação de ar condicionado split', tempoPadrao: 180, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'] },
-    { nome: 'Limpeza de ar condicionado', tempoPadrao: 90, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'] },
-    { nome: 'Recarga de gás refrigerante', tempoPadrao: 60, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'] },
-    { nome: 'Manutenção preventiva AC', tempoPadrao: 120, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'] },
-    { nome: 'Instalação de ar condicionado janela', tempoPadrao: 120, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'] },
-    { nome: 'Diagnóstico de falhas AC', tempoPadrao: 60, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'] },
+    { nome: 'Desentupimento de pia', tempoPadrao: 60, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador, precoFixo: 120.00 },
+    { nome: 'Troca de registro', tempoPadrao: 45, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador, precoFixo: null },
+    { nome: 'Reparo de vazamento', tempoPadrao: 90, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador, precoFixo: null },
+    { nome: 'Instalação de torneira', tempoPadrao: 30, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador, precoFixo: 80.00 },
+    // Técnico AC
+    { nome: 'Instalação de ar condicionado split', tempoPadrao: 180, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'], precoFixo: 600.00 },
+    { nome: 'Limpeza de ar condicionado', tempoPadrao: 90, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'], precoFixo: 200.00 },
+    { nome: 'Recarga de gás refrigerante', tempoPadrao: 60, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'], precoFixo: 300.00 },
     // Pintor/Pedreiro
-    { nome: 'Pintura de parede (m²)', tempoPadrao: 20, categoria: 'Pintura', profissaoId: profissoesIds['pintor-pedreiro'] },
-    { nome: 'Reboco de parede (m²)', tempoPadrao: 30, categoria: 'Construção', profissaoId: profissoesIds['pintor-pedreiro'] },
-    { nome: 'Assentamento de azulejo (m²)', tempoPadrao: 45, categoria: 'Construção', profissaoId: profissoesIds['pintor-pedreiro'] },
-    { nome: 'Peq. reparos estruturais', tempoPadrao: 120, categoria: 'Construção', profissaoId: profissoesIds['pintor-pedreiro'] },
-    { nome: 'Acabamento em gesso', tempoPadrao: 60, categoria: 'Acabamento', profissaoId: profissoesIds['pintor-pedreiro'] },
-    { nome: 'Texturização de parede', tempoPadrao: 40, categoria: 'Pintura', profissaoId: profissoesIds['pintor-pedreiro'] },
+    { nome: 'Pintura de parede (m²)', tempoPadrao: 20, categoria: 'Pintura', profissaoId: profissoesIds['pintor-pedreiro'], precoFixo: 25.00 },
+    { nome: 'Reboco de parede (m²)', tempoPadrao: 30, categoria: 'Construção', profissaoId: profissoesIds['pintor-pedreiro'], precoFixo: 40.00 },
+    { nome: 'Assentamento de azulejo (m²)', tempoPadrao: 45, categoria: 'Construção', profissaoId: profissoesIds['pintor-pedreiro'], precoFixo: 60.00 },
     // Marteleteiro
-    { nome: 'Demolição de parede', tempoPadrao: 180, categoria: 'Demolição', profissaoId: profissoesIds.marteleteiro },
-    { nome: 'Quebra de piso/concreto', tempoPadrao: 120, categoria: 'Demolição', profissaoId: profissoesIds.marteleteiro },
-    { nome: 'Remoção de estrutura', tempoPadrao: 240, categoria: 'Demolição', profissaoId: profissoesIds.marteleteiro },
-    { nome: 'Perfuração para sondagem', tempoPadrao: 300, categoria: 'Perfuração', profissaoId: profissoesIds.marteleteiro },
-    { nome: 'Escavação manual', tempoPadrao: 240, categoria: 'Escavação', profissaoId: profissoesIds.marteleteiro }
+    { nome: 'Demolição de parede', tempoPadrao: 180, categoria: 'Demolição', profissaoId: profissoesIds.marteleteiro, precoFixo: 500.00 },
+    { nome: 'Quebra de piso/concreto', tempoPadrao: 120, categoria: 'Demolição', profissaoId: profissoesIds.marteleteiro, precoFixo: 400.00 },
+    { nome: 'Remoção de estrutura', tempoPadrao: 240, categoria: 'Demolição', profissaoId: profissoesIds.marteleteiro, precoFixo: 800.00 }
   ]);
 
   await db.config.bulkAdd([
@@ -82,13 +67,10 @@ db.on('populate', async () => {
 });
 
 // Migration for existing users
-db.version(3).upgrade(async (trans) => {
-  const servicosSemProfissao = await trans.table('servicos').where('profissaoId').equals(undefined).count();
-  if (servicosSemProfissao > 0) {
-    const eletricista = await trans.table('profissoes').where('slug').equals('eletricista').first();
-    if (eletricista) {
-      await trans.table('servicos').toCollection().modify({ profissaoId: eletricista.id });
-    }
+db.version(4).upgrade(async (trans) => {
+  const servicosSemPreco = await trans.table('servicos').where('precoFixo').equals(undefined).count();
+  if (servicosSemPreco > 0) {
+    await trans.table('servicos').toCollection().modify({ precoFixo: null });
   }
 });
 

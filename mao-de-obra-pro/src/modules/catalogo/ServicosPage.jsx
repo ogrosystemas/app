@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Clock, Trash2, Edit2, X, Check, Package, Briefcase } from 'lucide-react';
+import { Plus, Search, Clock, Trash2, Edit2, X, Check, Package, Briefcase, DollarSign } from 'lucide-react';
 import db from '../../database/db';
-import { formatarTempo } from '../../core/calculadora';
+import { formatarTempo, formatarMoeda } from '../../core/calculadora';
 import { useFinanceiro } from '../../hooks/useFinanceiro';
 
 const ServicosPage = () => {
@@ -13,7 +13,8 @@ const ServicosPage = () => {
   const [formData, setFormData] = useState({
     nome: '',
     tempoPadrao: '',
-    categoria: ''
+    categoria: '',
+    precoFixo: ''
   });
 
   const categorias = ['Elétrica', 'Hidráulica', 'Climatização', 'Pintura', 'Construção', 'Acabamento', 'Demolição', 'Perfuração', 'Escavação', 'Manutenção', 'Outros'];
@@ -47,7 +48,8 @@ const ServicosPage = () => {
         nome: formData.nome,
         tempoPadrao: parseInt(formData.tempoPadrao),
         categoria: formData.categoria || 'Geral',
-        profissaoId: profissao.id
+        profissaoId: profissao.id,
+        precoFixo: formData.precoFixo ? parseFloat(formData.precoFixo) : null
       };
 
       if (editingServico) {
@@ -73,7 +75,7 @@ const ServicosPage = () => {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingServico(null);
-    setFormData({ nome: '', tempoPadrao: '', categoria: '' });
+    setFormData({ nome: '', tempoPadrao: '', categoria: '', precoFixo: '' });
   };
 
   const handleEdit = (servico) => {
@@ -81,7 +83,8 @@ const ServicosPage = () => {
     setFormData({
       nome: servico.nome,
       tempoPadrao: servico.tempoPadrao.toString(),
-      categoria: servico.categoria || ''
+      categoria: servico.categoria || '',
+      precoFixo: servico.precoFixo ? servico.precoFixo.toString() : ''
     });
     setShowModal(true);
   };
@@ -178,8 +181,18 @@ const ServicosPage = () => {
                   </div>
                   <div className="flex items-center gap-2 mt-2 text-sm text-slate-600">
                     <Clock size={16} />
-                    <span>Tempo padrão: {formatarTempo(servico.tempoPadrao)}</span>
+                    <span>Tempo: {formatarTempo(servico.tempoPadrao)}</span>
                   </div>
+                  {servico.precoFixo ? (
+                    <div className="flex items-center gap-2 mt-1 text-sm text-green-600">
+                      <DollarSign size={16} />
+                      <span>Preço fixo: {formatarMoeda(servico.precoFixo)}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 mt-1 text-sm text-slate-500">
+                      <span>Preço calculado por tempo</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-1">
                   <button
@@ -201,6 +214,7 @@ const ServicosPage = () => {
         )}
       </div>
 
+      {/* Modal de Cadastro/Edição */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 animate-fade-in">
           <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
@@ -257,6 +271,26 @@ const ServicosPage = () => {
                 />
                 <p className="text-xs text-slate-500 mt-1">
                   Tempo médio que você leva para executar este serviço
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Preço Fixo (opcional)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">R$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.precoFixo}
+                    onChange={(e) => setFormData({...formData, precoFixo: e.target.value})}
+                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Deixe em branco para calcular por tempo"
+                  />
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Se preenchido, este valor será usado em vez do cálculo por tempo
                 </p>
                 <p className="text-xs text-blue-600 mt-1">
                   Este serviço será vinculado à profissão: {profissao.nome}
