@@ -1,18 +1,29 @@
-import React, { useState } from 'react';
-import { Briefcase, TrendingUp, Car, Save, ArrowRight, Zap } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Briefcase, TrendingUp, Car, Save, ArrowRight, Zap, UserPlus } from 'lucide-react';
 import ProfissaoSelector from '../../components/ProfissaoSelector';
 import { useFinanceiro } from '../../hooks/useFinanceiro';
 import { formatarMoeda } from '../../core/calculadora';
+import db from '../../database/db';
 
 const SetupPage = ({ onComplete }) => {
   const { config, profissao, selecionarProfissao, updateAllConfig, loading } = useFinanceiro();
   const [step, setStep] = useState(1);
   const [selectedProfissao, setSelectedProfissao] = useState(null);
   const [formData, setFormData] = useState({
-    metaSalarial: config.metaSalarial,
-    horasTrabalhadas: config.horasTrabalhadas,
-    taxaDeslocamento: config.taxaDeslocamento
+    metaSalarial: 5000,
+    horasTrabalhadas: 160,
+    taxaDeslocamento: 50
   });
+
+  useEffect(() => {
+    if (config) {
+      setFormData({
+        metaSalarial: config.metaSalarial || 5000,
+        horasTrabalhadas: config.horasTrabalhadas || 160,
+        taxaDeslocamento: config.taxaDeslocamento || 50
+      });
+    }
+  }, [config]);
 
   const handleSelectProfissao = async (prof) => {
     setSelectedProfissao(prof);
@@ -48,7 +59,6 @@ const SetupPage = ({ onComplete }) => {
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          {/* Steps */}
           <div className="flex border-b border-slate-200">
             <div className={`flex-1 p-4 text-center ${step === 1 ? 'bg-blue-50 border-b-2 border-blue-600' : ''}`}>
               <span className={`text-sm font-semibold ${step === 1 ? 'text-blue-600' : 'text-slate-500'}`}>
@@ -70,7 +80,7 @@ const SetupPage = ({ onComplete }) => {
                   <p className="text-slate-600">Isso nos ajuda a calcular os riscos e custos adequados</p>
                 </div>
 
-                <ProfissaoSelector 
+                <ProfissaoSelector
                   onSelect={handleSelectProfissao}
                   selectedSlug={config.profissaoSelecionada}
                 />
@@ -140,7 +150,6 @@ const SetupPage = ({ onComplete }) => {
                   </div>
                 </div>
 
-                {/* Preview Cards */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white">
                     <p className="text-xs opacity-90">Valor/Hora Base</p>
