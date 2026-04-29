@@ -5,19 +5,40 @@ import {
   Camera as CameraIcon,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  RefreshCw
 } from 'lucide-react';
 import db from '../../database/db';
 import { formatarMoeda, formatarTempo } from '../../core/calculadora';
 
-const VisualizarOrcamento = ({ onBack }) => {
+const VisualizarOrcamento = ({ onBack, id }) => {
   const [orcamento, setOrcamento] = useState(null);
   const [cliente, setCliente] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
-    loadLastOrcamento();
-  }, []);
+    if (id) {
+      loadOrcamentoPorId(id);
+    } else {
+      loadLastOrcamento();
+    }
+  }, [id]);
+
+  const loadOrcamentoPorId = async (orcamentoId) => {
+    try {
+      const budget = await db.orcamentos.get(parseInt(orcamentoId));
+      if (budget) {
+        setOrcamento(budget);
+        const client = await db.clientes.get(budget.clienteId);
+        setCliente(client);
+      }
+    } catch (error) {
+      console.error('Error loading budget:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadLastOrcamento = async () => {
     try {
@@ -38,19 +59,24 @@ const VisualizarOrcamento = ({ onBack }) => {
     if (orcamento) {
       await db.orcamentos.update(orcamento.id, { status: newStatus });
       setOrcamento({ ...orcamento, status: newStatus });
+      alert(`Orçamento ${newStatus === 'aprovado' ? 'aprovado' : 'recusado'} com sucesso!`);
     }
   };
 
-  const sendWhatsApp = () => {
+  const sendWhatsApp = async () => {
     if (!cliente?.whatsapp) {
       alert('Cliente não possui WhatsApp cadastrado');
       return;
     }
 
+    setEnviando(true);
+
     const message = `
 *ORÇAMENTO MÃO DE OBRA PRO*
+*Nº:* ${orcamento.id}
 *Cliente:* ${cliente.nome}
 *Data:* ${new Date(orcamento.data).toLocaleDateString('pt-BR')}
+*Status:* ${orcamento.status === 'pendente' ? 'Aguardando aprovação' : orcamento.status === 'aprovado' ? 'Aprovado' : 'Recusado'}
 
 *SERVIÇOS:*
 ${orcamento.itens.map(item => `✓ ${item.nome} (${formatarTempo(item.tempo)}) - ${formatarMoeda(item.preco)}`).join('\n')}
@@ -60,16 +86,21 @@ Deslocamento: ${formatarMoeda(orcamento.taxaDeslocamento)}
 
 *TOTAL: ${formatarMoeda(orcamento.total)}*
 
-*Status: ${orcamento.status === 'pendente' ? 'Aguardando aprovação' : orcamento.status === 'aprovado' ? 'Aprovado' : 'Recusado'}*
-
-Para aprovar ou solicitar alterações, entre em contato.
+---
+Para aprovar, responda com: *APROVADO*
+Para recusar, responda com: *RECUSADO*
+Ou entre em contato para mais informações.
     `.trim();
 
     const whatsappNumber = cliente.whatsapp.replace(/\D/g, '');
     const url = `https://wa.me/55${whatsappNumber}?text=${encodeURIComponent(message)}`;
 
-    // Abre o WhatsApp no celular
     window.location.href = url;
+    setEnviando(false);
+  };
+
+  const reenviarOrcamento = () => {
+    sendWhatsApp();
   };
 
   if (loading) {
@@ -86,7 +117,7 @@ Para aprovar ou solicitar alterações, entre em contato.
   if (!orcamento || !cliente) {
     return (
       <div className="text-center py-12">
-        <p className="text-slate-500">Nenhum orçamento encontrado</p>
+        <p className="text-slate-500">Orçamento não encontrado</p>
         <button
           onClick={onBack}
           className="mt-4 text-blue-600 font-semibold"
@@ -98,28 +129,42 @@ Para aprovar ou solicitar alterações, entre em contato.
   }
 
   return (
-    <div className="space-y-4 animate-fade-in pb-24">
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onBack}
-          className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-        >
-          <ArrowLeft size={24} />
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Orçamento #{orcamento.id}</h1>
-          <p className="text-sm text-slate-500">
-            {new Date(orcamento.data).toLocaleDateString('pt-BR', {
-              day: '2-digit',
-              month: 'long',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
-          </p>
+    <div className="space-y-4 animate-fade-in pb-32">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onBack}
+            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Orçamento #{orcamento.id}</h1>
+            <p className="text-sm text-slate-500">
+              {new Date(orcamento.data).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </p>
+          </div>
         </div>
+
+        {/* Botão reenviar */}
+        <button
+          onClick={reenviarOrcamento}
+          disabled={enviando}
+          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+          title="Reenviar orçamento"
+        >
+          <RefreshCw size={20} />
+        </button>
       </div>
 
+      {/* Status Badge */}
       <div className={`
         rounded-xl p-4 text-center
         ${orcamento.status === 'aprovado' ? 'bg-green-50 border border-green-200' : ''}
@@ -137,6 +182,7 @@ Para aprovar ou solicitar alterações, entre em contato.
         </div>
       </div>
 
+      {/* Cliente */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
         <h3 className="font-semibold text-slate-900 mb-2">Cliente</h3>
         <p className="text-slate-800">{cliente.nome}</p>
@@ -148,6 +194,7 @@ Para aprovar ou solicitar alterações, entre em contato.
         )}
       </div>
 
+      {/* Serviços */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-4 bg-slate-50 border-b border-slate-200">
           <h3 className="font-semibold text-slate-900">Serviços Realizados</h3>
@@ -165,6 +212,7 @@ Para aprovar ou solicitar alterações, entre em contato.
         </div>
       </div>
 
+      {/* Resumo Financeiro */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-4 bg-slate-50 border-b border-slate-200">
           <h3 className="font-semibold text-slate-900">Resumo Financeiro</h3>
@@ -178,10 +226,12 @@ Para aprovar ou solicitar alterações, entre em contato.
             <span className="text-slate-600">Taxa de Deslocamento</span>
             <span>{formatarMoeda(orcamento.taxaDeslocamento)}</span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-slate-600">Profissão</span>
-            <span className="font-medium">{orcamento.profissaoNome || 'Não informado'}</span>
-          </div>
+          {orcamento.profissaoNome && (
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-600">Profissão</span>
+              <span className="font-medium">{orcamento.profissaoNome}</span>
+            </div>
+          )}
           <div className="border-t border-slate-200 pt-2 mt-2">
             <div className="flex justify-between text-lg font-bold">
               <span>Total</span>
@@ -191,6 +241,7 @@ Para aprovar ou solicitar alterações, entre em contato.
         </div>
       </div>
 
+      {/* Fotos */}
       {orcamento.fotos && orcamento.fotos.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="p-4 bg-slate-50 border-b border-slate-200">
@@ -215,20 +266,21 @@ Para aprovar ou solicitar alterações, entre em contato.
         </div>
       )}
 
-      <div className="fixed bottom-0 left-0 right-0 lg:left-64 p-4 bg-white border-t border-slate-200">
+      {/* Botões de Ação - Fixos no bottom */}
+      <div className="fixed bottom-0 left-0 right-0 lg:left-64 p-4 bg-white border-t border-slate-200 shadow-lg">
         <div className="max-w-7xl mx-auto flex gap-3">
           {orcamento.status === 'pendente' && (
             <>
               <button
                 onClick={() => updateStatus('aprovado')}
-                className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2"
+                className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-green-700 transition-colors"
               >
                 <CheckCircle size={20} />
                 Aprovar
               </button>
               <button
                 onClick={() => updateStatus('recusado')}
-                className="flex-1 bg-red-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2"
+                className="flex-1 bg-red-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-red-700 transition-colors"
               >
                 <XCircle size={20} />
                 Recusar
@@ -237,10 +289,11 @@ Para aprovar ou solicitar alterações, entre em contato.
           )}
           <button
             onClick={sendWhatsApp}
-            className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2"
+            disabled={enviando}
+            className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
             <Send size={20} />
-            Enviar WhatsApp
+            {enviando ? 'Enviando...' : orcamento.status === 'pendente' ? 'Enviar para Aprovação' : 'Reenviar Orçamento'}
           </button>
         </div>
       </div>
