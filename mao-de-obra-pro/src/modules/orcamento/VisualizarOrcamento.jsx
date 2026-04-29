@@ -72,21 +72,24 @@ const VisualizarOrcamento = ({ onBack, id }) => {
 
     setEnviando(true);
 
-    let message = `
-*ORÇAMENTO MÃO DE OBRA PRO*
+    let message = `*ORÇAMENTO MÃO DE OBRA PRO*
 *Nº:* ${orcamento.id}
 *Cliente:* ${cliente.nome}
 *Data:* ${new Date(orcamento.data).toLocaleDateString('pt-BR')}
+*Status:* ${orcamento.status === 'pendente' ? 'Aguardando aprovação' : orcamento.status === 'aprovado' ? 'Aprovado' : 'Recusado'}
 
 *SERVIÇOS:*
-${orcamento.itens.map(item => `✓ ${item.nome} - ${formatarMoeda(item.preco)}`).join('\n')}
+${orcamento.itens.map(item => `✓ ${item.nome} (${item.usaPrecoFixo ? 'Preço fixo' : formatarTempo(item.tempo) + ' - ' + item.dificuldade}) - ${formatarMoeda(item.preco)}`).join('\n')}
+
+*DESPESAS:*
+Deslocamento: ${formatarMoeda(orcamento.taxaDeslocamento)}
 
 *TOTAL: ${formatarMoeda(orcamento.total)}*
 
 ---
-Orçamento válido por 30 dias.
-Entre em contato para mais informações.
-    `.trim();
+Para aprovar, responda com: *APROVADO*
+Para recusar, responda com: *RECUSADO*
+Ou entre em contato para mais informações.`;
 
     if (orcamento.fotos && orcamento.fotos.length > 0) {
       message += `\n\n*FOTOS DO SERVIÇO:*\n`;
@@ -129,25 +132,36 @@ Entre em contato para mais informações.
 
   return (
     <div className="space-y-4 animate-fade-in pb-32">
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onBack}
-          className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-        >
-          <ArrowLeft size={24} />
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Orçamento #{orcamento.id}</h1>
-          <p className="text-sm text-slate-500">
-            {new Date(orcamento.data).toLocaleDateString('pt-BR', {
-              day: '2-digit',
-              month: 'long',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onBack}
+            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Orçamento #{orcamento.id}</h1>
+            <p className="text-sm text-slate-500">
+              {new Date(orcamento.data).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </p>
+          </div>
         </div>
+
+        <button
+          onClick={sendWhatsApp}
+          disabled={enviando}
+          className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:bg-green-700 transition-colors disabled:opacity-50"
+        >
+          <Send size={18} />
+          {enviando ? 'Enviando...' : 'WhatsApp'}
+        </button>
       </div>
 
       <div
@@ -183,7 +197,7 @@ Entre em contato para mais informações.
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-4 bg-slate-50 border-b border-slate-200">
-          <h3 className="font-semibold text-slate-900">Serviços</h3>
+          <h3 className="font-semibold text-slate-900">Serviços Realizados</h3>
         </div>
         <div className="p-4 space-y-3">
           {orcamento.itens.map((item, idx) => (
@@ -193,7 +207,7 @@ Entre em contato para mais informações.
                 {item.usaPrecoFixo ? (
                   <p className="text-xs text-green-600">Preço fixo</p>
                 ) : (
-                  <p className="text-xs text-slate-500">{formatarTempo(item.tempo)}</p>
+                  <p className="text-xs text-slate-500">{formatarTempo(item.tempo)} • Dificuldade: {item.dificuldade}</p>
                 )}
               </div>
               <p className="font-semibold text-blue-600">{formatarMoeda(item.preco)}</p>
@@ -204,12 +218,28 @@ Entre em contato para mais informações.
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-4 bg-slate-50 border-b border-slate-200">
-          <h3 className="font-semibold text-slate-900">Total do Orçamento</h3>
+          <h3 className="font-semibold text-slate-900">Resumo Financeiro</h3>
         </div>
-        <div className="p-4">
-          <div className="flex justify-between text-lg font-bold">
-            <span>Total</span>
-            <span className="text-blue-600">{formatarMoeda(orcamento.total)}</span>
+        <div className="p-4 space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-slate-600">Subtotal</span>
+            <span>{formatarMoeda(orcamento.subtotal)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-slate-600">Taxa de Deslocamento</span>
+            <span>{formatarMoeda(orcamento.taxaDeslocamento)}</span>
+          </div>
+          {orcamento.profissaoNome && (
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-600">Profissão</span>
+              <span className="font-medium">{orcamento.profissaoNome}</span>
+            </div>
+          )}
+          <div className="border-t border-slate-200 pt-2 mt-2">
+            <div className="flex justify-between text-lg font-bold">
+              <span>Total</span>
+              <span className="text-blue-600">{formatarMoeda(orcamento.total)}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -229,7 +259,7 @@ Entre em contato para mais informações.
                   key={idx}
                   src={foto}
                   alt={`Serviço ${idx + 1}`}
-                  className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                  className="w-full h-40 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                   onClick={() => window.open(foto, '_blank')}
                 />
               ))}
