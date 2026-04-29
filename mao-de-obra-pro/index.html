@@ -57,7 +57,7 @@
         </section>
 
         <section id="content-obra" class="hidden no-print">
-            <h2 class="font-bold mb-4 text-slate-700 italic border-l-4 border-yellow-400 pl-2 text-sm">2. Seleção de Serviços</h2>
+            <h2 class="font-bold mb-4 text-slate-700 italic border-l-4 border-yellow-400 pl-2 text-sm">2. Selezione os Serviços</h2>
 
             <select id="categoriaMestra" onchange="renderizarServicos()" class="w-full p-4 mb-4 bg-slate-800 text-white rounded-2xl font-bold shadow-xl outline-none">
                 <option value="eletricista">⚡ Eletricista</option>
@@ -248,7 +248,7 @@
                 div.className = "flex justify-between items-center bg-slate-50 p-3 rounded-2xl shadow-sm";
                 div.innerHTML = `
                     <span class="text-[10px] font-black text-slate-700 uppercase">${nome}</span>
-                    <div class="flex items-center gap-3 bg-white p-1 rounded-xl border border-gray-100">
+                    <div class="flex items-center gap-3 bg-white p-1 rounded-xl border border-gray-100 shadow-sm">
                         <button onclick="alterarQtd('${nome}', ${item.tempo}, -1)" class="w-7 h-7 font-black text-slate-300 hover:text-red-500">-</button>
                         <span class="text-xs font-black w-4 text-center">${item.qtd}</span>
                         <button onclick="alterarQtd('${nome}', ${item.tempo}, 1)" class="w-7 h-7 bg-yellow-400 rounded-lg font-black text-slate-900">+</button>
@@ -286,14 +286,14 @@
             document.getElementById('precoSugerido').innerText = "R$ " + total.toFixed(2);
             document.getElementById('resumoLucro').innerText = "R$ " + lucroReal.toFixed(2);
 
-            // CORREÇÃO: Check Vermelho ✔️
+            // CORREÇÃO DEFINITIVA: Símbolo de Check Vermelho (U+2714)
             const listaPrint = document.getElementById('servicosResumoPrint');
             listaPrint.innerHTML = `<h4 class="text-[9px] font-black uppercase text-gray-300 tracking-[0.2em] mb-4">Detalhamento dos Itens</h4>`;
             chaves.forEach(n => {
                 listaPrint.innerHTML += `
                     <div class="text-[13px] font-bold py-2 border-b border-gray-50 flex justify-between items-center">
                         <span>${carrinho[n].qtd}x ${n}</span>
-                        <span class="text-red-600 text-[14px]">✔️</span>
+                        <span class="text-red-600 text-[14px]">&#x2714;</span>
                     </div>`;
             });
             showTab('resumo');
