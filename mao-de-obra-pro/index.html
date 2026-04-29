@@ -14,19 +14,18 @@
             body { background: white; }
         }
         .print-only { display: none; }
-        /* Scrollbar mais fina para mobile */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans">
 
-    <header class="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-10 no-print">
-        <h1 class="text-xl font-bold text-yellow-400">MÃO DE OBRA PRO</h1>
-        <p class="text-[10px] opacity-75 uppercase tracking-widest">Calculadora de Lucro Real</p>
+    <header class="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-10 no-print text-center">
+        <h1 class="text-xl font-black text-yellow-400 tracking-tighter">MÃO DE OBRA PRO</h1>
+        <p class="text-[9px] opacity-75 uppercase tracking-[0.3em]">Gestão de Valor e Tempo</p>
     </header>
 
-    <nav class="flex bg-white shadow-md mb-4 justify-around text-[11px] font-black no-print uppercase">
+    <nav class="flex bg-white shadow-md mb-4 justify-around text-[10px] font-black no-print uppercase">
         <button onclick="showTab('config')" id="tab-config" class="p-4 w-full active-tab">Config</button>
         <button onclick="showTab('obra')" id="tab-obra" class="p-4 w-full text-slate-400">Nova Obra</button>
         <button onclick="showTab('resumo')" id="tab-resumo" class="p-4 w-full text-slate-400" disabled>Resumo</button>
@@ -34,30 +33,30 @@
 
     <main class="p-4 max-w-md mx-auto">
 
-        <section id="content-config" class="no-print animate-in fade-in duration-300">
-            <h2 class="font-bold mb-4 text-slate-700 italic border-l-4 border-yellow-400 pl-2">1. Ajuste seus Ganhos</h2>
+        <section id="content-config" class="no-print">
+            <h2 class="font-bold mb-4 text-slate-700 italic border-l-4 border-yellow-400 pl-2 text-sm">1. Setup de Lucratividade</h2>
             <div class="space-y-4 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                 <div>
-                    <label class="block text-[10px] font-black uppercase text-gray-400 mb-1">Meta de Lucro Mensal (R$)</label>
+                    <label class="block text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Meta de Lucro (R$)</label>
                     <input type="number" id="metaLucro" value="5000" class="w-full bg-gray-50 p-3 rounded-xl outline-none font-bold text-lg focus:ring-2 ring-yellow-400">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-black uppercase text-gray-400 mb-1">Custos Fixos (Carro/MEI/Ferramentas)</label>
+                    <label class="block text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Custos Fixos (R$)</label>
                     <input type="number" id="custoFixo" value="1500" class="w-full bg-gray-50 p-3 rounded-xl outline-none font-bold text-lg focus:ring-2 ring-yellow-400">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-black uppercase text-gray-400 mb-1">Dias Úteis / Mês</label>
+                    <label class="block text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Dias Trabalhados / Mês</label>
                     <input type="number" id="diasTrabalho" value="22" class="w-full bg-gray-50 p-3 rounded-xl outline-none font-bold text-lg focus:ring-2 ring-yellow-400">
                 </div>
                 <button onclick="salvarConfig()" class="w-full bg-slate-900 text-white p-4 rounded-2xl font-black shadow-lg active:scale-95 transition-all">
-                    SALVAR VALOR DA HORA
+                    FIXAR VALOR DA HORA
                 </button>
                 <div id="valorHoraCalculado" class="mt-4 text-center p-3 bg-yellow-50 rounded-2xl border border-yellow-100 hidden text-xs font-bold text-slate-600"></div>
             </div>
         </section>
 
         <section id="content-obra" class="hidden no-print">
-            <h2 class="font-bold mb-4 text-slate-700 italic border-l-4 border-yellow-400 pl-2">2. Selecione e Quantifique</h2>
+            <h2 class="font-bold mb-4 text-slate-700 italic border-l-4 border-yellow-400 pl-2 text-sm">2. Seleção de Serviços</h2>
 
             <select id="categoriaMestra" onchange="renderizarServicos()" class="w-full p-4 mb-4 bg-slate-800 text-white rounded-2xl font-bold shadow-xl outline-none">
                 <option value="eletricista">⚡ Eletricista</option>
@@ -66,64 +65,78 @@
                 <option value="pintor">🎨 Pintor</option>
             </select>
 
-            <div id="listaServicos" class="grid grid-cols-2 gap-2 mb-6 max-h-56 overflow-y-auto p-1"></div>
+            <div id="listaServicos" class="grid grid-cols-2 gap-2 mb-6 max-h-52 overflow-y-auto p-1"></div>
 
             <div class="bg-white p-5 rounded-3xl shadow-xl border border-gray-100">
-                <h3 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-tighter text-center">Itens Selecionados</h3>
-                <div id="carrinhoServicos" class="space-y-3 mb-6">
-                    <p class="text-xs text-gray-300 italic text-center">Nenhum serviço adicionado...</p>
+                <h3 class="text-[10px] font-black uppercase text-slate-400 mb-4 text-center tracking-widest">Checklist do Orçamento</h3>
+                <div id="carrinhoServicos" class="space-y-2 mb-6">
+                    <p class="text-xs text-gray-300 italic text-center py-2">Clique nos serviços acima...</p>
                 </div>
 
-                <div class="space-y-4 pt-4 border-t border-gray-50 text-sm">
-                    <div class="flex justify-between items-center bg-slate-900 text-yellow-400 p-3 rounded-2xl">
-                        <span class="font-bold text-xs uppercase pl-2">Tempo de Trabalho:</span>
-                        <span id="tempoTotalDisplay" class="font-black text-lg pr-2">0 min</span>
+                <div class="space-y-6 pt-4 border-t border-gray-50">
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-gray-100">
+                        <label class="block text-[10px] font-black uppercase text-slate-500 mb-3 text-center tracking-widest">Nível de Dificuldade / Complexidade</label>
+                        <input type="range" id="multiplicador" min="1" max="3" step="1" value="2" oninput="atualizarLabelDificuldade()" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-slate-900">
+                        <div class="flex justify-between mt-3">
+                            <div id="dif-1" class="text-[9px] font-bold uppercase p-1 px-2 rounded-lg text-gray-400 transition-all">Fácil (Agilidade)</div>
+                            <div id="dif-2" class="text-[9px] font-bold uppercase p-1 px-2 rounded-lg text-slate-900 bg-yellow-400 transition-all shadow-sm">Padrão</div>
+                            <div id="dif-3" class="text-[9px] font-bold uppercase p-1 px-2 rounded-lg text-gray-400 transition-all">Difícil (+ Risco)</div>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-[10px] font-black uppercase text-red-500 mb-1">Dificuldade / Acesso</label>
-                        <input type="range" id="multiplicador" min="0.5" max="2" step="0.1" value="1" class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-yellow-400">
+
+                    <div class="flex justify-between items-center bg-slate-900 text-white p-3 rounded-2xl shadow-inner">
+                        <span class="text-[10px] font-black uppercase text-yellow-400 ml-2">Tempo Total:</span>
+                        <span id="tempoTotalDisplay" class="font-mono font-black text-lg mr-2 text-white">0 min</span>
                     </div>
-                    <div>
-                        <label class="block text-[10px] font-black uppercase text-slate-400 mb-1">Custo Deslocamento (R$)</label>
-                        <input type="number" id="kmGasto" value="50" class="w-full bg-gray-50 p-2 rounded-xl outline-none font-bold">
+
+                    <div class="flex gap-2 items-end">
+                        <div class="flex-1">
+                            <label class="block text-[9px] font-black uppercase text-slate-400 mb-1 ml-1 tracking-widest">Deslocamento (R$)</label>
+                            <input type="number" id="kmGasto" value="50" class="w-full bg-gray-50 p-3 rounded-xl outline-none font-black text-slate-700 border border-gray-100 shadow-inner">
+                        </div>
                     </div>
-                    <button onclick="calcularObra()" class="w-full bg-yellow-400 text-slate-900 p-5 rounded-2xl font-black shadow-xl hover:bg-yellow-500 active:scale-95 transition-all uppercase italic">
-                        Calcular Lucro Real
+
+                    <button onclick="calcularObra()" class="w-full bg-yellow-400 text-slate-900 p-5 rounded-2xl font-black shadow-xl hover:shadow-yellow-200/50 active:scale-95 transition-all uppercase italic text-sm tracking-tighter">
+                        Gerar Orçamento Final
                     </button>
                 </div>
             </div>
         </section>
 
         <section id="content-resumo" class="hidden">
-            <div class="bg-white p-8 rounded-[40px] shadow-2xl border border-gray-100">
-                <div class="print-only text-center mb-6">
-                    <h1 class="text-2xl font-black italic">ORÇAMENTO PROFISSIONAL</h1>
-                    <p class="text-xs text-gray-400 italic">Mão de Obra Pro • O valor do trabalho bem feito</p>
+            <div class="bg-white p-8 rounded-[40px] shadow-2xl border border-gray-100 text-center">
+                <div class="print-only mb-6">
+                    <h1 class="text-2xl font-black italic uppercase">Proposta de Serviço</h1>
+                    <p class="text-[10px] text-gray-400 italic">Mão de Obra Profissional e Garantida</p>
                 </div>
 
-                <h3 class="text-center text-gray-400 uppercase tracking-[0.2em] text-[9px] mb-2 font-black no-print">Preço Sugerido</h3>
-                <div id="precoSugerido" class="text-5xl font-black text-center text-slate-900 mb-8 font-mono tracking-tighter">R$ 0,00</div>
+                <h3 class="text-gray-400 uppercase tracking-[0.3em] text-[9px] mb-2 font-black no-print">Preço Sugerido ao Cliente</h3>
+                <div id="precoSugerido" class="text-5xl font-black text-slate-900 mb-8 font-mono tracking-tighter">R$ 0,00</div>
 
-                <div id="servicosResumoPrint" class="mb-6 space-y-2 border-t pt-4"></div>
+                <div id="servicosResumoPrint" class="mb-8 space-y-2 border-t pt-6 text-left"></div>
 
                 <div class="border-t border-dashed pt-4 space-y-3 no-print">
-                    <p class="flex justify-between text-[10px] font-black text-gray-300 uppercase italic">
-                        <span>Custos Operacionais:</span>
-                        <span id="resumoCusto" class="text-red-400">R$ 0,00</span>
-                    </p>
-                    <p class="flex justify-between text-sm bg-green-50 p-4 rounded-2xl border border-green-100">
-                        <span class="text-green-700 font-black uppercase text-[10px]">Seu Lucro Limpo:</span>
-                        <span id="resumoLucro" class="font-black text-green-700 text-lg">R$ 0,00</span>
-                    </p>
+                    <div class="flex justify-between items-center bg-green-50 p-5 rounded-3xl border border-green-100 shadow-sm">
+                        <div class="text-left leading-none">
+                            <span class="text-green-800 font-black uppercase text-[10px] block mb-1">Seu Lucro Real</span>
+                            <span class="text-[9px] text-green-600 font-bold italic">Livre de despesas</span>
+                        </div>
+                        <span id="resumoLucro" class="font-black text-green-700 text-2xl font-mono">R$ 0,00</span>
+                    </div>
                 </div>
 
-                <div class="mt-8 no-print">
+                <div class="mt-8 no-print space-y-2">
                     <button onclick="window.print()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black flex items-center justify-center gap-3 shadow-xl">
-                        <span>📄</span> GERAR PDF / WHATSAPP
+                        📄 GERAR PDF / WHATSAPP
                     </button>
-                    <button onclick="showTab('obra')" class="w-full p-4 text-slate-300 text-[10px] font-black uppercase tracking-widest">
-                        Ajustar Serviços
+                    <button onclick="showTab('obra')" class="w-full p-4 text-slate-300 text-[10px] font-black uppercase tracking-widest hover:text-slate-500">
+                        ← Voltar e Ajustar
                     </button>
+                </div>
+
+                <div class="print-only mt-12 text-[9px] text-gray-400 border-t pt-6 italic leading-relaxed">
+                    <p>* Orçamento válido por 7 dias. Somente mão de obra.</p>
+                    <p>* Instalações seguindo as normas técnicas vigentes.</p>
                 </div>
             </div>
         </section>
@@ -133,21 +146,21 @@
         const tabelaMestra = {
             eletricista: [
                 { nome: "Tomada/Inter.", tempo: 15 },
-                { nome: "Chuveiro", tempo: 45 },
+                { nome: "Chuveiro", tempo: 40 },
                 { nome: "Luminária", tempo: 30 },
-                { nome: "Disjuntor", tempo: 20 },
+                { nome: "Quadro/Disj.", tempo: 45 },
                 { nome: "Circuito 10m", tempo: 90 },
                 { nome: "Ventilador", tempo: 100 }
             ],
             encanador: [
                 { nome: "Reparo Reg.", tempo: 40 },
                 { nome: "Vaso Sanit.", tempo: 80 },
-                { nome: "Caixa d'Água", tempo: 120 },
-                { nome: "Vazamento", tempo: 150 },
-                { nome: "Torneira", tempo: 25 }
+                { nome: "Caixa d'Água", tempo: 150 },
+                { nome: "Vazamento", tempo: 120 },
+                { nome: "Torneira", tempo: 20 }
             ],
             arcondicionado: [
-                { nome: "Instalação 12k", tempo: 240 },
+                { nome: "Instalação", tempo: 240 },
                 { nome: "Limpeza", tempo: 120 },
                 { nome: "Carga Gás", tempo: 60 },
                 { nome: "Remoção", tempo: 60 }
@@ -156,21 +169,22 @@
                 { nome: "Pintura m²", tempo: 15 },
                 { nome: "Massa m²", tempo: 30 },
                 { nome: "Lixamento m²", tempo: 15 },
-                { nome: "Porta/Batente", tempo: 120 }
+                { nome: "Porta/Bat.", tempo: 120 }
             ]
         };
 
         let valorHora = 0;
-        let carrinho = {}; // Agora usamos um objeto { "Nome": {tempo: 30, qtd: 1} }
+        let carrinho = {};
 
         window.onload = () => {
             const salvo = localStorage.getItem('mopro_valorHora');
             if(salvo) {
                 valorHora = parseFloat(salvo);
-                document.getElementById('valorHoraCalculado').innerHTML = `Sua hora está em <strong>R$ ${valorHora.toFixed(2)}</strong>`;
+                document.getElementById('valorHoraCalculado').innerHTML = `Valor fixado: <strong>R$ ${valorHora.toFixed(2)}/hora</strong>`;
                 document.getElementById('valorHoraCalculado').classList.remove('hidden');
             }
             renderizarServicos();
+            atualizarLabelDificuldade();
         };
 
         function showTab(tab) {
@@ -190,8 +204,8 @@
 
             tabelaMestra[cat].forEach(item => {
                 const btn = document.createElement('button');
-                btn.className = "flex flex-col justify-center items-center bg-white p-3 rounded-2xl border border-gray-100 text-[10px] font-black uppercase hover:border-yellow-400 active:bg-yellow-50 shadow-sm h-16 transition-all";
-                btn.innerHTML = `<span class="text-slate-600">${item.nome}</span>`;
+                btn.className = "flex flex-col justify-center items-center bg-white p-3 rounded-2xl border border-gray-100 text-[10px] font-black uppercase hover:border-yellow-400 active:scale-95 shadow-sm h-16 transition-all";
+                btn.innerHTML = `<span class="text-slate-600">${item.nome}</span> <span class="text-[8px] text-gray-300 mt-1">${item.tempo} MIN</span>`;
                 btn.onclick = () => alterarQtd(item.nome, item.tempo, 1);
                 container.appendChild(btn);
             });
@@ -202,49 +216,53 @@
                 if (delta < 0) return;
                 carrinho[nome] = { tempo: tempo, qtd: 0 };
             }
-
             carrinho[nome].qtd += delta;
-
-            if (carrinho[nome].qtd <= 0) {
-                delete carrinho[nome];
-            }
-
+            if (carrinho[nome].qtd <= 0) delete carrinho[nome];
             atualizarInterfaceCarrinho();
+        }
+
+        function atualizarLabelDificuldade() {
+            const val = document.getElementById('multiplicador').value;
+            const labels = [1, 2, 3];
+            labels.forEach(l => {
+                const el = document.getElementById('dif-' + l);
+                el.classList.remove('bg-green-400', 'bg-yellow-400', 'bg-red-500', 'text-white', 'text-slate-900', 'shadow-sm');
+                el.classList.add('text-gray-400');
+            });
+
+            const active = document.getElementById('dif-' + val);
+            active.classList.remove('text-gray-400');
+
+            if(val == 1) active.classList.add('bg-green-400', 'text-white', 'shadow-sm');
+            if(val == 2) active.classList.add('bg-yellow-400', 'text-slate-900', 'shadow-sm');
+            if(val == 3) active.classList.add('bg-red-500', 'text-white', 'shadow-sm');
         }
 
         function atualizarInterfaceCarrinho() {
             const container = document.getElementById('carrinhoServicos');
             const displayTempo = document.getElementById('tempoTotalDisplay');
-
             const chaves = Object.keys(carrinho);
 
             if (chaves.length === 0) {
-                container.innerHTML = `<p class="text-xs text-gray-300 italic text-center py-2">Nenhum serviço adicionado...</p>`;
+                container.innerHTML = `<p class="text-xs text-gray-300 italic text-center py-2">Clique nos serviços acima...</p>`;
                 displayTempo.innerText = "0 min";
                 return;
             }
 
             container.innerHTML = "";
             let totalMin = 0;
-
             chaves.forEach(nome => {
                 const item = carrinho[nome];
-                const subtotal = item.tempo * item.qtd;
-                totalMin += subtotal;
-
+                totalMin += (item.tempo * item.qtd);
                 const div = document.createElement('div');
-                div.className = "flex justify-between items-center bg-slate-50 p-3 rounded-2xl shadow-sm animate-in zoom-in duration-150";
+                div.className = "flex justify-between items-center bg-slate-50 p-3 rounded-2xl shadow-sm";
                 div.innerHTML = `
-                    <div class="flex flex-col">
-                        <span class="text-[11px] font-black text-slate-700 uppercase tracking-tighter">${nome}</span>
-                        <span class="text-[9px] text-slate-400 font-bold">${subtotal} MIN TOTAL</span>
-                    </div>
+                    <div class="flex flex-col"><span class="text-[10px] font-black text-slate-700 uppercase tracking-tighter">${nome}</span></div>
                     <div class="flex items-center gap-3 bg-white p-1 rounded-xl border border-gray-100 shadow-sm">
-                        <button onclick="alterarQtd('${nome}', ${item.tempo}, -1)" class="w-8 h-8 bg-gray-50 rounded-lg font-black text-slate-400">-</button>
-                        <span class="text-sm font-black w-4 text-center">${item.qtd}</span>
-                        <button onclick="alterarQtd('${nome}', ${item.tempo}, 1)" class="w-8 h-8 bg-yellow-400 rounded-lg font-black text-slate-900">+</button>
-                    </div>
-                `;
+                        <button onclick="alterarQtd('${nome}', ${item.tempo}, -1)" class="w-7 h-7 bg-gray-50 rounded-lg font-black text-slate-300 hover:text-red-500">-</button>
+                        <span class="text-xs font-black w-4 text-center">${item.qtd}</span>
+                        <button onclick="alterarQtd('${nome}', ${item.tempo}, 1)" class="w-7 h-7 bg-yellow-400 rounded-lg font-black text-slate-900">+</button>
+                    </div>`;
                 container.appendChild(div);
             });
             displayTempo.innerText = totalMin + " min";
@@ -258,7 +276,7 @@
             localStorage.setItem('mopro_valorHora', valorHora);
             document.getElementById('valorHoraCalculado').innerHTML = `Configurado: <strong>R$ ${valorHora.toFixed(2)}/hora</strong>`;
             document.getElementById('valorHoraCalculado').classList.remove('hidden');
-            alert("Valores salvos com sucesso!");
+            alert("Valores atualizados!");
         }
 
         function calcularObra() {
@@ -267,28 +285,30 @@
             chaves.forEach(n => totalMin += (carrinho[n].tempo * carrinho[n].qtd));
 
             if(valorHora <= 0 || totalMin === 0) {
-                alert("Verifique a Config e adicione serviços!");
+                alert("Configure seu valor/hora e adicione serviços!");
                 return;
             }
 
-            const mult = parseFloat(document.getElementById('multiplicador').value);
+            // Lógica dos 3 Níveis: 1=0.8x (Fácil), 2=1.0x (Padrão), 3=1.5x (Difícil)
+            const nivel = document.getElementById('multiplicador').value;
+            let fator = 1.0;
+            if (nivel == 1) fator = 0.8;
+            if (nivel == 3) fator = 1.5;
+
             const desloc = parseFloat(document.getElementById('kmGasto').value) || 0;
-            const horasFinais = (totalMin / 60) * mult;
+            const horasFinais = (totalMin / 60) * fator;
             const total = (horasFinais * valorHora) + desloc;
 
-            const custoFixoMensal = parseFloat(document.getElementById('custoFixo').value) || 0;
-            const custoFixoH = custoFixoMensal / (22 * 8);
-            const lucro = total - (desloc + (custoFixoH * horasFinais));
+            const custoH = (parseFloat(document.getElementById('custoFixo').value) || 0) / (22 * 8);
+            const lucro = total - (desloc + (custoH * horasFinais));
 
             document.getElementById('precoSugerido').innerText = "R$ " + total.toFixed(2);
-            document.getElementById('resumoCusto').innerText = "R$ " + (total - lucro).toFixed(2);
             document.getElementById('resumoLucro').innerText = "R$ " + lucro.toFixed(2);
 
-            // Lista para PDF
             const listaPrint = document.getElementById('servicosResumoPrint');
-            listaPrint.innerHTML = `<h4 class="text-[9px] font-black uppercase text-gray-300 tracking-widest border-b mb-3 pb-1">Descrição Técnica</h4>`;
+            listaPrint.innerHTML = `<h4 class="text-[9px] font-black uppercase text-gray-300 tracking-[0.2em] mb-4">Detalhamento dos Itens</h4>`;
             chaves.forEach(n => {
-                listaPrint.innerHTML += `<div class="text-[12px] font-bold py-1 flex justify-between"><span>${carrinho[n].qtd}x ${n}</span> <span class="text-gray-300 italic text-[10px]">Concluído</span></div>`;
+                listaPrint.innerHTML += `<div class="text-[13px] font-bold py-2 border-b border-gray-50 flex justify-between"><span>${carrinho[n].qtd}x ${n}</span> <span class="text-green-500 italic text-[9px] uppercase">Habilitado</span></div>`;
             });
 
             showTab('resumo');
