@@ -4,6 +4,8 @@ import { DashboardPage } from './modules/dashboard/DashboardPage.jsx';
 import { ClientesPage } from './modules/clientes/ClientesPage.jsx';
 import { ServicosPage } from './modules/catalogo/ServicosPage.jsx';
 import { ConfiguracoesPage } from './modules/financeiro/ConfiguracoesPage.jsx';
+
+// Importação direta sem o prefixo src (já que App.jsx já está na src)
 import { NovoOrcamento } from './modules/orcamentos/NovoOrcamento.jsx';
 import { VisualizarOrcamento } from './modules/orcamentos/VisualizarOrcamento.jsx';
 
