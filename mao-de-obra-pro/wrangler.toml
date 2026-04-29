@@ -1,0 +1,7 @@
+name = "mao-de-obra-pro"
+main = "dist/index.html"
+
+[env.production]
+[env.production.assets]
+directory = "./dist"
+binding = "ASSETS"
