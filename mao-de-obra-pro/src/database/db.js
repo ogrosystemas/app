@@ -2,30 +2,16 @@ import Dexie from 'dexie';
 
 export const db = new Dexie('MaoDeObraPro');
 
-db.version(1).stores({
-  clientes: '++id, nome, whatsapp, endereco',
-  servicos: '++id, nome, tempoPadrao, categoria',
-  orcamentos: '++id, clienteId, data, total, status, itens, fotos, taxaDeslocamento, subtotal',
-  config: 'id, chave, valor',
-  profissoes: '++id, slug, nome, icone, riscoBase, custoFerramental, descricao, ativo'
-});
-
-db.version(2).stores({
-  clientes: '++id, nome, whatsapp, endereco',
-  servicos: '++id, nome, tempoPadrao, categoria, profissaoId',
-  orcamentos: '++id, clienteId, data, total, status, itens, fotos, taxaDeslocamento, subtotal, profissaoId, profissaoNome',
-  config: 'id, chave, valor',
-  profissoes: '++id, slug, nome, icone, riscoBase, custoFerramental, descricao, ativo'
-});
-
-db.version(3).stores({
+db.version(5).stores({
   clientes: '++id, nome, whatsapp, endereco',
   servicos: '++id, nome, tempoPadrao, categoria, profissaoId, precoFixo',
-  orcamentos: '++id, clienteId, data, total, status, itens, fotos, taxaDeslocamento, subtotal, profissaoId, profissaoNome',
+  orcamentos: '++id, clienteId, data, total, status, itens, fotos, taxaDeslocamento, subtotal, profissaoId, profissaoNome, validade, dataVencimento',
   config: 'id, chave, valor',
-  profissoes: '++id, slug, nome, icone, riscoBase, custoFerramental, descricao, ativo'
+  profissoes: '++id, slug, nome, icone, riscoBase, custoFerramental, descricao, ativo',
+  caixa: '++id, data, tipo, categoria, descricao, valor, orcamentoId'
 });
 
+// Populate initial data
 db.on('populate', async () => {
   const profissoesIds = {};
 
@@ -46,21 +32,10 @@ db.on('populate', async () => {
     { nome: 'Instalação de tomada', tempoPadrao: 30, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista, precoFixo: null },
     { nome: 'Troca de disjuntor', tempoPadrao: 45, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista, precoFixo: null },
     { nome: 'Instalação de chuveiro elétrico', tempoPadrao: 60, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista, precoFixo: 150.00 },
-    { nome: 'Instalação de ventilador', tempoPadrao: 40, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista, precoFixo: null },
-    { nome: 'Manutenção de rede elétrica', tempoPadrao: 120, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista, precoFixo: null },
     { nome: 'Desentupimento de pia', tempoPadrao: 60, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador, precoFixo: 120.00 },
-    { nome: 'Troca de registro', tempoPadrao: 45, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador, precoFixo: null },
-    { nome: 'Reparo de vazamento', tempoPadrao: 90, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador, precoFixo: null },
-    { nome: 'Instalação de torneira', tempoPadrao: 30, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador, precoFixo: 80.00 },
     { nome: 'Instalação de ar condicionado split', tempoPadrao: 180, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'], precoFixo: 600.00 },
-    { nome: 'Limpeza de ar condicionado', tempoPadrao: 90, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'], precoFixo: 200.00 },
-    { nome: 'Recarga de gás refrigerante', tempoPadrao: 60, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'], precoFixo: 300.00 },
     { nome: 'Pintura de parede (m²)', tempoPadrao: 20, categoria: 'Pintura', profissaoId: profissoesIds['pintor-pedreiro'], precoFixo: 25.00 },
-    { nome: 'Reboco de parede (m²)', tempoPadrao: 30, categoria: 'Construção', profissaoId: profissoesIds['pintor-pedreiro'], precoFixo: 40.00 },
-    { nome: 'Assentamento de azulejo (m²)', tempoPadrao: 45, categoria: 'Construção', profissaoId: profissoesIds['pintor-pedreiro'], precoFixo: 60.00 },
-    { nome: 'Demolição de parede', tempoPadrao: 180, categoria: 'Demolição', profissaoId: profissoesIds.marteleteiro, precoFixo: 500.00 },
-    { nome: 'Quebra de piso/concreto', tempoPadrao: 120, categoria: 'Demolição', profissaoId: profissoesIds.marteleteiro, precoFixo: 400.00 },
-    { nome: 'Remoção de estrutura', tempoPadrao: 240, categoria: 'Demolição', profissaoId: profissoesIds.marteleteiro, precoFixo: 800.00 }
+    { nome: 'Demolição de parede', tempoPadrao: 180, categoria: 'Demolição', profissaoId: profissoesIds.marteleteiro, precoFixo: 500.00 }
   ]);
 
   await db.config.bulkAdd([
@@ -71,7 +46,8 @@ db.on('populate', async () => {
     { id: 5, chave: 'profissaoSelecionada', valor: 'eletricista' },
     { id: 6, chave: 'primeiroAcesso', valor: true },
     { id: 7, chave: 'adicionalPericulosidade', valor: 0.15 },
-    { id: 8, chave: 'custoManutencaoFerramenta', valor: 300 }
+    { id: 8, chave: 'custoManutencaoFerramenta', valor: 300 },
+    { id: 9, chave: 'validadePadrao', valor: 30 }
   ]);
 });
 
