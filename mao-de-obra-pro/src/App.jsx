@@ -20,7 +20,7 @@ function App() {
       try {
         await initDatabase();
         const config = await db.config.where('chave').equals('primeiroAcesso').first();
-        // Valor 1 significa true (primeiro acesso)
+        // primeiroAcesso = 1 significa true
         setPrimeiroAcesso(config ? config.valor === 1 : true);
         setDbReady(true);
       } catch (err) {
