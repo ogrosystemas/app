@@ -2,30 +2,21 @@ import Dexie from 'dexie';
 
 export const db = new Dexie('MaoDeObraPro');
 
-db.version(2).stores({
+// Versão 3: Adiciona profissaoId nos serviços
+db.version(3).stores({
   clientes: '++id, nome, whatsapp, endereco',
-  servicos: '++id, nome, tempoPadrao, categoria',
+  servicos: '++id, nome, tempoPadrao, categoria, profissaoId',
   orcamentos: '++id, clienteId, data, total, status, itens, fotos, taxaDeslocamento, subtotal',
   config: 'id, chave, valor',
   profissoes: '++id, slug, nome, icone, riscoBase, custoFerramental, descricao, ativo'
 });
 
-// Seed initial data for professions
+// Populate initial data
 db.on('populate', async () => {
-  // Default services
-  await db.servicos.bulkAdd([
-    { nome: 'Instalação de tomada', tempoPadrao: 30, categoria: 'Elétrica' },
-    { nome: 'Troca de resistência', tempoPadrao: 45, categoria: 'Hidráulica' },
-    { nome: 'Desentupimento', tempoPadrao: 60, categoria: 'Hidráulica' },
-    { nome: 'Instalação de chuveiro', tempoPadrao: 40, categoria: 'Elétrica/Hidráulica' },
-    { nome: 'Manutenção geral', tempoPadrao: 120, categoria: 'Geral' },
-    { nome: 'Pintura de parede', tempoPadrao: 90, categoria: 'Pintura' },
-    { nome: 'Reparo de encanamento', tempoPadrao: 50, categoria: 'Hidráulica' },
-    { nome: 'Instalação de ventilador', tempoPadrao: 35, categoria: 'Elétrica' }
-  ]);
+  // First, add professions
+  const profissoesIds = {};
 
-  // Professions data
-  await db.profissoes.bulkAdd([
+  const profissoesData = [
     {
       slug: 'eletricista',
       nome: 'Eletricista',
@@ -71,6 +62,65 @@ db.on('populate', async () => {
       descricao: 'Alto desgaste físico e de equipamento',
       ativo: true
     }
+  ];
+
+  // Add professions and store their IDs
+  for (const prof of profissoesData) {
+    const id = await db.profissoes.add(prof);
+    profissoesIds[prof.slug] = id;
+  }
+
+  // Services for Eletricista
+  await db.servicos.bulkAdd([
+    { nome: 'Instalação de tomada', tempoPadrao: 30, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista },
+    { nome: 'Troca de disjuntor', tempoPadrao: 45, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista },
+    { nome: 'Instalação de chuveiro elétrico', tempoPadrao: 60, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista },
+    { nome: 'Instalação de ventilador', tempoPadrao: 40, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista },
+    { nome: 'Manutenção de rede elétrica', tempoPadrao: 120, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista },
+    { nome: 'Instalação de quadro de disjuntores', tempoPadrao: 180, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista },
+    { nome: 'Instalação de iluminação LED', tempoPadrao: 50, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista },
+    { nome: 'Aterramento elétrico', tempoPadrao: 90, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista }
+  ]);
+
+  // Services for Encanador
+  await db.servicos.bulkAdd([
+    { nome: 'Desentupimento de pia', tempoPadrao: 60, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador },
+    { nome: 'Troca de registro', tempoPadrao: 45, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador },
+    { nome: 'Reparo de vazamento', tempoPadrao: 90, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador },
+    { nome: 'Instalação de torneira', tempoPadrao: 30, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador },
+    { nome: 'Troca de caixa acoplada', tempoPadrao: 60, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador },
+    { nome: 'Desentupimento de vaso sanitário', tempoPadrao: 45, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador },
+    { nome: 'Instalação de chuveiro a gás', tempoPadrao: 90, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador },
+    { nome: 'Manutenção de caixa d\'água', tempoPadrao: 120, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador }
+  ]);
+
+  // Services for Técnico de AC
+  await db.servicos.bulkAdd([
+    { nome: 'Instalação de ar condicionado split', tempoPadrao: 180, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'] },
+    { nome: 'Limpeza de ar condicionado', tempoPadrao: 90, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'] },
+    { nome: 'Recarga de gás refrigerante', tempoPadrao: 60, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'] },
+    { nome: 'Manutenção preventiva AC', tempoPadrao: 120, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'] },
+    { nome: 'Instalação de ar condicionado janela', tempoPadrao: 120, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'] },
+    { nome: 'Diagnóstico de falhas AC', tempoPadrao: 60, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'] }
+  ]);
+
+  // Services for Pintor/Pedreiro
+  await db.servicos.bulkAdd([
+    { nome: 'Pintura de parede (m²)', tempoPadrao: 20, categoria: 'Pintura', profissaoId: profissoesIds['pintor-pedreiro'] },
+    { nome: 'Reboco de parede (m²)', tempoPadrao: 30, categoria: 'Construção', profissaoId: profissoesIds['pintor-pedreiro'] },
+    { nome: 'Assentamento de azulejo (m²)', tempoPadrao: 45, categoria: 'Construção', profissaoId: profissoesIds['pintor-pedreiro'] },
+    { nome: 'Peq. reparos estruturais', tempoPadrao: 120, categoria: 'Construção', profissaoId: profissoesIds['pintor-pedreiro'] },
+    { nome: 'Acabamento em gesso', tempoPadrao: 60, categoria: 'Acabamento', profissaoId: profissoesIds['pintor-pedreiro'] },
+    { nome: 'Texturização de parede', tempoPadrao: 40, categoria: 'Pintura', profissaoId: profissoesIds['pintor-pedreiro'] }
+  ]);
+
+  // Services for Marteleteiro
+  await db.servicos.bulkAdd([
+    { nome: 'Demolição de parede', tempoPadrao: 180, categoria: 'Demolição', profissaoId: profissoesIds.marteleteiro },
+    { nome: 'Quebra de piso/concreto', tempoPadrao: 120, categoria: 'Demolição', profissaoId: profissoesIds.marteleteiro },
+    { nome: 'Remoção de estrutura', tempoPadrao: 240, categoria: 'Demolição', profissaoId: profissoesIds.marteleteiro },
+    { nome: 'Perfuração para sondagem', tempoPadrao: 300, categoria: 'Perfuração', profissaoId: profissoesIds.marteleteiro },
+    { nome: 'Escavação manual', tempoPadrao: 240, categoria: 'Escavação', profissaoId: profissoesIds.marteleteiro }
   ]);
 
   // Default config
