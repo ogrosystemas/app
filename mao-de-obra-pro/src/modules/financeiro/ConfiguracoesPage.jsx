@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Clock, TrendingUp, Car, Save, AlertCircle } from 'lucide-react';
+import { DollarSign, Clock, TrendingUp, Car, Save, AlertCircle, Briefcase } from 'lucide-react';
 import { useFinanceiro } from '../../hooks/useFinanceiro';
 import { formatarMoeda, calcularValorMinuto } from '../../core/calculadora';
 import ProfissaoSelector from '../../components/ProfissaoSelector';
 
 const ConfiguracoesPage = () => {
-  const { config, updateAllConfig, loading, refresh } = useFinanceiro();
+  const { config, profissao, updateAllConfig, selecionarProfissao, loading, refresh } = useFinanceiro();
   const [formData, setFormData] = useState({
     metaSalarial: 5000,
     horasTrabalhadas: 160,
@@ -46,39 +46,41 @@ const ConfiguracoesPage = () => {
   };
 
   return (
-    {/* Profession Selector */}
-<div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-  <div className="p-6 border-b border-slate-200">
-    <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-      <Briefcase size={20} className="text-blue-600" />
-      Perfil Profissional
-    </h2>
-  </div>
-  <div className="p-6">
-    <ProfissaoSelector
-      onSelect={async (prof) => {
-        await selecionarProfissao(prof);
-        refresh();
-      }}
-      selectedSlug={config.profissaoSelecionada}
-    />
-    {profissao && (
-      <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-        <p className="text-sm text-blue-800">
-          <strong>Multiplicador de risco:</strong> {profissao.riscoBase}x
-          <br />
-          <strong>Custo ferramental mensal:</strong> {formatarMoeda(profissao.custoFerramental)}
-        </p>
-      </div>
-    )}
-  </div>
-</div>
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Configurações Financeiras</h1>
         <p className="text-slate-500 mt-1">Defina seus parâmetros de precificação</p>
       </div>
 
+      {/* Profession Selector */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="p-6 border-b border-slate-200">
+          <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+            <Briefcase size={20} className="text-blue-600" />
+            Perfil Profissional
+          </h2>
+        </div>
+        <div className="p-6">
+          <ProfissaoSelector
+            onSelect={async (prof) => {
+              await selecionarProfissao(prof);
+              refresh();
+            }}
+            selectedSlug={config.profissaoSelecionada}
+          />
+          {profissao && (
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>Multiplicador de risco:</strong> {profissao.riscoBase}x
+                <br />
+                <strong>Custo ferramental mensal:</strong> {formatarMoeda(profissao.custoFerramental)}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Valor Atual */}
       <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
         <div className="flex justify-between items-start">
           <div>
@@ -92,6 +94,7 @@ const ConfiguracoesPage = () => {
         </div>
       </div>
 
+      {/* Metas e Objetivos */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-6 border-b border-slate-200">
           <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
@@ -136,6 +139,7 @@ const ConfiguracoesPage = () => {
         </div>
       </div>
 
+      {/* Margens e Custos */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-6 border-b border-slate-200">
           <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
@@ -189,6 +193,7 @@ const ConfiguracoesPage = () => {
         </div>
       </div>
 
+      {/* Prévia de Preços */}
       <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-3">Prévia de Preços</h3>
         <div className="space-y-2 text-sm">
@@ -213,6 +218,7 @@ const ConfiguracoesPage = () => {
         </div>
       </div>
 
+      {/* Botão Salvar */}
       <button
         onClick={handleSave}
         disabled={saving || loading}
@@ -228,6 +234,7 @@ const ConfiguracoesPage = () => {
         )}
       </button>
 
+      {/* Mensagem de Sucesso */}
       {success && (
         <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg animate-fade-in z-50">
           Configurações salvas com sucesso!
