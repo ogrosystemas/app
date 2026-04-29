@@ -286,6 +286,7 @@
             document.getElementById('precoSugerido').innerText = "R$ " + total.toFixed(2);
             document.getElementById('resumoLucro').innerText = "R$ " + lucroReal.toFixed(2);
 
+            // CORREÇÃO: Check Vermelho ✔️
             const listaPrint = document.getElementById('servicosResumoPrint');
             listaPrint.innerHTML = `<h4 class="text-[9px] font-black uppercase text-gray-300 tracking-[0.2em] mb-4">Detalhamento dos Itens</h4>`;
             chaves.forEach(n => {
