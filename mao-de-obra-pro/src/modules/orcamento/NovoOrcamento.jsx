@@ -1,213 +1,517 @@
-import { useState, useEffect } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { Plus, Camera, Save, Trash2, ChevronLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import {
+  UserPlus,
+  Wrench,
+  Camera,
+  TrendingUp,
+  Send,
+  Trash2,
+  Plus,
+  Minus,
+  ChevronRight
+} from 'lucide-react';
+import db from '../../database/db';
+import CameraModal from '../../components/CameraModal';
+import {
+  useFinanceiro,
+  calcularPrecoServico,
+  calcularTotalOrcamento,
+  formatarMoeda,
+  DIFICULDADE,
+  formatarTempo
+} from '../../hooks/useFinanceiro';
+import { DIFICULDADE as DIFICULDADE_CONST, calcularPrecoServico as calcPreco, formatarMoeda as formatMoney } from '../../core/calculadora';
 
-// Importações com extensões explícitas para compatibilidade com o build Linux do Netlify
-import db from '../../database/db.js';
-import { useFinanceiro } from '../../hooks/useFinanceiro.jsx';
-import { calcularPrecoServico } from '../../core/calculadora.js';
-import { CameraModal } from '../../components/CameraModal.jsx';
-
-export const NovoOrcamento = ({ aoSalvar }) => {
-  const { metricas, dados } = useFinanceiro();
-  const [clienteId, setClienteId] = useState('');
-  const [itens, setItens] = useState([]);
-  const [fotos, setFotos] = useState([]);
+const NovoOrcamento = () => {
+  const { config } = useFinanceiro();
+  const [step, setStep] = useState(1);
+  const [clientes, setClientes] = useState([]);
+  const [servicos, setServicos] = useState([]);
+  const [selectedCliente, setSelectedCliente] = useState(null);
+  const [selectedServicos, setSelectedServicos] = useState([]);
   const [showCamera, setShowCamera] = useState(false);
-  const [taxaDeslocamento, setTaxaDeslocamento] = useState(0);
+  const [fotos, setFotos] = useState([]);
+  const [showClientModal, setShowClientModal] = useState(false);
+  const [newCliente, setNewCliente] = useState({ nome: '', whatsapp: '', endereco: '' });
+  const [showServicoModal, setShowServicoModal] = useState(false);
+  const [newServico, setNewServico] = useState({ nome: '', tempoPadrao: '', categoria: '' });
 
-  const clientes = useLiveQuery(() => db.clientes.toArray()) || [];
-  const servicosDisponiveis = useLiveQuery(() => db.servicos.toArray()) || [];
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  const adicionarServico = (id) => {
-    const s = servicosDisponiveis.find(x => x.id === Number(id));
-    if (!s) return;
-    const novoItem = {
-      id_base: s.id,
-      nome: s.nome,
-      tempoAjustado: s.tempoPadrao,
-      dificuldade: 1.0,
-      valorFinal: calcularPrecoServico(
-        s.tempoPadrao,
-        metricas?.valorMinuto || 0,
-        1.0,
-        dados?.margemReserva || 0
+  const loadData = async () => {
+    const allClientes = await db.clientes.toArray();
+    const allServicos = await db.servicos.toArray();
+    setClientes(allClientes);
+    setServicos(allServicos);
+  };
+
+  const handleAddCliente = async () => {
+    if (!newCliente.nome.trim()) {
+      alert('Nome é obrigatório');
+      return;
+    }
+    const id = await db.clientes.add(newCliente);
+    const added = { ...newCliente, id };
+    setClientes([...clientes, added]);
+    setSelectedCliente(added);
+    setShowClientModal(false);
+    setNewCliente({ nome: '', whatsapp: '', endereco: '' });
+  };
+
+  const handleAddServicoToBudget = (servico) => {
+    setSelectedServicos([...selectedServicos, {
+      ...servico,
+      tempoAjustado: servico.tempoPadrao,
+      dificuldade: 'NORMAL',
+      preco: calcularPrecoServico(
+        servico.tempoPadrao,
+        config.valorMinuto,
+        DIFICULDADE_CONST.NORMAL.fator,
+        config.margemReserva
       )
-    };
-    setItens([...itens, novoItem]);
+    }]);
+    setShowServicoModal(false);
   };
 
-  const atualizarItem = (index, campo, valor) => {
-    const novosItens = [...itens];
-    const valorNumerico = valor === "" ? 0 : Number(valor);
-    novosItens[index][campo] = valorNumerico;
-
-    novosItens[index].valorFinal = calcularPrecoServico(
-      novosItens[index].tempoAjustado,
-      metricas?.valorMinuto || 0,
-      novosItens[index].dificuldade,
-      dados?.margemReserva || 0
-    );
-    setItens(novosItens);
+  const updateServicoItem = (index, field, value) => {
+    const updated = [...selectedServicos];
+    if (field === 'tempoAjustado') {
+      updated[index].tempoAjustado = parseInt(value);
+      updated[index].preco = calcularPrecoServico(
+        updated[index].tempoAjustado,
+        config.valorMinuto,
+        DIFICULDADE_CONST[updated[index].dificuldade].fator,
+        config.margemReserva
+      );
+    } else if (field === 'dificuldade') {
+      updated[index].dificuldade = value;
+      updated[index].preco = calcularPrecoServico(
+        updated[index].tempoAjustado,
+        config.valorMinuto,
+        DIFICULDADE_CONST[value].fator,
+        config.margemReserva
+      );
+    }
+    setSelectedServicos(updated);
   };
 
-  const removerItem = (index) => {
-    setItens(itens.filter((_, i) => i !== index));
+  const removeServicoItem = (index) => {
+    setSelectedServicos(selectedServicos.filter((_, i) => i !== index));
   };
 
-  const totalGeral = itens.reduce((acc, i) => acc + (i.valorFinal || 0), 0) + Number(taxaDeslocamento || 0);
+  const handleCapturePhoto = (photo) => {
+    setFotos([...fotos, photo]);
+  };
 
-  const salvarOrcamento = async () => {
-    if (!clienteId || itens.length === 0) {
-      alert("Selecione um cliente e adicione pelo menos um serviço.");
+  const removePhoto = (index) => {
+    setFotos(fotos.filter((_, i) => i !== index));
+  };
+
+  const totalOrcamento = calcularTotalOrcamento(selectedServicos, config.taxaDeslocamento);
+
+  const handleSaveBudget = async () => {
+    if (!selectedCliente) {
+      alert('Selecione um cliente');
+      return;
+    }
+    if (selectedServicos.length === 0) {
+      alert('Adicione pelo menos um serviço');
       return;
     }
 
-    try {
-      await db.orcamentos.add({
-        clienteId: Number(clienteId),
-        data: new Date(),
-        itens,
-        fotos,
-        taxaDeslocamento: Number(taxaDeslocamento),
-        total: totalGeral,
-        status: 'rascunho'
-      });
-      aoSalvar();
-    } catch (error) {
-      console.error("Erro ao salvar:", error);
-      alert("Erro ao salvar orçamento localmente.");
-    }
+    const budget = {
+      clienteId: selectedCliente.id,
+      data: new Date().toISOString(),
+      total: totalOrcamento.total,
+      status: 'pendente',
+      itens: selectedServicos.map(s => ({
+        nome: s.nome,
+        tempo: s.tempoAjustado,
+        dificuldade: s.dificuldade,
+        preco: s.preco
+      })),
+      fotos: fotos,
+      taxaDeslocamento: config.taxaDeslocamento,
+      subtotal: totalOrcamento.subtotal
+    };
+
+    await db.orcamentos.add(budget);
+    alert('Orçamento salvo com sucesso!');
+    // Reset form
+    setSelectedCliente(null);
+    setSelectedServicos([]);
+    setFotos([]);
+    setStep(1);
   };
 
+  const stepConfig = [
+    { number: 1, title: 'Cliente', icon: UserPlus },
+    { number: 2, title: 'Serviços', icon: Wrench },
+    { number: 3, title: 'Fotos', icon: Camera },
+    { number: 4, title: 'Resumo', icon: TrendingUp }
+  ];
+
   return (
-    <div className="space-y-4 pb-24 animate-in fade-in duration-300">
-      <div className="flex items-center gap-2 mb-2">
-        <button onClick={aoSalvar} className="p-2 -ml-2 text-slate-400">
-          <ChevronLeft />
-        </button>
-        <h2 className="text-xl font-bold text-slate-800">Novo Orçamento</h2>
+    <div className="space-y-6 animate-fade-in pb-20">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Novo Orçamento</h1>
+        <p className="text-slate-500 mt-1">Crie um orçamento profissional</p>
       </div>
 
-      {/* Seletor Cliente */}
-      <div className="space-y-1">
-        <label className="text-[10px] font-bold text-slate-400 uppercase">Cliente</label>
-        <select
-          className="w-full bg-white border border-slate-200 p-3 rounded-xl outline-none"
-          value={clienteId}
-          onChange={e => setClienteId(e.target.value)}
-        >
-          <option value="">Selecione...</option>
-          {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-        </select>
-      </div>
-
-      {/* Seletor Serviços */}
-      <div className="space-y-1">
-        <label className="text-[10px] font-bold text-slate-400 uppercase">Adicionar Mão de Obra</label>
-        <select
-          className="w-full bg-blue-50 border border-blue-200 text-blue-700 font-bold p-3 rounded-xl outline-none"
-          onChange={e => { if(e.target.value) adicionarServico(e.target.value); e.target.value = ""; }}
-        >
-          <option value="">+ Toque para buscar serviço...</option>
-          {servicosDisponiveis.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
-        </select>
-      </div>
-
-      {/* Lista Dinâmica */}
-      <div className="space-y-3">
-        {itens.map((item, index) => (
-          <div key={index} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 relative">
-            <button
-              onClick={() => removerItem(index)}
-              className="absolute top-2 right-2 text-slate-300 hover:text-red-500"
-            >
-              <Trash2 size={16} />
-            </button>
-            <p className="font-bold text-slate-700 pr-6">{item.nome}</p>
-            <div className="grid grid-cols-2 gap-4 mt-3">
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase">Tempo (min)</label>
-                <input
-                  type="number"
-                  value={item.tempoAjustado}
-                  onChange={e => atualizarItem(index, 'tempoAjustado', e.target.value)}
-                  className="w-full mt-1 bg-slate-50 border-none p-2 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase">Dificuldade</label>
-                <select
-                  value={item.dificuldade}
-                  onChange={e => atualizarItem(index, 'dificuldade', e.target.value)}
-                  className="w-full mt-1 bg-slate-50 border-none p-2 rounded-lg"
-                >
-                  <option value="1.0">Normal</option>
-                  <option value="1.3">Média (+30%)</option>
-                  <option value="1.6">Alta (+60%)</option>
-                </select>
-              </div>
-            </div>
-            <p className="text-right mt-3 font-black text-blue-600">R$ {item.valorFinal.toFixed(2)}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Fotos */}
-      <div className="space-y-2">
-        <label className="text-[10px] font-bold text-slate-400 uppercase">Evidências (Fotos)</label>
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          <button
-            onClick={() => setShowCamera(true)}
-            className="min-w-[80px] h-20 bg-blue-100 border-2 border-dashed border-blue-300 rounded-xl flex flex-col items-center justify-center text-blue-600"
-          >
-            <Camera size={24} />
-            <span className="text-[10px] font-bold mt-1 uppercase">Capturar</span>
-          </button>
-          {fotos.map((f, i) => (
-            <div key={i} className="relative shrink-0">
-              <img src={f} className="h-20 w-20 object-cover rounded-xl shadow-inner" alt="Evidência" />
+      {/* Steps */}
+      <div className="flex justify-between items-center">
+        {stepConfig.map((s, idx) => {
+          const Icon = s.icon;
+          const isActive = step === s.number;
+          const isCompleted = step > s.number;
+          return (
+            <React.Fragment key={s.number}>
               <button
-                onClick={() => setFotos(fotos.filter((_, idx) => idx !== i))}
-                className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1"
+                onClick={() => setStep(s.number)}
+                className={`flex flex-col items-center gap-1 flex-1 ${isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-slate-400'}`}
               >
-                <Trash2 size={10} />
+                <div className={`
+                  w-10 h-10 rounded-full flex items-center justify-center
+                  ${isActive ? 'bg-blue-100' : isCompleted ? 'bg-green-100' : 'bg-slate-100'}
+                `}>
+                  <Icon size={20} />
+                </div>
+                <span className="text-xs hidden sm:inline">{s.title}</span>
+              </button>
+              {idx < stepConfig.length - 1 && (
+                <ChevronRight size={16} className="text-slate-300" />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {/* Step 1: Client Selection */}
+      {step === 1 && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold text-slate-900">Selecionar Cliente</h3>
+              <button
+                onClick={() => setShowClientModal(true)}
+                className="text-blue-600 text-sm font-semibold flex items-center gap-1"
+              >
+                <UserPlus size={16} />
+                Novo Cliente
               </button>
             </div>
-          ))}
+
+            <div className="space-y-2">
+              {clientes.map(cliente => (
+                <button
+                  key={cliente.id}
+                  onClick={() => setSelectedCliente(cliente)}
+                  className={`w-full text-left p-3 rounded-lg border transition-all ${
+                    selectedCliente?.id === cliente.id
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-slate-200 hover:border-blue-200'
+                  }`}
+                >
+                  <p className="font-medium text-slate-900">{cliente.nome}</p>
+                  {cliente.whatsapp && (
+                    <p className="text-sm text-slate-500">{cliente.whatsapp}</p>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={() => setStep(2)}
+            disabled={!selectedCliente}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50"
+          >
+            Próximo
+          </button>
         </div>
-      </div>
-
-      {/* Taxa Final */}
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200">
-        <span className="text-xs font-bold text-slate-500 uppercase">Taxa de Deslocamento</span>
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400 font-bold">R$</span>
-          <input
-            type="number"
-            className="w-20 font-black text-right border-none p-0 focus:ring-0"
-            value={taxaDeslocamento}
-            onChange={e => setTaxaDeslocamento(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* Botão Salvar Fixo */}
-      <div className="fixed bottom-6 left-0 right-0 p-4 z-50">
-        <button
-          onClick={salvarOrcamento}
-          className="w-full bg-blue-600 text-white p-4 rounded-2xl font-black shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-transform"
-        >
-          <Save size={24} /> SALVAR ORÇAMENTO (R$ {totalGeral.toFixed(2)})
-        </button>
-      </div>
-
-      {showCamera && (
-        <CameraModal 
-          onCapture={(p) => { setFotos([...fotos, p]); setShowCamera(false); }} 
-          onClose={() => setShowCamera(false)} 
-        />
       )}
+
+      {/* Step 2: Services Selection */}
+      {step === 2 && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold text-slate-900">Serviços</h3>
+              <button
+                onClick={() => setShowServicoModal(true)}
+                className="text-blue-600 text-sm font-semibold flex items-center gap-1"
+              >
+                <Plus size={16} />
+                Adicionar
+              </button>
+            </div>
+
+            {selectedServicos.length === 0 ? (
+              <div className="text-center py-8 text-slate-500">
+                <Wrench size={48} className="mx-auto mb-2 opacity-50" />
+                <p>Nenhum serviço adicionado</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {selectedServicos.map((servico, idx) => (
+                  <div key={idx} className="border border-slate-200 rounded-lg p-3">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-medium text-slate-900">{servico.nome}</h4>
+                      <button
+                        onClick={() => removeServicoItem(idx)}
+                        className="text-red-500 hover:bg-red-50 p-1 rounded"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <label className="text-xs text-slate-500">Tempo (min)</label>
+                        <input
+                          type="number"
+                          value={servico.tempoAjustado}
+                          onChange={(e) => updateServicoItem(idx, 'tempoAjustado', e.target.value)}
+                          className="w-full px-2 py-1 border border-slate-300 rounded mt-1"
+                          min="1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-500">Dificuldade</label>
+                        <select
+                          value={servico.dificuldade}
+                          onChange={(e) => updateServicoItem(idx, 'dificuldade', e.target.value)}
+                          className="w-full px-2 py-1 border border-slate-300 rounded mt-1"
+                        >
+                          <option value="NORMAL">Normal</option>
+                          <option value="MEDIO">Médio</option>
+                          <option value="ALTO">Alto</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 pt-2 border-t border-slate-100">
+                      <p className="text-right font-semibold text-blue-600">
+                        {formatarMoeda(servico.preco)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setStep(1)}
+              className="flex-1 border border-slate-300 text-slate-700 py-3 rounded-lg font-semibold"
+            >
+              Voltar
+            </button>
+            <button
+              onClick={() => setStep(3)}
+              disabled={selectedServicos.length === 0}
+              className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50"
+            >
+              Próximo
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: Photos */}
+      {step === 3 && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold text-slate-900">Fotos do Serviço</h3>
+              <button
+                onClick={() => setShowCamera(true)}
+                className="text-blue-600 text-sm font-semibold flex items-center gap-1"
+              >
+                <Camera size={16} />
+                Tirar Foto
+              </button>
+            </div>
+
+            {fotos.length === 0 ? (
+              <div className="text-center py-8 text-slate-500">
+                <Camera size={48} className="mx-auto mb-2 opacity-50" />
+                <p>Nenhuma foto capturada</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {fotos.map((foto, idx) => (
+                  <div key={idx} className="relative">
+                    <img src={foto} alt={`Foto ${idx + 1}`} className="w-full h-32 object-cover rounded-lg" />
+                    <button
+                      onClick={() => removePhoto(idx)}
+                      className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setStep(2)}
+              className="flex-1 border border-slate-300 text-slate-700 py-3 rounded-lg font-semibold"
+            >
+              Voltar
+            </button>
+            <button
+              onClick={() => setStep(4)}
+              className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold"
+            >
+              Próximo
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 4: Summary */}
+      {step === 4 && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-4 bg-slate-50 border-b border-slate-200">
+              <h3 className="font-semibold text-slate-900">Resumo do Orçamento</h3>
+            </div>
+
+            <div className="p-4 space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600">Cliente:</span>
+                <span className="font-medium text-slate-900">{selectedCliente?.nome}</span>
+              </div>
+
+              <div className="border-t border-slate-200 pt-3">
+                <p className="text-sm font-medium text-slate-700 mb-2">Serviços:</p>
+                {selectedServicos.map((servico, idx) => (
+                  <div key={idx} className="flex justify-between text-sm py-1">
+                    <span>{servico.nome} ({formatarTempo(servico.tempoAjustado)})</span>
+                    <span className="font-medium">{formatarMoeda(servico.preco)}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t border-slate-200 pt-3 space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal</span>
+                  <span>{formatarMoeda(totalOrcamento.subtotal)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Deslocamento</span>
+                  <span>{formatarMoeda(totalOrcamento.taxaDeslocamento)}</span>
+                </div>
+                <div className="flex justify-between text-lg font-bold pt-2 border-t border-slate-200">
+                  <span>Total</span>
+                  <span className="text-blue-600">{formatarMoeda(totalOrcamento.total)}</span>
+                </div>
+              </div>
+
+              {fotos.length > 0 && (
+                <div className="border-t border-slate-200 pt-3">
+                  <p className="text-sm text-slate-600">{fotos.length} foto(s) anexada(s)</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setStep(3)}
+              className="flex-1 border border-slate-300 text-slate-700 py-3 rounded-lg font-semibold"
+            >
+              Voltar
+            </button>
+            <button
+              onClick={handleSaveBudget}
+              className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2"
+            >
+              <Send size={20} />
+              Salvar Orçamento
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Client Modal */}
+      {showClientModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold mb-4">Novo Cliente</h3>
+            <div className="space-y-3">
+              <input
+                type="text"
+                placeholder="Nome *"
+                value={newCliente.nome}
+                onChange={(e) => setNewCliente({...newCliente, nome: e.target.value})}
+                className="w-full px-4 py-2 border rounded-lg"
+              />
+              <input
+                type="tel"
+                placeholder="WhatsApp"
+                value={newCliente.whatsapp}
+                onChange={(e) => setNewCliente({...newCliente, whatsapp: e.target.value})}
+                className="w-full px-4 py-2 border rounded-lg"
+              />
+              <textarea
+                placeholder="Endereço"
+                value={newCliente.endereco}
+                onChange={(e) => setNewCliente({...newCliente, endereco: e.target.value})}
+                className="w-full px-4 py-2 border rounded-lg"
+                rows="2"
+              />
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setShowClientModal(false)} className="flex-1 border py-2 rounded-lg">Cancelar</button>
+              <button onClick={handleAddCliente} className="flex-1 bg-blue-600 text-white py-2 rounded-lg">Salvar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Service Modal */}
+      {showServicoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold mb-4">Adicionar Serviço</h3>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {servicos.map(servico => (
+                <button
+                  key={servico.id}
+                  onClick={() => handleAddServicoToBudget(servico)}
+                  className="w-full text-left p-3 border rounded-lg hover:border-blue-500 transition-colors"
+                >
+                  <p className="font-medium">{servico.nome}</p>
+                  <p className="text-sm text-slate-500">{formatarTempo(servico.tempoPadrao)}</p>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowServicoModal(false)}
+              className="w-full mt-4 border py-2 rounded-lg"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Camera Modal */}
+      <CameraModal
+        isOpen={showCamera}
+        onClose={() => setShowCamera(false)}
+        onCapture={handleCapturePhoto}
+      />
     </div>
   );
 };
+
+export default NovoOrcamento;
