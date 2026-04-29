@@ -6,12 +6,14 @@ import ClientesPage from './modules/clientes/ClientesPage';
 import ServicosPage from './modules/catalogo/ServicosPage';
 import ConfiguracoesPage from './modules/financeiro/ConfiguracoesPage';
 import NovoOrcamento from './modules/orcamento/NovoOrcamento';
+import VisualizarOrcamento from './modules/orcamento/VisualizarOrcamento';
 import { initDatabase, db } from './database/db';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [dbReady, setDbReady] = useState(false);
   const [primeiroAcesso, setPrimeiroAcesso] = useState(true);
+  const [selectedBudgetId, setSelectedBudgetId] = useState(null);
 
   useEffect(() => {
     initDatabase().then(async () => {
@@ -32,7 +34,13 @@ function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <DashboardPage onNewBudget={() => setActiveTab('novo')} />;
+        return <DashboardPage
+          onNewBudget={() => setActiveTab('novo')}
+          onViewBudget={(id) => {
+            setSelectedBudgetId(id);
+            setActiveTab('visualizar');
+          }}
+        />;
       case 'clientes':
         return <ClientesPage />;
       case 'catalogo':
@@ -41,8 +49,19 @@ function App() {
         return <ConfiguracoesPage />;
       case 'novo':
         return <NovoOrcamento onSave={() => setActiveTab('dashboard')} />;
+      case 'visualizar':
+        return <VisualizarOrcamento
+          onBack={() => setActiveTab('dashboard')}
+          id={selectedBudgetId}
+        />;
       default:
-        return <DashboardPage onNewBudget={() => setActiveTab('novo')} />;
+        return <DashboardPage
+          onNewBudget={() => setActiveTab('novo')}
+          onViewBudget={(id) => {
+            setSelectedBudgetId(id);
+            setActiveTab('visualizar');
+          }}
+        />;
     }
   };
 
