@@ -5,13 +5,13 @@ import { formatarMoeda } from '../../core/calculadora';
 import { useFinanceiro } from '../../hooks/useFinanceiro';
 
 const DashboardPage = ({ onNewBudget }) => {
+  const { config, profissao } = useFinanceiro();
   const [recentBudgets, setRecentBudgets] = useState([]);
   const [stats, setStats] = useState({
     totalBudgets: 0,
     totalValue: 0,
     activeClients: 0
   });
-  const { config } = useFinanceiro();
 
   useEffect(() => {
     loadDashboardData();
@@ -39,11 +39,6 @@ const DashboardPage = ({ onNewBudget }) => {
     } catch (error) {
       console.error('Error loading dashboard:', error);
     }
-  };
-
-  const getClientName = async (clienteId) => {
-    const client = await db.clientes.get(clienteId);
-    return client ? client.nome : 'Cliente não encontrado';
   };
 
   const [clientNames, setClientNames] = useState({});
@@ -80,8 +75,9 @@ const DashboardPage = ({ onNewBudget }) => {
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm opacity-90">Valor/Minuto</p>
-              <p className="text-2xl font-bold mt-1">{formatarMoeda(config.valorMinuto)}</p>
+              <p className="text-sm opacity-90">{profissao?.nome || 'Profissão'}</p>
+              <p className="text-lg font-bold mt-1">{formatarMoeda(config.valorMinuto)}/min</p>
+              <p className="text-xs opacity-80 mt-1">Risco: {Math.round((profissao?.riscoBase - 1) * 100)}%</p>
             </div>
             <Clock size={24} className="opacity-80" />
           </div>
@@ -145,6 +141,9 @@ const DashboardPage = ({ onNewBudget }) => {
                     <p className="text-sm text-slate-500 mt-1">
                       {new Date(budget.data).toLocaleDateString('pt-BR')}
                     </p>
+                    {budget.profissaoNome && (
+                      <p className="text-xs text-slate-400 mt-1">{budget.profissaoNome}</p>
+                    )}
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-blue-600">{formatarMoeda(budget.total)}</p>
