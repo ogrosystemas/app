@@ -123,27 +123,29 @@ const ConfiguracoesPage = () => {
         <p className="text-slate-500 mt-1">Gerencie suas finanças</p>
       </div>
 
-      {/* Menu de navegação */}
-      <div className="flex gap-2 border-b border-slate-200">
-        {menus.map(menu => {
-          const Icon = menu.icon;
-          return (
-            <button
-              key={menu.id}
-              onClick={() => setActiveMenu(menu.id)}
-              className={`px-4 py-2 font-semibold transition-all ${
-                activeMenu === menu.id
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Icon size={18} />
-                <span>{menu.label}</span>
-              </div>
-            </button>
-          );
-        })}
+      {/* Menu de navegação com scroll horizontal */}
+      <div className="overflow-x-auto -mx-4 px-4 scrollbar-hide">
+        <div className="flex gap-2 border-b border-slate-200 min-w-max">
+          {menus.map(menu => {
+            const Icon = menu.icon;
+            return (
+              <button
+                key={menu.id}
+                onClick={() => setActiveMenu(menu.id)}
+                className={`px-4 py-2 font-semibold transition-all whitespace-nowrap ${
+                  activeMenu === menu.id
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Icon size={18} />
+                  <span>{menu.label}</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Configurações Gerais */}
@@ -337,7 +339,7 @@ const ConfiguracoesPage = () => {
             <div className="p-4 bg-slate-50 border-b border-slate-200">
               <h3 className="font-semibold text-slate-900">Últimos Lançamentos</h3>
             </div>
-            <div className="divide-y divide-slate-200">
+            <div className="divide-y divide-slate-200 max-h-96 overflow-y-auto">
               {lancamentos.length === 0 ? (
                 <div className="p-8 text-center text-slate-500">
                   <BarChart3 size={48} className="mx-auto mb-3 opacity-50" />
