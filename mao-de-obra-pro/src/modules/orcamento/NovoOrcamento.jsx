@@ -7,6 +7,7 @@ import db from '../../database/db.js';
 import { useFinanceiro } from '../../hooks/useFinanceiro.jsx';
 import { calcularPrecoServico } from '../../core/calculadora.js';
 import { CameraModal } from '../../components/CameraModal.jsx';
+import { NovoOrcamento } from './modules/orcamentos/NovoOrcamento.jsx';
 
 export const NovoOrcamento = ({ aoSalvar }) => {
   const { metricas, dados } = useFinanceiro();
