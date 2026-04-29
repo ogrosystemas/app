@@ -157,13 +157,23 @@ Entre em contato para mais informações.`;
           </div>
         </div>
 
-        <button
-          onClick={() => setShowDeleteModal(true)}
-          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          title="Excluir orçamento"
-        >
-          <Trash2 size={20} />
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={sendWhatsApp}
+            disabled={enviando}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:bg-green-700 transition-colors disabled:opacity-50"
+          >
+            <Send size={18} />
+            {enviando ? 'Enviando...' : 'WhatsApp'}
+          </button>
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            title="Excluir orçamento"
+          >
+            <Trash2 size={20} />
+          </button>
+        </div>
       </div>
 
       <div
