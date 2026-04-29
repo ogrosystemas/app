@@ -32,7 +32,6 @@ const NovoOrcamento = ({ onSave }) => {
   const [showClientModal, setShowClientModal] = useState(false);
   const [newCliente, setNewCliente] = useState({ nome: '', whatsapp: '', endereco: '' });
   const [showServicoModal, setShowServicoModal] = useState(false);
-  const [newServico, setNewServico] = useState({ nome: '', tempoPadrao: '', categoria: '' });
 
   useEffect(() => {
     loadData();
