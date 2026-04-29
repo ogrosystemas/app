@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, X, Check, RotateCcw } from 'lucide-react';
+import { Camera, X, Check, RotateCcw, Save } from 'lucide-react';
 
 const CameraModal = ({ isOpen, onClose, onCapture }) => {
   const [stream, setStream] = useState(null);
@@ -45,6 +45,21 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
     }
   };
 
+  const saveToGallery = (photoData) => {
+    try {
+      const link = document.createElement('a');
+      link.href = photoData;
+      link.download = `foto_servico_${Date.now()}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      alert('Foto salva na galeria!');
+    } catch (error) {
+      console.error('Erro ao salvar foto:', error);
+      alert('Não foi possível salvar a foto');
+    }
+  };
+
   const retakePhoto = () => {
     setPhoto(null);
     startCamera();
@@ -52,6 +67,7 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
 
   const confirmPhoto = () => {
     if (photo) {
+      saveToGallery(photo);
       onCapture(photo);
       handleClose();
     }
