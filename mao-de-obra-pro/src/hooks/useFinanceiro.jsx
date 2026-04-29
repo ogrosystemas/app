@@ -33,11 +33,13 @@ export function useFinanceiro() {
       const profissaoSlug = configObj.profissaoSelecionada || 'eletricista';
       const profissaoData = await db.profissoes.where('slug').equals(profissaoSlug).first();
 
+      // Calcular valor minuto baseado na meta salarial
       const valorMinutoBase = calcularValorMinuto(
         configObj.metaSalarial || 5000,
         configObj.horasTrabalhadas || 160
       );
 
+      // Aplicar multiplicador de risco da profissão
       const riscoMultiplier = profissaoData ? profissaoData.riscoBase : 1.0;
       const valorMinutoAjustado = valorMinutoBase * riscoMultiplier;
 
@@ -91,9 +93,11 @@ export function useFinanceiro() {
 
   const selecionarProfissao = async (profissaoData) => {
     try {
+      // Atualizar profissão no banco
       await db.config.where('chave').equals('profissaoSelecionada').modify({ valor: profissaoData.slug });
       await db.config.where('chave').equals('custoManutencaoFerramenta').modify({ valor: profissaoData.custoFerramental });
 
+      // Calcular adicional de periculosidade baseado no risco
       let adicionalPericulosidade = 0.15;
       if (profissaoData.riscoBase >= 1.2) {
         adicionalPericulosidade = 0.20;
@@ -102,11 +106,14 @@ export function useFinanceiro() {
       } else {
         adicionalPericulosidade = 0.10;
       }
-
       await db.config.where('chave').equals('adicionalPericulosidade').modify({ valor: adicionalPericulosidade });
+
+      // Marcar primeiro acesso como falso
       await db.config.where('chave').equals('primeiroAcesso').modify({ valor: false });
 
+      // Recarregar configurações para atualizar o valorMinuto com o novo risco
       await loadConfig();
+
       return true;
     } catch (error) {
       console.error('Error selecting profession:', error);
