@@ -5,8 +5,7 @@ import {
   Camera as CameraIcon,
   CheckCircle,
   XCircle,
-  Clock,
-  Edit3
+  Clock
 } from 'lucide-react';
 import db from '../../database/db';
 import { formatarMoeda, formatarTempo } from '../../core/calculadora';
@@ -74,7 +73,8 @@ const VisualizarOrcamento = ({ onBack, id }) => {
 
     setEnviando(true);
 
-    const message = `
+    // Construir mensagem com imagens
+    let message = `
 *ORÇAMENTO MÃO DE OBRA PRO*
 *Nº:* ${orcamento.id}
 *Cliente:* ${cliente.nome}
@@ -89,6 +89,14 @@ ${orcamento.itens.map(item => `✓ ${item.nome} - ${formatarMoeda(item.preco)}`)
 Orçamento válido por 30 dias.
 Entre em contato para mais informações.
     `.trim();
+
+    // Adicionar link das fotos se houver
+    if (orcamento.fotos && orcamento.fotos.length > 0) {
+      message += `\n\n*FOTOS DO SERVIÇO:*\n`;
+      orcamento.fotos.forEach((foto, idx) => {
+        message += `Foto ${idx + 1}: ${foto}\n`;
+      });
+    }
 
     const whatsappNumber = cliente.whatsapp.replace(/\D/g, '');
     const url = `https://wa.me/55${whatsappNumber}?text=${encodeURIComponent(message)}`;
@@ -124,44 +132,36 @@ Entre em contato para mais informações.
 
   return (
     <div className="space-y-4 animate-fade-in pb-32">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-          >
-            <ArrowLeft size={24} />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Orçamento #{orcamento.id}</h1>
-            <p className="text-sm text-slate-500">
-              {new Date(orcamento.data).toLocaleDateString('pt-BR', {
-                day: '2-digit',
-                month: 'long',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </p>
-          </div>
-        </div>
-
+      <div className="flex items-center gap-3">
         <button
-          onClick={() => setShowStatusModal(true)}
-          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-          title="Alterar status"
+          onClick={onBack}
+          className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
         >
-          <Edit3 size={20} />
+          <ArrowLeft size={24} />
         </button>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Orçamento #{orcamento.id}</h1>
+          <p className="text-sm text-slate-500">
+            {new Date(orcamento.data).toLocaleDateString('pt-BR', {
+              day: '2-digit',
+              month: 'long',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+          </p>
+        </div>
       </div>
 
-      <div className={`
-        rounded-xl p-4 text-center cursor-pointer
-        ${orcamento.status === 'aprovado' ? 'bg-green-50 border border-green-200' : ''}
-        ${orcamento.status === 'pendente' ? 'bg-yellow-50 border border-yellow-200' : ''}
-        ${orcamento.status === 'recusado' ? 'bg-red-50 border border-red-200' : ''}
-      `}
-      onClick={() => setShowStatusModal(true)}>
+      <div
+        className={`
+          rounded-xl p-4 text-center cursor-pointer
+          ${orcamento.status === 'aprovado' ? 'bg-green-50 border border-green-200' : ''}
+          ${orcamento.status === 'pendente' ? 'bg-yellow-50 border border-yellow-200' : ''}
+          ${orcamento.status === 'recusado' ? 'bg-red-50 border border-red-200' : ''}
+        `}
+        onClick={() => setShowStatusModal(true)}
+      >
         <div className="flex items-center justify-center gap-2">
           {orcamento.status === 'aprovado' && <CheckCircle className="text-green-600" size={20} />}
           {orcamento.status === 'pendente' && <Clock className="text-yellow-600" size={20} />}
@@ -170,7 +170,6 @@ Entre em contato para mais informações.
             {orcamento.status === 'aprovado' ? 'Orçamento Aprovado' :
              orcamento.status === 'pendente' ? 'Aguardando Aprovação' : 'Orçamento Recusado'}
           </span>
-          <Edit3 size={14} className="opacity-50" />
         </div>
       </div>
 
