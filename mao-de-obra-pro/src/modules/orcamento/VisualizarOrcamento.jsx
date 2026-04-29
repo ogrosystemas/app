@@ -51,6 +51,7 @@ const VisualizarOrcamento = ({ onBack }) => {
 *ORÇAMENTO MÃO DE OBRA PRO*
 *Cliente:* ${cliente.nome}
 *Data:* ${new Date(orcamento.data).toLocaleDateString('pt-BR')}
+*Profissão:* ${orcamento.profissaoNome || 'Não informado'}
 
 *SERVIÇOS:*
 ${orcamento.itens.map(item => `✓ ${item.nome} (${formatarTempo(item.tempo)}) - ${formatarMoeda(item.preco)}`).join('\n')}
@@ -175,6 +176,10 @@ Para aprovar ou solicitar alterações, entre em contato.
           <div className="flex justify-between text-sm">
             <span className="text-slate-600">Taxa de Deslocamento</span>
             <span>{formatarMoeda(orcamento.taxaDeslocamento)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-slate-600">Profissão</span>
+            <span className="font-medium">{orcamento.profissaoNome || 'Não informado'}</span>
           </div>
           <div className="border-t border-slate-200 pt-2 mt-2">
             <div className="flex justify-between text-lg font-bold">
