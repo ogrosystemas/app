@@ -21,7 +21,7 @@ import {
 } from '../../core/calculadora';
 
 const NovoOrcamento = ({ onSave }) => {
-  const { config } = useFinanceiro();
+  const { config, profissao } = useFinanceiro();
   const [step, setStep] = useState(1);
   const [clientes, setClientes] = useState([]);
   const [servicos, setServicos] = useState([]);
@@ -35,13 +35,20 @@ const NovoOrcamento = ({ onSave }) => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [profissao]);
 
   const loadData = async () => {
     const allClientes = await db.clientes.toArray();
-    const allServicos = await db.servicos.toArray();
     setClientes(allClientes);
-    setServicos(allServicos);
+
+    // Carregar apenas serviços da profissão atual
+    if (profissao) {
+      const servicosDaProfissao = await db.servicos
+        .where('profissaoId')
+        .equals(profissao.id)
+        .toArray();
+      setServicos(servicosDaProfissao);
+    }
   };
 
   const handleAddCliente = async () => {
@@ -132,7 +139,9 @@ const NovoOrcamento = ({ onSave }) => {
       })),
       fotos: fotos,
       taxaDeslocamento: config.taxaDeslocamento,
-      subtotal: totalOrcamento.subtotal
+      subtotal: totalOrcamento.subtotal,
+      profissaoId: profissao?.id,
+      profissaoNome: profissao?.nome
     };
 
     await db.orcamentos.add(budget);
@@ -147,11 +156,24 @@ const NovoOrcamento = ({ onSave }) => {
     { number: 4, title: 'Resumo', icon: TrendingUp }
   ];
 
+  if (!profissao) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-3 text-slate-500">Carregando configurações da profissão...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in pb-24">
       <div>
         <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Novo Orçamento</h1>
-        <p className="text-slate-500 mt-1">Crie um orçamento profissional</p>
+        <p className="text-slate-500 mt-1">
+          Profissão: <span className="font-semibold text-blue-600">{profissao.nome}</span>
+        </p>
       </div>
 
       <div className="flex justify-between items-center">
@@ -196,22 +218,34 @@ const NovoOrcamento = ({ onSave }) => {
             </div>
 
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {clientes.map(cliente => (
-                <button
-                  key={cliente.id}
-                  onClick={() => setSelectedCliente(cliente)}
-                  className={`w-full text-left p-3 rounded-lg border transition-all ${
-                    selectedCliente?.id === cliente.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-slate-200 hover:border-blue-200'
-                  }`}
-                >
-                  <p className="font-medium text-slate-900">{cliente.nome}</p>
-                  {cliente.whatsapp && (
-                    <p className="text-sm text-slate-500">{cliente.whatsapp}</p>
-                  )}
-                </button>
-              ))}
+              {clientes.length === 0 ? (
+                <div className="text-center py-8 text-slate-500">
+                  <p>Nenhum cliente cadastrado</p>
+                  <button
+                    onClick={() => setShowClientModal(true)}
+                    className="mt-2 text-blue-600 text-sm"
+                  >
+                    Criar primeiro cliente
+                  </button>
+                </div>
+              ) : (
+                clientes.map(cliente => (
+                  <button
+                    key={cliente.id}
+                    onClick={() => setSelectedCliente(cliente)}
+                    className={`w-full text-left p-3 rounded-lg border transition-all ${
+                      selectedCliente?.id === cliente.id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-slate-200 hover:border-blue-200'
+                    }`}
+                  >
+                    <p className="font-medium text-slate-900">{cliente.nome}</p>
+                    {cliente.whatsapp && (
+                      <p className="text-sm text-slate-500">{cliente.whatsapp}</p>
+                    )}
+                  </button>
+                ))
+              )}
             </div>
           </div>
 
@@ -229,7 +263,9 @@ const NovoOrcamento = ({ onSave }) => {
         <div className="space-y-4">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold text-slate-900">Serviços</h3>
+              <h3 className="font-semibold text-slate-900">
+                Serviços de {profissao.nome}
+              </h3>
               <button
                 onClick={() => setShowServicoModal(true)}
                 className="text-blue-600 text-sm font-semibold flex items-center gap-1"
@@ -243,6 +279,7 @@ const NovoOrcamento = ({ onSave }) => {
               <div className="text-center py-8 text-slate-500">
                 <Wrench size={48} className="mx-auto mb-2 opacity-50" />
                 <p>Nenhum serviço adicionado</p>
+                <p className="text-xs mt-1">Clique em "Adicionar" para incluir serviços</p>
               </div>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -379,6 +416,11 @@ const NovoOrcamento = ({ onSave }) => {
                 <span className="font-medium text-slate-900">{selectedCliente?.nome}</span>
               </div>
 
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600">Profissão:</span>
+                <span className="font-medium text-slate-900">{profissao?.nome}</span>
+              </div>
+
               <div className="border-t border-slate-200 pt-3">
                 <p className="text-sm font-medium text-slate-700 mb-2">Serviços:</p>
                 {selectedServicos.map((servico, idx) => (
@@ -430,6 +472,7 @@ const NovoOrcamento = ({ onSave }) => {
         </div>
       )}
 
+      {/* Modal Novo Cliente */}
       {showClientModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
@@ -465,21 +508,31 @@ const NovoOrcamento = ({ onSave }) => {
         </div>
       )}
 
+      {/* Modal Adicionar Serviço */}
       {showServicoModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
           <div className="bg-white rounded-xl max-w-md w-full p-6 max-h-96 overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4">Adicionar Serviço</h3>
+            <h3 className="text-xl font-bold mb-4">
+              Serviços de {profissao?.nome}
+            </h3>
             <div className="space-y-2">
-              {servicos.map(servico => (
-                <button
-                  key={servico.id}
-                  onClick={() => handleAddServicoToBudget(servico)}
-                  className="w-full text-left p-3 border rounded-lg hover:border-blue-500 transition-colors"
-                >
-                  <p className="font-medium">{servico.nome}</p>
-                  <p className="text-sm text-slate-500">{formatarTempo(servico.tempoPadrao)}</p>
-                </button>
-              ))}
+              {servicos.length === 0 ? (
+                <div className="text-center py-8 text-slate-500">
+                  <p>Nenhum serviço cadastrado para {profissao?.nome}</p>
+                  <p className="text-xs mt-2">Acesse o Catálogo para adicionar serviços</p>
+                </div>
+              ) : (
+                servicos.map(servico => (
+                  <button
+                    key={servico.id}
+                    onClick={() => handleAddServicoToBudget(servico)}
+                    className="w-full text-left p-3 border rounded-lg hover:border-blue-500 transition-colors"
+                  >
+                    <p className="font-medium">{servico.nome}</p>
+                    <p className="text-sm text-slate-500">{formatarTempo(servico.tempoPadrao)}</p>
+                  </button>
+                ))
+              )}
             </div>
             <button
               onClick={() => setShowServicoModal(false)}
@@ -491,6 +544,7 @@ const NovoOrcamento = ({ onSave }) => {
         </div>
       )}
 
+      {/* Camera Modal */}
       <CameraModal
         isOpen={showCamera}
         onClose={() => setShowCamera(false)}
