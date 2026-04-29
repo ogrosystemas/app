@@ -41,7 +41,6 @@ const NovoOrcamento = ({ onSave }) => {
     const allClientes = await db.clientes.toArray();
     setClientes(allClientes);
 
-    // Carregar apenas serviços da profissão atual
     if (profissao) {
       const servicosDaProfissao = await db.servicos
         .where('profissaoId')
@@ -472,7 +471,6 @@ const NovoOrcamento = ({ onSave }) => {
         </div>
       )}
 
-      {/* Modal Novo Cliente */}
       {showClientModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
@@ -508,7 +506,6 @@ const NovoOrcamento = ({ onSave }) => {
         </div>
       )}
 
-      {/* Modal Adicionar Serviço */}
       {showServicoModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
           <div className="bg-white rounded-xl max-w-md w-full p-6 max-h-96 overflow-y-auto">
@@ -544,7 +541,6 @@ const NovoOrcamento = ({ onSave }) => {
         </div>
       )}
 
-      {/* Camera Modal */}
       <CameraModal
         isOpen={showCamera}
         onClose={() => setShowCamera(false)}
