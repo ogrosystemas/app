@@ -6,8 +6,9 @@ import { ServicosPage } from './modules/catalogo/ServicosPage.jsx';
 import { ConfiguracoesPage } from './modules/financeiro/ConfiguracoesPage.jsx';
 
 // Importação direta sem o prefixo src (já que App.jsx já está na src)
-import { NovoOrcamento } from './modules/orcamentos/NovoOrcamento.jsx';
-import { VisualizarOrcamento } from './modules/orcamentos/VisualizarOrcamento.jsx';
+// Trocando o ponto por /src/ para o Rollup não ter como errar o caminho físico
+import { NovoOrcamento } from '/src/modules/orcamentos/NovoOrcamento.jsx';
+import { VisualizarOrcamento } from '/src/modules/orcamentos/VisualizarOrcamento.jsx';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');

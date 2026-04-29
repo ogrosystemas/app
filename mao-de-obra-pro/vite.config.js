@@ -1,23 +1,17 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import path from 'path'
 
 export default defineConfig({
   plugins: [
     react(),
-    VitePWA({
-      registerType: 'autoUpdate',
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,jsx}']
-      }
-    })
+    VitePWA({ registerType: 'autoUpdate' })
   ],
   resolve: {
-    // Isso força o Vite a procurar arquivos .jsx e .js se ele se perder
-    extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json']
+    alias: {
+      // Isso aqui diz: toda vez que eu usar @, olhe para a pasta src
+      '@': path.resolve(__dirname, './src'),
+    },
   },
-  build: {
-    // Garante que o build não falhe por avisos bobos de importação
-    chunkSizeWarningLimit: 1600,
-  }
 })
