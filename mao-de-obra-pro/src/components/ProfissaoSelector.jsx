@@ -11,7 +11,7 @@ const ProfissaoSelector = ({ onSelect, selectedSlug }) => {
   }, []);
 
   const loadProfissoes = async () => {
-    const all = await db.profissoes.toArray();
+    const all = await db.profissoes.where('ativo').equals(true).toArray();
     setProfissoes(all);
     setLoading(false);
   };
