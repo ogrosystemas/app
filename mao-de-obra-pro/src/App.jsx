@@ -20,8 +20,9 @@ function App() {
       try {
         await initDatabase();
         const config = await db.config.where('chave').equals('primeiroAcesso').first();
-        // primeiroAcesso = 1 significa true
-        setPrimeiroAcesso(config ? config.valor === 1 : true);
+        // Garantir que primeiroAcesso seja tratado como número
+        const isFirstAccess = config ? config.valor === 1 || config.valor === true : true;
+        setPrimeiroAcesso(isFirstAccess);
         setDbReady(true);
       } catch (err) {
         console.error('Failed to initialize database:', err);
@@ -32,7 +33,13 @@ function App() {
   }, []);
 
   const handleSetupComplete = async () => {
-    await db.config.where('chave').equals('primeiroAcesso').modify({ valor: 0 });
+    // Garantir que salva como número 0
+    const existing = await db.config.where('chave').equals('primeiroAcesso').first();
+    if (existing) {
+      await db.config.where('chave').equals('primeiroAcesso').modify({ valor: 0 });
+    } else {
+      await db.config.add({ chave: 'primeiroAcesso', valor: 0 });
+    }
     setPrimeiroAcesso(false);
     setActiveTab('dashboard');
   };
