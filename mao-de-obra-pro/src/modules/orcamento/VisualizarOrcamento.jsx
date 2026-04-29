@@ -5,7 +5,9 @@ import {
   Camera as CameraIcon,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  Calendar,
+  Trash2
 } from 'lucide-react';
 import db from '../../database/db';
 import { formatarMoeda } from '../../core/calculadora';
@@ -16,6 +18,7 @@ const VisualizarOrcamento = ({ onBack, id }) => {
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -64,6 +67,15 @@ const VisualizarOrcamento = ({ onBack, id }) => {
     }
   };
 
+  const deleteOrcamento = async () => {
+    if (orcamento) {
+      await db.orcamentos.delete(orcamento.id);
+      setShowDeleteModal(false);
+      alert('Orçamento excluído com sucesso!');
+      onBack();
+    }
+  };
+
   const sendWhatsApp = async () => {
     if (!cliente?.whatsapp) {
       alert('Cliente não possui WhatsApp cadastrado');
@@ -72,10 +84,15 @@ const VisualizarOrcamento = ({ onBack, id }) => {
 
     setEnviando(true);
 
+    const dataVencimento = orcamento.dataVencimento
+      ? new Date(orcamento.dataVencimento).toLocaleDateString('pt-BR')
+      : 'Não informada';
+
     const message = `*ORÇAMENTO MÃO DE OBRA PRO*
 *Nº:* ${orcamento.id}
 *Cliente:* ${cliente.nome}
 *Data:* ${new Date(orcamento.data).toLocaleDateString('pt-BR')}
+*Válido até:* ${dataVencimento}
 
 *SERVIÇOS:*
 ${orcamento.itens.map(item => `✓ ${item.nome}`).join('\n')}
@@ -83,7 +100,7 @@ ${orcamento.itens.map(item => `✓ ${item.nome}`).join('\n')}
 *TOTAL: ${formatarMoeda(orcamento.total)}*
 
 ---
-Orçamento válido por 30 dias.
+Orçamento válido até ${dataVencimento}.
 Entre em contato para mais informações.`;
 
     const whatsappNumber = cliente.whatsapp.replace(/\D/g, '');
@@ -113,6 +130,12 @@ Entre em contato para mais informações.`;
     );
   }
 
+  const dataVencimento = orcamento.dataVencimento
+    ? new Date(orcamento.dataVencimento).toLocaleDateString('pt-BR')
+    : 'Não informada';
+
+  const isVencido = orcamento.dataVencimento && new Date(orcamento.dataVencimento) < new Date();
+
   return (
     <div className="space-y-4 animate-fade-in pb-32">
       <div className="flex items-center justify-between">
@@ -135,12 +158,11 @@ Entre em contato para mais informações.`;
         </div>
 
         <button
-          onClick={sendWhatsApp}
-          disabled={enviando}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:bg-green-700 transition-colors disabled:opacity-50"
+          onClick={() => setShowDeleteModal(true)}
+          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          title="Excluir orçamento"
         >
-          <Send size={18} />
-          {enviando ? 'Enviando...' : 'WhatsApp'}
+          <Trash2 size={20} />
         </button>
       </div>
 
@@ -191,6 +213,30 @@ Entre em contato para mais informações.`;
         </div>
       </div>
 
+      {/* Validade */}
+      <div className={`bg-white rounded-xl shadow-sm border overflow-hidden ${isVencido ? 'border-red-300 bg-red-50' : 'border-slate-200'}`}>
+        <div className="p-4 bg-slate-50 border-b border-slate-200">
+          <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+            <Calendar size={18} />
+            Validade
+          </h3>
+        </div>
+        <div className="p-4">
+          <div className="flex justify-between items-center">
+            <span className="text-slate-600">Válido até:</span>
+            <span className={`font-semibold ${isVencido ? 'text-red-600' : 'text-green-600'}`}>
+              {dataVencimento} {isVencido && '(Vencido)'}
+            </span>
+          </div>
+          {orcamento.validade && (
+            <div className="flex justify-between items-center mt-2">
+              <span className="text-slate-600">Validade original:</span>
+              <span className="text-slate-700">{orcamento.validade} dias</span>
+            </div>
+          )}
+        </div>
+      </div>
+
       {orcamento.fotos && orcamento.fotos.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="p-4 bg-slate-50 border-b border-slate-200">
@@ -226,6 +272,7 @@ Entre em contato para mais informações.`;
         </div>
       </div>
 
+      {/* Modal de alterar status */}
       {showStatusModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 animate-fade-in">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
@@ -259,6 +306,33 @@ Entre em contato para mais informações.`;
             >
               Cancelar
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de excluir */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 animate-fade-in">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-slate-900 mb-4">Excluir Orçamento</h3>
+            <p className="text-slate-600 mb-6">
+              Tem certeza que deseja excluir o orçamento #{orcamento.id}?
+              Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 border border-slate-300 py-2 rounded-lg font-semibold"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={deleteOrcamento}
+                className="flex-1 bg-red-600 text-white py-2 rounded-lg font-semibold"
+              >
+                Excluir
+              </button>
+            </div>
           </div>
         </div>
       )}
