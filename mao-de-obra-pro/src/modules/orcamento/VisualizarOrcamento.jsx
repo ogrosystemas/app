@@ -51,7 +51,6 @@ const VisualizarOrcamento = ({ onBack }) => {
 *ORÇAMENTO MÃO DE OBRA PRO*
 *Cliente:* ${cliente.nome}
 *Data:* ${new Date(orcamento.data).toLocaleDateString('pt-BR')}
-*Profissão:* ${orcamento.profissaoNome || 'Não informado'}
 
 *SERVIÇOS:*
 ${orcamento.itens.map(item => `✓ ${item.nome} (${formatarTempo(item.tempo)}) - ${formatarMoeda(item.preco)}`).join('\n')}
@@ -68,7 +67,9 @@ Para aprovar ou solicitar alterações, entre em contato.
 
     const whatsappNumber = cliente.whatsapp.replace(/\D/g, '');
     const url = `https://wa.me/55${whatsappNumber}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
+
+    // Abre o WhatsApp no celular
+    window.location.href = url;
   };
 
   if (loading) {
@@ -236,7 +237,7 @@ Para aprovar ou solicitar alterações, entre em contato.
           )}
           <button
             onClick={sendWhatsApp}
-            className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2"
+            className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2"
           >
             <Send size={20} />
             Enviar WhatsApp
