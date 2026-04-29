@@ -92,7 +92,7 @@ const SetupPage = ({ onComplete }) => {
                   </div>
                   <p className="text-sm text-slate-600">
                     Cada profissão tem um multiplicador de risco base que influencia no valor da sua hora de trabalho.
-                    Profissões com maior risco (como Eletricista) têm um valor/hora mais alto.
+                    Profissões com maior risco (como Eletricista e Pedreiro) têm um valor/hora mais alto.
                   </p>
                 </div>
               </div>
