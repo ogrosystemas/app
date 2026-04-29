@@ -79,7 +79,7 @@ const VisualizarOrcamento = ({ onBack, id }) => {
 *Status:* ${orcamento.status === 'pendente' ? 'Aguardando aprovação' : orcamento.status === 'aprovado' ? 'Aprovado' : 'Recusado'}
 
 *SERVIÇOS:*
-${orcamento.itens.map(item => `✓ ${item.nome} (${formatarTempo(item.tempo)}) - ${formatarMoeda(item.preco)}`).join('\n')}
+${orcamento.itens.map(item => `✓ ${item.nome} (${item.usaPrecoFixo ? 'Preço fixo' : formatarTempo(item.tempo) + ' - ' + item.dificuldade}) - ${formatarMoeda(item.preco)}`).join('\n')}
 
 *DESPESAS:*
 Deslocamento: ${formatarMoeda(orcamento.taxaDeslocamento)}
@@ -130,7 +130,6 @@ Ou entre em contato para mais informações.
 
   return (
     <div className="space-y-4 animate-fade-in pb-32">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
@@ -153,7 +152,6 @@ Ou entre em contato para mais informações.
           </div>
         </div>
 
-        {/* Botão reenviar */}
         <button
           onClick={reenviarOrcamento}
           disabled={enviando}
@@ -164,7 +162,6 @@ Ou entre em contato para mais informações.
         </button>
       </div>
 
-      {/* Status Badge */}
       <div className={`
         rounded-xl p-4 text-center
         ${orcamento.status === 'aprovado' ? 'bg-green-50 border border-green-200' : ''}
@@ -182,7 +179,6 @@ Ou entre em contato para mais informações.
         </div>
       </div>
 
-      {/* Cliente */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
         <h3 className="font-semibold text-slate-900 mb-2">Cliente</h3>
         <p className="text-slate-800">{cliente.nome}</p>
@@ -194,7 +190,6 @@ Ou entre em contato para mais informações.
         )}
       </div>
 
-      {/* Serviços */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-4 bg-slate-50 border-b border-slate-200">
           <h3 className="font-semibold text-slate-900">Serviços Realizados</h3>
@@ -204,7 +199,11 @@ Ou entre em contato para mais informações.
             <div key={idx} className="flex justify-between items-start">
               <div>
                 <p className="font-medium text-slate-900">{item.nome}</p>
-                <p className="text-xs text-slate-500">{formatarTempo(item.tempo)} • Dificuldade: {item.dificuldade}</p>
+                {item.usaPrecoFixo ? (
+                  <p className="text-xs text-green-600">Preço fixo</p>
+                ) : (
+                  <p className="text-xs text-slate-500">{formatarTempo(item.tempo)} • Dificuldade: {item.dificuldade}</p>
+                )}
               </div>
               <p className="font-semibold text-blue-600">{formatarMoeda(item.preco)}</p>
             </div>
@@ -212,7 +211,6 @@ Ou entre em contato para mais informações.
         </div>
       </div>
 
-      {/* Resumo Financeiro */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-4 bg-slate-50 border-b border-slate-200">
           <h3 className="font-semibold text-slate-900">Resumo Financeiro</h3>
@@ -241,7 +239,6 @@ Ou entre em contato para mais informações.
         </div>
       </div>
 
-      {/* Fotos */}
       {orcamento.fotos && orcamento.fotos.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="p-4 bg-slate-50 border-b border-slate-200">
@@ -266,7 +263,6 @@ Ou entre em contato para mais informações.
         </div>
       )}
 
-      {/* Botões de Ação - Fixos no bottom */}
       <div className="fixed bottom-0 left-0 right-0 lg:left-64 p-4 bg-white border-t border-slate-200 shadow-lg">
         <div className="max-w-7xl mx-auto flex gap-3">
           {orcamento.status === 'pendente' && (
