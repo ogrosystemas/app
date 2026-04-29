@@ -1,10 +1,9 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
+  "buildCommand": "cd mao-de-obra-pro && npm run build",
+  "outputDirectory": "mao-de-obra-pro/dist",
+  "devCommand": "cd mao-de-obra-pro && npm run dev",
+  "installCommand": "cd mao-de-obra-pro && npm install",
   "framework": "vite",
-  "rootDirectory": "mao-de-obra-pro",
   "rewrites": [
     {
       "source": "/(.*)",
