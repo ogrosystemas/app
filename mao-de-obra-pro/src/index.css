@@ -55,4 +55,13 @@
   .card {
     @apply bg-white rounded-xl shadow-sm border border-slate-200 p-4;
   }
+
+  /* Esconder scrollbar no mobile mas manter funcionalidade */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
 }
