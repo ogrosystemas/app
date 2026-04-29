@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Plus, Camera, Save, Trash2, ChevronLeft } from 'lucide-react';
 
-// Adicionada a extensão .js ou .jsx nos imports internos para o Netlify não se perder
+// Importações com extensões explícitas para compatibilidade com o build Linux do Netlify
 import db from '../../database/db.js';
 import { useFinanceiro } from '../../hooks/useFinanceiro.jsx';
 import { calcularPrecoServico } from '../../core/calculadora.js';
 import { CameraModal } from '../../components/CameraModal.jsx';
-import { NovoOrcamento } from './modules/orcamentos/NovoOrcamento.jsx';
 
 export const NovoOrcamento = ({ aoSalvar }) => {
   const { metricas, dados } = useFinanceiro();
@@ -28,7 +27,6 @@ export const NovoOrcamento = ({ aoSalvar }) => {
       nome: s.nome,
       tempoAjustado: s.tempoPadrao,
       dificuldade: 1.0,
-      // Garantindo que valores iniciais existam para não quebrar o cálculo
       valorFinal: calcularPrecoServico(
         s.tempoPadrao,
         metricas?.valorMinuto || 0,
@@ -41,7 +39,6 @@ export const NovoOrcamento = ({ aoSalvar }) => {
 
   const atualizarItem = (index, campo, valor) => {
     const novosItens = [...itens];
-    // Correção: Garantir que o valor seja zero se o campo for limpo pelo usuário
     const valorNumerico = valor === "" ? 0 : Number(valor);
     novosItens[index][campo] = valorNumerico;
 
