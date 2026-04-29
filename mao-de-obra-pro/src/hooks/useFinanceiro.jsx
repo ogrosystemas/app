@@ -8,9 +8,14 @@ export function useFinanceiro() {
     horasTrabalhadas: 160,
     margemReserva: 0.2,
     taxaDeslocamento: 50,
-    valorMinuto: 0
+    valorMinuto: 0,
+    profissaoSelecionada: null,
+    adicionalPericulosidade: 0.15,
+    custoManutencaoFerramenta: 300,
+    primeiroAcesso: true
   });
   const [loading, setLoading] = useState(true);
+  const [profissao, setProfissao] = useState(null);
 
   // Load config from database
   useEffect(() => {
@@ -26,17 +31,31 @@ export function useFinanceiro() {
         configObj[c.chave] = c.valor;
       });
 
-      const valorMinuto = calcularValorMinuto(
+      // Load current profession
+      const profissaoSlug = configObj.profissaoSelecionada || 'eletricista';
+      const profissaoData = await db.profissoes.where('slug').equals(profissaoSlug).first();
+
+      // Calculate valor minuto with profession risk factor
+      const valorMinutoBase = calcularValorMinuto(
         configObj.metaSalarial || 5000,
         configObj.horasTrabalhadas || 160
       );
 
+      // Apply profession risk multiplier to valor minuto
+      const riscoMultiplier = profissaoData ? profissaoData.riscoBase : 1.0;
+      const valorMinutoAjustado = valorMinutoBase * riscoMultiplier;
+
+      setProfissao(profissaoData);
       setConfig({
         metaSalarial: configObj.metaSalarial || 5000,
         horasTrabalhadas: configObj.horasTrabalhadas || 160,
         margemReserva: configObj.margemReserva || 0.2,
         taxaDeslocamento: configObj.taxaDeslocamento || 50,
-        valorMinuto: valorMinuto
+        valorMinuto: valorMinutoAjustado,
+        profissaoSelecionada: profissaoSlug,
+        adicionalPericulosidade: configObj.adicionalPericulosidade || 0.15,
+        custoManutencaoFerramenta: configObj.custoManutencaoFerramenta || 300,
+        primeiroAcesso: configObj.primeiroAcesso || true
       });
     } catch (error) {
       console.error('Error loading config:', error);
@@ -74,11 +93,41 @@ export function useFinanceiro() {
     }
   };
 
+  const selecionarProfissao = async (profissaoData) => {
+    try {
+      // Update profession in config
+      await db.config.where('chave').equals('profissaoSelecionada').modify({ valor: profissaoData.slug });
+      await db.config.where('chave').equals('custoManutencaoFerramenta').modify({ valor: profissaoData.custoFerramental });
+
+      // Update periculosidade based on risk
+      let adicionalPericulosidade = 0;
+      if (profissaoData.riscoBase >= 1.2) {
+        adicionalPericulosidade = 0.20;
+      } else if (profissaoData.riscoBase >= 1.1) {
+        adicionalPericulosidade = 0.15;
+      } else {
+        adicionalPericulosidade = 0.10;
+      }
+      await db.config.where('chave').equals('adicionalPericulosidade').modify({ valor: adicionalPericulosidade });
+
+      // Mark first access as false
+      await db.config.where('chave').equals('primeiroAcesso').modify({ valor: false });
+
+      await loadConfig();
+      return true;
+    } catch (error) {
+      console.error('Error selecting profession:', error);
+      return false;
+    }
+  };
+
   return {
     config,
+    profissao,
     loading,
     updateConfig,
     updateAllConfig,
+    selecionarProfissao,
     refresh: loadConfig
   };
 }
