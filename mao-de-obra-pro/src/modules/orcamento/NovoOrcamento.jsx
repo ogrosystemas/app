@@ -7,7 +7,8 @@ import {
   Send,
   Trash2,
   Plus,
-  ChevronRight
+  ChevronRight,
+  DollarSign
 } from 'lucide-react';
 import db from '../../database/db';
 import CameraModal from '../../components/CameraModal';
@@ -64,17 +65,29 @@ const NovoOrcamento = ({ onSave }) => {
   };
 
   const handleAddServicoToBudget = (servico) => {
+    let precoCalculado;
+    let usaPrecoFixo = false;
+
+    if (servico.precoFixo && servico.precoFixo > 0) {
+      precoCalculado = servico.precoFixo;
+      usaPrecoFixo = true;
+    } else {
+      precoCalculado = calcularPrecoServico(
+        servico.tempoPadrao,
+        config.valorMinuto,
+        DIFICULDADE.NORMAL.fator,
+        config.margemReserva
+      );
+    }
+
     setSelectedServicos([...selectedServicos, {
       id: Date.now(),
       nome: servico.nome,
       tempoAjustado: servico.tempoPadrao,
       dificuldade: 'NORMAL',
-      preco: calcularPrecoServico(
-        servico.tempoPadrao,
-        config.valorMinuto,
-        DIFICULDADE.NORMAL.fator,
-        config.margemReserva
-      )
+      preco: precoCalculado,
+      precoFixo: servico.precoFixo || null,
+      usaPrecoFixo: usaPrecoFixo
     }]);
     setShowServicoModal(false);
   };
@@ -83,20 +96,24 @@ const NovoOrcamento = ({ onSave }) => {
     const updated = [...selectedServicos];
     if (field === 'tempoAjustado') {
       updated[index].tempoAjustado = parseInt(value);
-      updated[index].preco = calcularPrecoServico(
-        updated[index].tempoAjustado,
-        config.valorMinuto,
-        DIFICULDADE[updated[index].dificuldade].fator,
-        config.margemReserva
-      );
+      if (!updated[index].usaPrecoFixo) {
+        updated[index].preco = calcularPrecoServico(
+          updated[index].tempoAjustado,
+          config.valorMinuto,
+          DIFICULDADE[updated[index].dificuldade].fator,
+          config.margemReserva
+        );
+      }
     } else if (field === 'dificuldade') {
       updated[index].dificuldade = value;
-      updated[index].preco = calcularPrecoServico(
-        updated[index].tempoAjustado,
-        config.valorMinuto,
-        DIFICULDADE[value].fator,
-        config.margemReserva
-      );
+      if (!updated[index].usaPrecoFixo) {
+        updated[index].preco = calcularPrecoServico(
+          updated[index].tempoAjustado,
+          config.valorMinuto,
+          DIFICULDADE[value].fator,
+          config.margemReserva
+        );
+      }
     }
     setSelectedServicos(updated);
   };
@@ -134,7 +151,8 @@ const NovoOrcamento = ({ onSave }) => {
         nome: s.nome,
         tempo: s.tempoAjustado,
         dificuldade: s.dificuldade,
-        preco: s.preco
+        preco: s.preco,
+        usaPrecoFixo: s.usaPrecoFixo || false
       })),
       fotos: fotos,
       taxaDeslocamento: config.taxaDeslocamento,
@@ -294,30 +312,37 @@ const NovoOrcamento = ({ onSave }) => {
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <label className="text-xs text-slate-500">Tempo (min)</label>
-                        <input
-                          type="number"
-                          value={servico.tempoAjustado}
-                          onChange={(e) => updateServicoItem(idx, 'tempoAjustado', e.target.value)}
-                          className="w-full px-2 py-1 border border-slate-300 rounded mt-1"
-                          min="1"
-                        />
+                    {servico.usaPrecoFixo ? (
+                      <div className="flex items-center gap-2 text-sm text-green-600 mb-2">
+                        <DollarSign size={16} />
+                        <span>Preço fixo: {formatarMoeda(servico.preco)}</span>
                       </div>
-                      <div>
-                        <label className="text-xs text-slate-500">Dificuldade</label>
-                        <select
-                          value={servico.dificuldade}
-                          onChange={(e) => updateServicoItem(idx, 'dificuldade', e.target.value)}
-                          className="w-full px-2 py-1 border border-slate-300 rounded mt-1"
-                        >
-                          <option value="NORMAL">Normal (1.0x)</option>
-                          <option value="MEDIO">Médio (1.3x)</option>
-                          <option value="ALTO">Alto (1.6x)</option>
-                        </select>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <label className="text-xs text-slate-500">Tempo (min)</label>
+                          <input
+                            type="number"
+                            value={servico.tempoAjustado}
+                            onChange={(e) => updateServicoItem(idx, 'tempoAjustado', e.target.value)}
+                            className="w-full px-2 py-1 border border-slate-300 rounded mt-1"
+                            min="1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-slate-500">Dificuldade</label>
+                          <select
+                            value={servico.dificuldade}
+                            onChange={(e) => updateServicoItem(idx, 'dificuldade', e.target.value)}
+                            className="w-full px-2 py-1 border border-slate-300 rounded mt-1"
+                          >
+                            <option value="NORMAL">Normal (1.0x)</option>
+                            <option value="MEDIO">Médio (1.3x)</option>
+                            <option value="ALTO">Alto (1.6x)</option>
+                          </select>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     <div className="mt-2 pt-2 border-t border-slate-100">
                       <p className="text-right font-semibold text-blue-600">
@@ -424,7 +449,14 @@ const NovoOrcamento = ({ onSave }) => {
                 <p className="text-sm font-medium text-slate-700 mb-2">Serviços:</p>
                 {selectedServicos.map((servico, idx) => (
                   <div key={idx} className="flex justify-between text-sm py-1">
-                    <span>{servico.nome} ({formatarTempo(servico.tempoAjustado)}) - {servico.dificuldade}</span>
+                    <div>
+                      <span>{servico.nome}</span>
+                      {servico.usaPrecoFixo ? (
+                        <span className="text-xs text-green-600 ml-2">(Preço fixo)</span>
+                      ) : (
+                        <span className="text-xs text-slate-500 ml-2">({formatarTempo(servico.tempoAjustado)}) - {servico.dificuldade}</span>
+                      )}
+                    </div>
                     <span className="font-medium">{formatarMoeda(servico.preco)}</span>
                   </div>
                 ))}
@@ -526,7 +558,12 @@ const NovoOrcamento = ({ onSave }) => {
                     className="w-full text-left p-3 border rounded-lg hover:border-blue-500 transition-colors"
                   >
                     <p className="font-medium">{servico.nome}</p>
-                    <p className="text-sm text-slate-500">{formatarTempo(servico.tempoPadrao)}</p>
+                    <div className="flex justify-between items-center mt-1">
+                      <p className="text-sm text-slate-500">{formatarTempo(servico.tempoPadrao)}</p>
+                      {servico.precoFixo && (
+                        <p className="text-sm text-green-600 font-semibold">{formatarMoeda(servico.precoFixo)}</p>
+                      )}
+                    </div>
                   </button>
                 ))
               )}
