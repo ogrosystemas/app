@@ -39,6 +39,9 @@ const ConfiguracoesPage = () => {
     descricao: '',
     valor: ''
   });
+  const [totalEntradas, setTotalEntradas] = useState(0);
+  const [totalSaidas, setTotalSaidas] = useState(0);
+  const [saldo, setSaldo] = useState(0);
 
   useEffect(() => {
     if (config) {
@@ -52,6 +55,14 @@ const ConfiguracoesPage = () => {
     loadValidadePadrao();
     loadLancamentos();
   }, [config]);
+
+  useEffect(() => {
+    const entradas = lancamentos.filter(l => l.tipo === 'entrada').reduce((sum, l) => sum + l.valor, 0);
+    const saidas = lancamentos.filter(l => l.tipo === 'saida').reduce((sum, l) => sum + l.valor, 0);
+    setTotalEntradas(entradas);
+    setTotalSaidas(saidas);
+    setSaldo(entradas - saidas);
+  }, [lancamentos]);
 
   const loadValidadePadrao = async () => {
     const configValidade = await db.config.where('chave').equals('validadePadrao').first();
@@ -285,6 +296,16 @@ const ConfiguracoesPage = () => {
               onSelect={async (prof) => {
                 await selecionarProfissao(prof);
                 await refresh();
+                // Forçar atualização dos valores no formData também
+                const novaConfig = await db.config.toArray();
+                const configObj = {};
+                novaConfig.forEach(c => { configObj[c.chave] = c.valor; });
+                setFormData({
+                  metaSalarial: configObj.metaSalarial || 5000,
+                  horasTrabalhadas: configObj.horasTrabalhadas || 160,
+                  margemReserva: configObj.margemReserva || 0.2,
+                  taxaDeslocamento: configObj.taxaDeslocamento || 50
+                });
               }}
               selectedSlug={config.profissaoSelecionada}
             />
@@ -431,4 +452,5 @@ const ConfiguracoesPage = () => {
     </div>
   );
 };
+
 export default ConfiguracoesPage;
