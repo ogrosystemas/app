@@ -26,7 +26,9 @@ export function useFinanceiro() {
       setLoading(true);
       const configs = await db.config.toArray();
       const configObj = {};
-      configs.forEach(c => { configObj[c.chave] = c.valor; });
+      configs.forEach(c => {
+        configObj[c.chave] = c.valor;
+      });
 
       const profissaoSlug = configObj.profissaoSelecionada || 'eletricista';
       const profissaoData = await db.profissoes.where('slug').equals(profissaoSlug).first();
@@ -82,7 +84,7 @@ export function useFinanceiro() {
       await loadConfig();
       return true;
     } catch (error) {
-      console.error('Error updating config:', error);
+      console.error('Error updating all config:', error);
       return false;
     }
   };
@@ -93,9 +95,13 @@ export function useFinanceiro() {
       await db.config.where('chave').equals('custoManutencaoFerramenta').modify({ valor: profissaoData.custoFerramental });
 
       let adicionalPericulosidade = 0.15;
-      if (profissaoData.riscoBase >= 1.2) adicionalPericulosidade = 0.20;
-      else if (profissaoData.riscoBase >= 1.1) adicionalPericulosidade = 0.15;
-      else adicionalPericulosidade = 0.10;
+      if (profissaoData.riscoBase >= 1.2) {
+        adicionalPericulosidade = 0.20;
+      } else if (profissaoData.riscoBase >= 1.1) {
+        adicionalPericulosidade = 0.15;
+      } else {
+        adicionalPericulosidade = 0.10;
+      }
 
       await db.config.where('chave').equals('adicionalPericulosidade').modify({ valor: adicionalPericulosidade });
       await db.config.where('chave').equals('primeiroAcesso').modify({ valor: false });
@@ -108,5 +114,13 @@ export function useFinanceiro() {
     }
   };
 
-  return { config, profissao, loading, updateConfig, updateAllConfig, selecionarProfissao, refresh: loadConfig };
+  return {
+    config,
+    profissao,
+    loading,
+    updateConfig,
+    updateAllConfig,
+    selecionarProfissao,
+    refresh: loadConfig
+  };
 }
