@@ -2,11 +2,11 @@ import { useState } from 'react';
 // Adicionadas as extensões .jsx em todos os componentes internos
 import { Layout } from './components/Layout.jsx';
 import { DashboardPage } from './modules/dashboard/DashboardPage.jsx';
-import { ClientesPage } from './modules/clientes/ClientesPage.jsx';
-import { ServicosPage } from './modules/catalogo/ServicosPage.jsx';
-import { ConfiguracoesPage } from './modules/financeiro/ConfiguracoesPage.jsx';
-import { NovoOrcamento } from './modules/orcamentos/NovoOrcamento.jsx';
-import { VisualizarOrcamento } from './modules/orcamentos/VisualizarOrcamento.jsx';
+import { ClientesPage } from '.src/modules/clientes/ClientesPage.jsx';
+import { ServicosPage } from '.src/modules/catalogo/ServicosPage.jsx';
+import { ConfiguracoesPage } from '.src/modules/financeiro/ConfiguracoesPage.jsx';
+import { NovoOrcamento } from '.src/modules/orcamentos/NovoOrcamento.jsx';
+import { VisualizarOrcamento } from '.src/modules/orcamentos/VisualizarOrcamento.jsx';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
