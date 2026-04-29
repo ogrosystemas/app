@@ -8,7 +8,7 @@ import {
   Clock
 } from 'lucide-react';
 import db from '../../database/db';
-import { formatarMoeda, formatarTempo } from '../../core/calculadora';
+import { formatarMoeda } from '../../core/calculadora';
 
 const VisualizarOrcamento = ({ onBack, id }) => {
   const [orcamento, setOrcamento] = useState(null);
@@ -78,7 +78,7 @@ const VisualizarOrcamento = ({ onBack, id }) => {
 *Data:* ${new Date(orcamento.data).toLocaleDateString('pt-BR')}
 
 *SERVIÇOS:*
-${orcamento.itens.map(item => `✓ ${item.nome} - ${formatarMoeda(item.preco)}`).join('\n')}
+${orcamento.itens.map(item => `✓ ${item.nome}`).join('\n')}
 
 *TOTAL: ${formatarMoeda(orcamento.total)}*
 
@@ -170,18 +170,10 @@ Entre em contato para mais informações.`;
         <div className="p-4 bg-slate-50 border-b border-slate-200">
           <h3 className="font-semibold text-slate-900">Serviços</h3>
         </div>
-        <div className="p-4 space-y-3">
+        <div className="p-4 space-y-2">
           {orcamento.itens.map((item, idx) => (
-            <div key={idx} className="flex justify-between items-start">
-              <div>
-                <p className="font-medium text-slate-900">{item.nome}</p>
-                {item.usaPrecoFixo ? (
-                  <p className="text-xs text-green-600">Preço fixo</p>
-                ) : (
-                  <p className="text-xs text-slate-500">{formatarTempo(item.tempo)}</p>
-                )}
-              </div>
-              <p className="font-semibold text-blue-600">{formatarMoeda(item.preco)}</p>
+            <div key={idx} className="flex justify-between items-center py-1">
+              <p className="text-slate-700">{item.nome}</p>
             </div>
           ))}
         </div>
@@ -192,8 +184,8 @@ Entre em contato para mais informações.`;
           <h3 className="font-semibold text-slate-900">Total</h3>
         </div>
         <div className="p-4">
-          <div className="flex justify-between text-lg font-bold">
-            <span>Total</span>
+          <div className="flex justify-between text-xl font-bold">
+            <span>Total do Orçamento</span>
             <span className="text-blue-600">{formatarMoeda(orcamento.total)}</span>
           </div>
         </div>
