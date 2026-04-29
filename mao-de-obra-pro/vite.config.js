@@ -7,46 +7,51 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
+      devOptions: {
+        enabled: true
+      },
       manifest: {
         name: 'Mão de Obra PRO',
         short_name: 'MDO Pro',
         description: 'Sistema de orçamentos para serviços',
-        theme_color: '#ffffff',
+        theme_color: '#2563eb',
+        background_color: '#ffffff',
+        display: 'standalone',
+        orientation: 'portrait',
+        scope: '/',
+        start_url: '/',
         icons: [
           {
-            src: 'icon-192.png',
+            src: '/icon-192.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: 'icon-512.png',
+            src: '/icon-512.png',
             sizes: '512x512',
             type: 'image/png'
+          }
+        ]
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365
+              }
+            }
           }
         ]
       }
     })
   ],
   resolve: {
-    extensions: ['.jsx', '.js', '.json'], // Ordem importante
-    alias: {
-      '@': '/src',
-      '@components': '/src/components',
-      '@modules': '/src/modules',
-      '@hooks': '/src/hooks',
-      '@database': '/src/database',
-      '@core': '/src/core'
-    }
-  },
-  build: {
-    rollupOptions: {
-      input: {
-        main: './index.html'
-      },
-      output: {
-        manualChunks: undefined
-      }
-    }
+    extensions: ['.jsx', '.js', '.json']
   }
 })
