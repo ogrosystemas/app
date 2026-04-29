@@ -14,27 +14,25 @@ function App() {
   const [dbReady, setDbReady] = useState(false);
   const [primeiroAcesso, setPrimeiroAcesso] = useState(true);
   const [selectedBudgetId, setSelectedBudgetId] = useState(null);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     const initialize = async () => {
       try {
         await initDatabase();
         const config = await db.config.where('chave').equals('primeiroAcesso').first();
-        // Verificar corretamente o valor
-        const isFirstAccess = config ? config.valor === true || config.valor === 1 || config.valor === 'true' : true;
-        setPrimeiroAcesso(isFirstAccess);
+        // Valor 1 significa true (primeiro acesso)
+        setPrimeiroAcesso(config ? config.valor === 1 : true);
         setDbReady(true);
       } catch (err) {
         console.error('Failed to initialize database:', err);
-        setError('Erro ao inicializar o banco de dados. Recarregue a página.');
         setDbReady(true);
       }
     };
     initialize();
   }, []);
 
-  const handleSetupComplete = () => {
+  const handleSetupComplete = async () => {
+    await db.config.where('chave').equals('primeiroAcesso').modify({ valor: 0 });
     setPrimeiroAcesso(false);
     setActiveTab('dashboard');
   };
@@ -79,22 +77,6 @@ function App() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-slate-600">Carregando...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="text-center">
-          <p className="text-red-600">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded"
-          >
-            Recarregar
-          </button>
         </div>
       </div>
     );
