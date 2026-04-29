@@ -218,7 +218,6 @@ const ConfiguracoesPage = () => {
         </div>
       </div>
 
-      {/* Botão Salvar */}
       <button
         onClick={handleSave}
         disabled={saving || loading}
@@ -234,7 +233,6 @@ const ConfiguracoesPage = () => {
         )}
       </button>
 
-      {/* Mensagem de Sucesso */}
       {success && (
         <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg animate-fade-in z-50">
           Configurações salvas com sucesso!
