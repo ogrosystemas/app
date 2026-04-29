@@ -12,7 +12,7 @@ import { initDatabase, db } from './database/db';
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [dbReady, setDbReady] = useState(false);
-  const [primeiroAcesso, setPrimeiroAcesso] = useState(false);
+  const [primeiroAcesso, setPrimeiroAcesso] = useState(true);
   const [selectedBudgetId, setSelectedBudgetId] = useState(null);
   const [error, setError] = useState(null);
 
@@ -21,7 +21,9 @@ function App() {
       try {
         await initDatabase();
         const config = await db.config.where('chave').equals('primeiroAcesso').first();
-        setPrimeiroAcesso(config ? config.valor : true);
+        // Verificar corretamente o valor
+        const isFirstAccess = config ? config.valor === true || config.valor === 1 || config.valor === 'true' : true;
+        setPrimeiroAcesso(isFirstAccess);
         setDbReady(true);
       } catch (err) {
         console.error('Failed to initialize database:', err);
