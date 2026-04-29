@@ -8,7 +8,8 @@ import {
   Trash2,
   Plus,
   ChevronRight,
-  DollarSign
+  DollarSign,
+  Calendar
 } from 'lucide-react';
 import db from '../../database/db';
 import CameraModal from '../../components/CameraModal';
@@ -33,9 +34,23 @@ const NovoOrcamento = ({ onSave }) => {
   const [showClientModal, setShowClientModal] = useState(false);
   const [newCliente, setNewCliente] = useState({ nome: '', whatsapp: '', endereco: '' });
   const [showServicoModal, setShowServicoModal] = useState(false);
+  const [validade, setValidade] = useState(30);
+
+  const opcoesValidade = [
+    { dias: 1, label: '1 dia' },
+    { dias: 5, label: '5 dias' },
+    { dias: 15, label: '15 dias' },
+    { dias: 30, label: '30 dias' }
+  ];
 
   useEffect(() => {
     loadData();
+    // Carregar validade padrão das configurações
+    const loadValidadePadrao = async () => {
+      const configValidade = await db.config.where('chave').equals('validadePadrao').first();
+      if (configValidade) setValidade(configValidade.valor);
+    };
+    loadValidadePadrao();
   }, [profissao]);
 
   const loadData = async () => {
@@ -132,6 +147,12 @@ const NovoOrcamento = ({ onSave }) => {
 
   const totalOrcamento = calcularTotalOrcamento(selectedServicos, config.taxaDeslocamento);
 
+  const calcularDataVencimento = () => {
+    const data = new Date();
+    data.setDate(data.getDate() + validade);
+    return data;
+  };
+
   const handleSaveBudget = async () => {
     if (!selectedCliente) {
       alert('Selecione um cliente');
@@ -141,6 +162,8 @@ const NovoOrcamento = ({ onSave }) => {
       alert('Adicione pelo menos um serviço');
       return;
     }
+
+    const dataVencimento = calcularDataVencimento();
 
     const budget = {
       clienteId: selectedCliente.id,
@@ -158,7 +181,9 @@ const NovoOrcamento = ({ onSave }) => {
       taxaDeslocamento: config.taxaDeslocamento,
       subtotal: totalOrcamento.subtotal,
       profissaoId: profissao?.id,
-      profissaoNome: profissao?.nome
+      profissaoNome: profissao?.nome,
+      validade: validade,
+      dataVencimento: dataVencimento.toISOString()
     };
 
     await db.orcamentos.add(budget);
@@ -185,7 +210,7 @@ const NovoOrcamento = ({ onSave }) => {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in pb-24">
+    <div className="space-y-6 animate-fade-in pb-32">
       <div>
         <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Novo Orçamento</h1>
         <p className="text-slate-500 mt-1">
@@ -454,12 +479,38 @@ const NovoOrcamento = ({ onSave }) => {
                       {servico.usaPrecoFixo ? (
                         <span className="text-xs text-green-600 ml-2">(Preço fixo)</span>
                       ) : (
-                        <span className="text-xs text-slate-500 ml-2">({formatarTempo(servico.tempoAjustado)}) - {servico.dificuldade}</span>
+                        <span className="text-xs text-slate-500 ml-2">({formatarTempo(servico.tempoAjustado)})</span>
                       )}
                     </div>
                     <span className="font-medium">{formatarMoeda(servico.preco)}</span>
                   </div>
                 ))}
+              </div>
+
+              {/* Validade */}
+              <div className="border-t border-slate-200 pt-3">
+                <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+                  <Calendar size={16} />
+                  Validade do Orçamento
+                </label>
+                <div className="flex gap-2">
+                  {opcoesValidade.map(op => (
+                    <button
+                      key={op.dias}
+                      onClick={() => setValidade(op.dias)}
+                      className={`flex-1 py-2 px-3 rounded-lg border transition-all ${
+                        validade === op.dias
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'border-slate-300 text-slate-700 hover:border-blue-300'
+                      }`}
+                    >
+                      {op.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  Vence em: {calcularDataVencimento().toLocaleDateString('pt-BR')}
+                </p>
               </div>
 
               <div className="border-t border-slate-200 pt-3 space-y-1">
@@ -503,6 +554,7 @@ const NovoOrcamento = ({ onSave }) => {
         </div>
       )}
 
+      {/* Modais */}
       {showClientModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
