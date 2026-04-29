@@ -16,7 +16,6 @@ const VisualizarOrcamento = ({ onBack, id }) => {
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
-  const [novoStatus, setNovoStatus] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -73,7 +72,6 @@ const VisualizarOrcamento = ({ onBack, id }) => {
 
     setEnviando(true);
 
-    // Construir mensagem com imagens
     let message = `
 *ORÇAMENTO MÃO DE OBRA PRO*
 *Nº:* ${orcamento.id}
@@ -90,7 +88,6 @@ Orçamento válido por 30 dias.
 Entre em contato para mais informações.
     `.trim();
 
-    // Adicionar link das fotos se houver
     if (orcamento.fotos && orcamento.fotos.length > 0) {
       message += `\n\n*FOTOS DO SERVIÇO:*\n`;
       orcamento.fotos.forEach((foto, idx) => {
@@ -254,7 +251,6 @@ Entre em contato para mais informações.
         </div>
       </div>
 
-      {/* Modal de alterar status */}
       {showStatusModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 animate-fade-in">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
