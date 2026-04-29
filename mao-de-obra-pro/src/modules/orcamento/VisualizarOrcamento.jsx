@@ -5,8 +5,7 @@ import {
   Camera as CameraIcon,
   CheckCircle,
   XCircle,
-  Clock,
-  RefreshCw
+  Clock
 } from 'lucide-react';
 import db from '../../database/db';
 import { formatarMoeda, formatarTempo } from '../../core/calculadora';
@@ -99,10 +98,6 @@ Ou entre em contato para mais informações.
     setEnviando(false);
   };
 
-  const reenviarOrcamento = () => {
-    sendWhatsApp();
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -130,36 +125,25 @@ Ou entre em contato para mais informações.
 
   return (
     <div className="space-y-4 animate-fade-in pb-32">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-          >
-            <ArrowLeft size={24} />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Orçamento #{orcamento.id}</h1>
-            <p className="text-sm text-slate-500">
-              {new Date(orcamento.data).toLocaleDateString('pt-BR', {
-                day: '2-digit',
-                month: 'long',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </p>
-          </div>
-        </div>
-
+      <div className="flex items-center gap-3">
         <button
-          onClick={reenviarOrcamento}
-          disabled={enviando}
-          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-          title="Reenviar orçamento"
+          onClick={onBack}
+          className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
         >
-          <RefreshCw size={20} />
+          <ArrowLeft size={24} />
         </button>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Orçamento #{orcamento.id}</h1>
+          <p className="text-sm text-slate-500">
+            {new Date(orcamento.data).toLocaleDateString('pt-BR', {
+              day: '2-digit',
+              month: 'long',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+          </p>
+        </div>
       </div>
 
       <div className={`
@@ -286,10 +270,10 @@ Ou entre em contato para mais informações.
           <button
             onClick={sendWhatsApp}
             disabled={enviando}
-            className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors disabled:opacity-50"
+            className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-green-700 transition-colors disabled:opacity-50"
           >
             <Send size={20} />
-            {enviando ? 'Enviando...' : orcamento.status === 'pendente' ? 'Enviar para Aprovação' : 'Reenviar Orçamento'}
+            {enviando ? 'Enviando...' : 'Enviar via WhatsApp'}
           </button>
         </div>
       </div>
