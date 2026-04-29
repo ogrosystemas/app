@@ -1,41 +1,29 @@
-import { useState } from 'react';
-import { Layout } from './components/Layout.jsx';
-import { DashboardPage } from './modules/dashboard/DashboardPage.jsx';
-import { ClientesPage } from './modules/clientes/ClientesPage.jsx';
-import { ServicosPage } from './modules/catalogo/ServicosPage.jsx';
-import { ConfiguracoesPage } from './modules/financeiro/ConfiguracoesPage.jsx';
-import { NovoOrcamento } from './modules/orcamentos/NovoOrcamento.jsx';
-import { VisualizarOrcamento } from './modules/orcamentos/VisualizarOrcamento.jsx';
+import React from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import Layout from './components/Layout'
+import DashboardPage from './modules/dashboard/DashboardPage'
+import ClientesPage from './modules/clientes/ClientesPage'
+import ServicosPage from './modules/catalogo/ServicosPage'
+import ConfiguracoesPage from './modules/financeiro/ConfiguracoesPage'
+import NovoOrcamento from './modules/orcamentos/NovoOrcamento'
+import VisualizarOrcamento from './modules/orcamentos/VisualizarOrcamento'
 
-export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [orcamentoAtivo, setOrcamentoAtivo] = useState(null);
-
-  const abrirOrcamento = (id) => {
-    setOrcamentoAtivo(id);
-    setActiveTab('visualizar');
-  };
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard': return <DashboardPage aoSelecionar={abrirOrcamento} />;
-      case 'clientes': return <ClientesPage />;
-      case 'servicos': return <ServicosPage />;
-      case 'financeiro': return <ConfiguracoesPage />;
-      case 'novo': return <NovoOrcamento aoSalvar={() => setActiveTab('dashboard')} />;
-      case 'visualizar': return <VisualizarOrcamento orcamentoId={orcamentoAtivo} aoVoltar={() => setActiveTab('dashboard')} />;
-      default: return <DashboardPage />;
-    }
-  };
-
+function App() {
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
-      {activeTab === 'dashboard' && (
-        <button onClick={() => setActiveTab('novo')} className="w-full bg-blue-600 text-white p-4 rounded-2xl font-bold mb-6 shadow-lg">
-          + CRIAR NOVO ORÇAMENTO
-        </button>
-      )}
-      {renderContent()}
-    </Layout>
-  );
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="clientes" element={<ClientesPage />} />
+          <Route path="catalogo" element={<ServicosPage />} />
+          <Route path="financeiro" element={<ConfiguracoesPage />} />
+          <Route path="orcamentos/novo" element={<NovoOrcamento />} />
+          <Route path="orcamentos/:id" element={<VisualizarOrcamento />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  )
 }
+
+export default App
