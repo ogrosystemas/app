@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Clock, Trash2, Edit2, X, Check, Package } from 'lucide-react';
+import { Plus, Search, Clock, Trash2, Edit2, X, Check, Package, Briefcase } from 'lucide-react';
 import db from '../../database/db';
 import { formatarTempo } from '../../core/calculadora';
+import { useFinanceiro } from '../../hooks/useFinanceiro';
 
 const ServicosPage = () => {
+  const { config, profissao } = useFinanceiro();
   const [servicos, setServicos] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -14,14 +16,20 @@ const ServicosPage = () => {
     categoria: ''
   });
 
-  const categorias = ['Elétrica', 'Hidráulica', 'Pintura', 'Construção', 'Manutenção', 'Outros'];
+  const categorias = ['Elétrica', 'Hidráulica', 'Climatização', 'Pintura', 'Construção', 'Acabamento', 'Demolição', 'Perfuração', 'Escavação', 'Manutenção', 'Outros'];
 
   useEffect(() => {
-    loadServicos();
-  }, []);
+    if (profissao) {
+      loadServicos();
+    }
+  }, [profissao]);
 
   const loadServicos = async () => {
-    const allServicos = await db.servicos.toArray();
+    // Filtrar serviços apenas da profissão selecionada
+    const allServicos = await db.servicos
+      .where('profissaoId')
+      .equals(profissao.id)
+      .toArray();
     setServicos(allServicos.reverse());
   };
 
@@ -39,7 +47,8 @@ const ServicosPage = () => {
       const servicoData = {
         nome: formData.nome,
         tempoPadrao: parseInt(formData.tempoPadrao),
-        categoria: formData.categoria || 'Outros'
+        categoria: formData.categoria || 'Geral',
+        profissaoId: profissao.id // Vincula serviço à profissão atual
       };
 
       if (editingServico) {
@@ -87,20 +96,42 @@ const ServicosPage = () => {
     const colors = {
       'Elétrica': 'bg-yellow-100 text-yellow-700',
       'Hidráulica': 'bg-blue-100 text-blue-700',
+      'Climatização': 'bg-cyan-100 text-cyan-700',
       'Pintura': 'bg-purple-100 text-purple-700',
       'Construção': 'bg-orange-100 text-orange-700',
+      'Demolição': 'bg-red-100 text-red-700',
+      'Perfuração': 'bg-gray-100 text-gray-700',
+      'Escavação': 'bg-amber-100 text-amber-700',
+      'Acabamento': 'bg-indigo-100 text-indigo-700',
       'Manutenção': 'bg-green-100 text-green-700',
-      'Outros': 'bg-gray-100 text-gray-700'
+      'Outros': 'bg-slate-100 text-slate-700'
     };
     return colors[categoria] || colors['Outros'];
   };
 
+  if (!profissao) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-3 text-slate-500">Carregando serviços da profissão...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 animate-fade-in">
+      {/* Header com profissão atual */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Catálogo de Serviços</h1>
-          <p className="text-slate-500 mt-1">Gerencie os serviços que você oferece</p>
+          <div className="flex items-center gap-2 mt-1">
+            <Briefcase size={16} className="text-blue-600" />
+            <p className="text-slate-500">
+              Serviços de <span className="font-semibold text-blue-600">{profissao.nome}</span>
+            </p>
+          </div>
         </div>
         <button
           onClick={() => setShowModal(true)}
@@ -111,6 +142,7 @@ const ServicosPage = () => {
         </button>
       </div>
 
+      {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
         <input
@@ -122,11 +154,12 @@ const ServicosPage = () => {
         />
       </div>
 
+      {/* Services Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {filteredServicos.length === 0 ? (
           <div className="col-span-full bg-white rounded-xl p-8 text-center text-slate-500 border border-slate-200">
             <Package size={48} className="mx-auto mb-3 opacity-50" />
-            <p>Nenhum serviço cadastrado</p>
+            <p>Nenhum serviço cadastrado para {profissao.nome}</p>
             <button
               onClick={() => setShowModal(true)}
               className="mt-3 text-blue-600 font-semibold hover:text-blue-700"
@@ -172,6 +205,7 @@ const ServicosPage = () => {
         )}
       </div>
 
+      {/* Modal - igual ao original, mas sem opção de profissaoId pois já é fixo */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 animate-fade-in">
           <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
@@ -228,6 +262,9 @@ const ServicosPage = () => {
                 />
                 <p className="text-xs text-slate-500 mt-1">
                   Tempo médio que você leva para executar este serviço
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Este serviço será vinculado à profissão: {profissao.nome}
                 </p>
               </div>
             </div>
