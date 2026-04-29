@@ -17,7 +17,6 @@ export function useFinanceiro() {
   const [loading, setLoading] = useState(true);
   const [profissao, setProfissao] = useState(null);
 
-  // Load config from database
   useEffect(() => {
     loadConfig();
   }, []);
@@ -27,21 +26,16 @@ export function useFinanceiro() {
       setLoading(true);
       const configs = await db.config.toArray();
       const configObj = {};
-      configs.forEach(c => {
-        configObj[c.chave] = c.valor;
-      });
+      configs.forEach(c => { configObj[c.chave] = c.valor; });
 
-      // Load current profession
       const profissaoSlug = configObj.profissaoSelecionada || 'eletricista';
       const profissaoData = await db.profissoes.where('slug').equals(profissaoSlug).first();
 
-      // Calculate valor minuto with profession risk factor
       const valorMinutoBase = calcularValorMinuto(
         configObj.metaSalarial || 5000,
         configObj.horasTrabalhadas || 160
       );
 
-      // Apply profession risk multiplier to valor minuto
       const riscoMultiplier = profissaoData ? profissaoData.riscoBase : 1.0;
       const valorMinutoAjustado = valorMinutoBase * riscoMultiplier;
 
@@ -88,29 +82,22 @@ export function useFinanceiro() {
       await loadConfig();
       return true;
     } catch (error) {
-      console.error('Error updating all config:', error);
+      console.error('Error updating config:', error);
       return false;
     }
   };
 
   const selecionarProfissao = async (profissaoData) => {
     try {
-      // Update profession in config
       await db.config.where('chave').equals('profissaoSelecionada').modify({ valor: profissaoData.slug });
       await db.config.where('chave').equals('custoManutencaoFerramenta').modify({ valor: profissaoData.custoFerramental });
 
-      // Update periculosidade based on risk
-      let adicionalPericulosidade = 0;
-      if (profissaoData.riscoBase >= 1.2) {
-        adicionalPericulosidade = 0.20;
-      } else if (profissaoData.riscoBase >= 1.1) {
-        adicionalPericulosidade = 0.15;
-      } else {
-        adicionalPericulosidade = 0.10;
-      }
-      await db.config.where('chave').equals('adicionalPericulosidade').modify({ valor: adicionalPericulosidade });
+      let adicionalPericulosidade = 0.15;
+      if (profissaoData.riscoBase >= 1.2) adicionalPericulosidade = 0.20;
+      else if (profissaoData.riscoBase >= 1.1) adicionalPericulosidade = 0.15;
+      else adicionalPericulosidade = 0.10;
 
-      // Mark first access as false
+      await db.config.where('chave').equals('adicionalPericulosidade').modify({ valor: adicionalPericulosidade });
       await db.config.where('chave').equals('primeiroAcesso').modify({ valor: false });
 
       await loadConfig();
@@ -121,13 +108,5 @@ export function useFinanceiro() {
     }
   };
 
-  return {
-    config,
-    profissao,
-    loading,
-    updateConfig,
-    updateAllConfig,
-    selecionarProfissao,
-    refresh: loadConfig
-  };
+  return { config, profissao, loading, updateConfig, updateAllConfig, selecionarProfissao, refresh: loadConfig };
 }
