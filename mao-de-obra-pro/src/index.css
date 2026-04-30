@@ -65,6 +65,7 @@
   display: none;
 }
 
+/* Adicione ao final do arquivo */
 @keyframes slide-down {
   from {
     opacity: 0;
@@ -79,5 +80,4 @@
 .animate-slide-down {
   animation: slide-down 0.3s ease-out;
 }
-
 }
