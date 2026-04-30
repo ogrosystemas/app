@@ -14,17 +14,18 @@ function App() {
   const [dbReady, setDbReady] = useState(false);
   const [showSetup, setShowSetup] = useState(true);
   const [selectedBudgetId, setSelectedBudgetId] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const initialize = async () => {
       try {
         await initDatabase();
         const setupFlag = await db.config.where('chave').equals('setupConcluido').first();
-        const setupFeito = setupFlag && setupFlag.valor === 1;
-        setShowSetup(!setupFeito);
+        setShowSetup(!setupFlag || setupFlag.valor !== 1);
         setDbReady(true);
       } catch (err) {
-        console.error('Erro inicial:', err);
+        console.error('Erro fatal:', err);
+        setError('Falha ao inicializar o banco de dados. Clique em Recarregar.');
         setDbReady(true);
       }
     };
@@ -37,15 +38,10 @@ function App() {
   };
 
   const renderContent = () => {
+    // mesmo código de antes
     switch (activeTab) {
       case 'dashboard':
-        return <DashboardPage
-          onNewBudget={() => setActiveTab('novo')}
-          onViewBudget={(id) => {
-            setSelectedBudgetId(id);
-            setActiveTab('visualizar');
-          }}
-        />;
+        return <DashboardPage onNewBudget={() => setActiveTab('novo')} onViewBudget={(id) => { setSelectedBudgetId(id); setActiveTab('visualizar'); }} />;
       case 'clientes':
         return <ClientesPage />;
       case 'catalogo':
@@ -55,27 +51,29 @@ function App() {
       case 'novo':
         return <NovoOrcamento onSave={() => setActiveTab('dashboard')} />;
       case 'visualizar':
-        return <VisualizarOrcamento
-          onBack={() => setActiveTab('dashboard')}
-          id={selectedBudgetId}
-        />;
+        return <VisualizarOrcamento onBack={() => setActiveTab('dashboard')} id={selectedBudgetId} />;
       default:
-        return <DashboardPage
-          onNewBudget={() => setActiveTab('novo')}
-          onViewBudget={(id) => {
-            setSelectedBudgetId(id);
-            setActiveTab('visualizar');
-          }}
-        />;
+        return <DashboardPage onNewBudget={() => setActiveTab('novo')} onViewBudget={(id) => { setSelectedBudgetId(id); setActiveTab('visualizar'); }} />;
     }
   };
 
   if (!dbReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-slate-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center bg-red-50 p-6 rounded-xl">
+          <p className="text-red-800">{error}</p>
+          <button onClick={() => window.location.reload()} className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg">Recarregar</button>
         </div>
       </div>
     );
