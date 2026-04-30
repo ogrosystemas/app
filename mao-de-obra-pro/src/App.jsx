@@ -8,8 +8,7 @@ import ConfiguracoesPage from './modules/financeiro/ConfiguracoesPage';
 import NovoOrcamento from './modules/orcamento/NovoOrcamento';
 import VisualizarOrcamento from './modules/orcamento/VisualizarOrcamento';
 import { initDatabase, db } from './database/db';
-import { useToast } from '/src/components/Toast.jsx';
-import './index.css';
+import { useToast } from './components/Toast.jsx';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -22,8 +21,11 @@ function App() {
     const initialize = async () => {
       try {
         await initDatabase();
-        const config = await db.config.where('chave').equals('primeiroAcesso').first();
-        const isFirstAccess = config ? config.valor === 1 || config.valor === true : true;
+        // Verifica se já existe algum cliente ou orçamento para decidir se é primeiro acesso
+        const clientesCount = await db.clientes.count();
+        const orcamentosCount = await db.orcamentos.count();
+        // Considera primeiro acesso se não houver clientes E não houver orçamentos
+        const isFirstAccess = (clientesCount === 0 && orcamentosCount === 0);
         setPrimeiroAcesso(isFirstAccess);
         setDbReady(true);
       } catch (err) {
@@ -34,13 +36,7 @@ function App() {
     initialize();
   }, []);
 
-  const handleSetupComplete = async () => {
-    const existing = await db.config.where('chave').equals('primeiroAcesso').first();
-    if (existing) {
-      await db.config.where('chave').equals('primeiroAcesso').modify({ valor: 0 });
-    } else {
-      await db.config.add({ chave: 'primeiroAcesso', valor: 0 });
-    }
+  const handleSetupComplete = () => {
     setPrimeiroAcesso(false);
     setActiveTab('dashboard');
   };
