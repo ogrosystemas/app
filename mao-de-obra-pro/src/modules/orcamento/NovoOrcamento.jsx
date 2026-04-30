@@ -10,7 +10,8 @@ import {
   Minus,
   ChevronRight,
   DollarSign,
-  Calendar
+  Calendar,
+  Percent
 } from 'lucide-react';
 import db from '../../database/db';
 import CameraModal from '../../components/CameraModal';
@@ -36,6 +37,8 @@ const NovoOrcamento = ({ onSave, showToast }) => {
   const [newCliente, setNewCliente] = useState({ nome: '', whatsapp: '', endereco: '' });
   const [showServicoModal, setShowServicoModal] = useState(false);
   const [validade, setValidade] = useState(30);
+  const [desconto, setDesconto] = useState(0);
+  const [tipoDesconto, setTipoDesconto] = useState('valor'); // 'valor' ou 'percentual'
   const [enviando, setEnviando] = useState(false);
 
   const opcoesValidade = [
@@ -168,10 +171,25 @@ const NovoOrcamento = ({ onSave, showToast }) => {
     setFotos(fotos.filter((_, i) => i !== index));
   };
 
-  const totalOrcamento = calcularTotalOrcamento(
-    selectedServicos.map(s => ({ preco: s.precoTotal })),
-    config.taxaDeslocamento
-  );
+  const calcularSubtotal = () => {
+    return selectedServicos.reduce((sum, s) => sum + s.precoTotal, 0);
+  };
+
+  const calcularTotalComDesconto = () => {
+    const subtotal = calcularSubtotal();
+    const taxa = config.taxaDeslocamento;
+    let total = subtotal + taxa;
+    if (tipoDesconto === 'valor') {
+      total = total - desconto;
+    } else if (tipoDesconto === 'percentual') {
+      total = total * (1 - desconto / 100);
+    }
+    return Math.max(0, total);
+  };
+
+  const totalOrcamento = calcularTotalComDesconto();
+  const subtotal = calcularSubtotal();
+  const taxaDeslocamento = config.taxaDeslocamento;
 
   const calcularDataVencimento = () => {
     const data = new Date();
@@ -196,7 +214,9 @@ const NovoOrcamento = ({ onSave, showToast }) => {
 *SERVIÇOS:*
 ${selectedServicos.map(item => `✓ ${item.nome} x${item.quantidade} - ${formatarMoeda(item.precoTotal)}`).join('\n')}
 
-*TOTAL: ${formatarMoeda(orcamentoSalvo.total)}*
+*DESLOCAMENTO:* ${formatarMoeda(taxaDeslocamento)}
+*DESCONTO:* ${tipoDesconto === 'valor' ? formatarMoeda(desconto) : `${desconto}%`}
+*TOTAL: ${formatarMoeda(totalOrcamento)}*
 
 ---
 Orçamento válido até ${dataVencimento}.
@@ -226,7 +246,8 @@ Entre em contato para mais informações.`;
     const budget = {
       clienteId: selectedCliente.id,
       data: new Date().toISOString(),
-      total: totalOrcamento.total,
+      total: totalOrcamento,
+      desconto: tipoDesconto === 'valor' ? desconto : -desconto, // negativo se percentual
       status: 'pendente',
       itens: selectedServicos.map(s => ({
         nome: s.nome,
@@ -238,8 +259,8 @@ Entre em contato para mais informações.`;
         usaPrecoFixo: s.usaPrecoFixo || false
       })),
       fotos: fotos,
-      taxaDeslocamento: config.taxaDeslocamento,
-      subtotal: totalOrcamento.subtotal,
+      taxaDeslocamento: taxaDeslocamento,
+      subtotal: subtotal,
       profissaoId: profissao?.id,
       profissaoNome: profissao?.nome,
       validade: validade,
@@ -310,6 +331,7 @@ Entre em contato para mais informações.`;
         })}
       </div>
 
+      {/* Step 1: Cliente */}
       {step === 1 && (
         <div className="space-y-4">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
@@ -366,6 +388,7 @@ Entre em contato para mais informações.`;
         </div>
       )}
 
+      {/* Step 2: Serviços */}
       {step === 2 && (
         <div className="space-y-4">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
@@ -487,6 +510,7 @@ Entre em contato para mais informações.`;
         </div>
       )}
 
+      {/* Step 3: Fotos */}
       {step === 3 && (
         <div className="space-y-4">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
@@ -541,6 +565,7 @@ Entre em contato para mais informações.`;
         </div>
       )}
 
+      {/* Step 4: Resumo com desconto */}
       {step === 4 && (
         <div className="space-y-4">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -576,6 +601,7 @@ Entre em contato para mais informações.`;
                 ))}
               </div>
 
+              {/* Validade */}
               <div className="border-t border-slate-200 pt-3">
                 <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
                   <Calendar size={16} />
@@ -601,18 +627,67 @@ Entre em contato para mais informações.`;
                 </p>
               </div>
 
+              {/* Desconto */}
+              <div className="border-t border-slate-200 pt-3">
+                <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+                  <Percent size={16} />
+                  Desconto
+                </label>
+                <div className="flex gap-2 mb-2">
+                  <button
+                    onClick={() => setTipoDesconto('valor')}
+                    className={`px-3 py-1 rounded-lg text-sm font-semibold ${
+                      tipoDesconto === 'valor'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    R$
+                  </button>
+                  <button
+                    onClick={() => setTipoDesconto('percentual')}
+                    className={`px-3 py-1 rounded-lg text-sm font-semibold ${
+                      tipoDesconto === 'percentual'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    %
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step={tipoDesconto === 'percentual' ? 1 : 0.01}
+                    value={desconto}
+                    onChange={(e) => setDesconto(parseFloat(e.target.value) || 0)}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder={tipoDesconto === 'valor' ? 'Valor do desconto' : 'Percentual de desconto'}
+                  />
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  {tipoDesconto === 'valor' ? 'Desconto em reais' : 'Desconto percentual sobre o total'}
+                </p>
+              </div>
+
               <div className="border-t border-slate-200 pt-3 space-y-1">
                 <div className="flex justify-between text-sm">
                   <span>Subtotal</span>
-                  <span>{formatarMoeda(totalOrcamento.subtotal)}</span>
+                  <span>{formatarMoeda(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Deslocamento</span>
-                  <span>{formatarMoeda(totalOrcamento.taxaDeslocamento)}</span>
+                  <span>{formatarMoeda(taxaDeslocamento)}</span>
                 </div>
+                {desconto > 0 && (
+                  <div className="flex justify-between text-sm text-red-600">
+                    <span>Desconto {tipoDesconto === 'valor' ? '(R$)' : '(%)'}</span>
+                    <span>- {tipoDesconto === 'valor' ? formatarMoeda(desconto) : `${desconto}%`}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-lg font-bold pt-2 border-t border-slate-200">
                   <span>Total</span>
-                  <span className="text-blue-600">{formatarMoeda(totalOrcamento.total)}</span>
+                  <span className="text-blue-600">{formatarMoeda(totalOrcamento)}</span>
                 </div>
               </div>
 
@@ -643,6 +718,7 @@ Entre em contato para mais informações.`;
         </div>
       )}
 
+      {/* Modais */}
       {showClientModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
