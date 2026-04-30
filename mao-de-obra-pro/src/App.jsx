@@ -20,7 +20,7 @@ function App() {
     const initialize = async () => {
       try {
         await initDatabase();
-        const setupFlag = await db.config.where('chave').equals('setupConcluido').first();
+        const setupFlag = await db.config.get('setupConcluido');
         setShowSetup(!setupFlag || setupFlag.valor !== 1);
         setDbReady(true);
       } catch (err) {
@@ -38,7 +38,6 @@ function App() {
   };
 
   const renderContent = () => {
-    // mesmo código de antes
     switch (activeTab) {
       case 'dashboard':
         return <DashboardPage onNewBudget={() => setActiveTab('novo')} onViewBudget={(id) => { setSelectedBudgetId(id); setActiveTab('visualizar'); }} />;

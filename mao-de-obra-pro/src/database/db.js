@@ -2,42 +2,41 @@ import Dexie from 'dexie';
 
 export const db = new Dexie('MaoDeObraPro');
 
-// Versão 7 – forçar recriação da tabela config com dados corretos
-db.version(7).stores({
+// Versão 8 – store config com chave primária 'chave'
+db.version(8).stores({
   clientes: '++id, nome, whatsapp, endereco',
   servicos: '++id, nome, tempoPadrao, categoria, profissaoId, precoFixo',
   orcamentos: '++id, clienteId, data, total, desconto, status, itens, fotos, taxaDeslocamento, subtotal, profissaoId, profissaoNome, validade, dataVencimento',
-  config: 'id, chave, valor',
+  config: 'chave, valor',  // chave é a chave primária
   profissoes: '++id, slug, nome, icone, riscoBase, custoFerramental, descricao, ativo',
   caixa: '++id, data, tipo, categoria, descricao, valor, orcamentoId'
 });
 
-// Upgrade da versão 6 para 7 – corrige/cria a tabela config
-db.version(7).upgrade(async (trans) => {
+// Upgrade da versão 7 para 8: recria a tabela config com a nova estrutura
+db.version(8).upgrade(async (trans) => {
   try {
     const configTable = trans.table('config');
-    // Remove todos os registros existentes (força recriação)
+    // Remove todos os registros antigos (estrutura anterior)
     await configTable.clear();
-    // Adiciona os registros padrão
+    // Adiciona os registros padrão usando chave como primary key
     await configTable.bulkAdd([
-      { id: 1, chave: 'metaSalarial', valor: 5000 },
-      { id: 2, chave: 'horasTrabalhadas', valor: 160 },
-      { id: 3, chave: 'margemReserva', valor: 0.2 },
-      { id: 4, chave: 'taxaDeslocamento', valor: 50 },
-      { id: 5, chave: 'profissaoSelecionada', valor: 'eletricista' },
-      { id: 6, chave: 'setupConcluido', valor: 0 },
-      { id: 7, chave: 'primeiroAcesso', valor: 0 }
+      { chave: 'metaSalarial', valor: 5000 },
+      { chave: 'horasTrabalhadas', valor: 160 },
+      { chave: 'margemReserva', valor: 0.2 },
+      { chave: 'taxaDeslocamento', valor: 50 },
+      { chave: 'profissaoSelecionada', valor: 'eletricista' },
+      { chave: 'setupConcluido', valor: 0 },
+      { chave: 'primeiroAcesso', valor: 0 }
     ]);
-    console.log('Upgrade para versão 7 concluído: tabela config recriada');
+    console.log('Upgrade para v8 concluído: config com chave primária');
   } catch (err) {
-    console.error('Erro no upgrade para v7:', err);
+    console.error('Erro no upgrade para v8:', err);
   }
 });
 
 // Populate apenas se banco estiver vazio (primeira execução)
 db.on('populate', async () => {
   console.log('Populando banco do zero...');
-  // ... (mesmo conteúdo de antes, mas com IDs consistentes)
   const profissoesIds = {};
   const profissoesData = [
     { slug: 'eletricista', nome: 'Eletricista', icone: 'Zap', riscoBase: 1.2, custoFerramental: 300, descricao: 'Requer EPIs e normas técnicas (NR10)', ativo: 1 },
@@ -59,15 +58,15 @@ db.on('populate', async () => {
     { nome: 'Levantamento de alvenaria', tempoPadrao: 60, categoria: 'Alvenaria', profissaoId: profissoesIds.pedreiro, precoFixo: null },
     { nome: 'Pintura interna', tempoPadrao: 120, categoria: 'Pintura', profissaoId: profissoesIds.pintor, precoFixo: null }
   ]);
-  // Config já será populada pelo upgrade, mas garantimos aqui também
+  // Config padrão
   await db.config.bulkAdd([
-    { id: 1, chave: 'metaSalarial', valor: 5000 },
-    { id: 2, chave: 'horasTrabalhadas', valor: 160 },
-    { id: 3, chave: 'margemReserva', valor: 0.2 },
-    { id: 4, chave: 'taxaDeslocamento', valor: 50 },
-    { id: 5, chave: 'profissaoSelecionada', valor: 'eletricista' },
-    { id: 6, chave: 'setupConcluido', valor: 0 },
-    { id: 7, chave: 'primeiroAcesso', valor: 0 }
+    { chave: 'metaSalarial', valor: 5000 },
+    { chave: 'horasTrabalhadas', valor: 160 },
+    { chave: 'margemReserva', valor: 0.2 },
+    { chave: 'taxaDeslocamento', valor: 50 },
+    { chave: 'profissaoSelecionada', valor: 'eletricista' },
+    { chave: 'setupConcluido', valor: 0 },
+    { chave: 'primeiroAcesso', valor: 0 }
   ]);
 });
 
@@ -78,7 +77,6 @@ export async function initDatabase() {
     return db;
   } catch (error) {
     console.error('Erro ao abrir banco:', error);
-    // Se erro for crítico, tenta deletar e recriar (último recurso)
     if (error.name === 'DataError' || error.name === 'VersionError') {
       console.warn('Tentando deletar banco corrompido e recriar...');
       await db.delete();

@@ -24,11 +24,9 @@ export function useFinanceiro() {
   const loadConfig = async () => {
     try {
       setLoading(true);
-      const configs = await db.config.toArray(); // retorna objetos com chave e valor
+      const configs = await db.config.toArray();
       const configObj = {};
-      configs.forEach(c => {
-        configObj[c.chave] = c.valor;
-      });
+      configs.forEach(c => { configObj[c.chave] = c.valor; });
 
       const profissaoSlug = configObj.profissaoSelecionada || 'eletricista';
       const profissaoData = await db.profissoes.where('slug').equals(profissaoSlug).first();
@@ -37,7 +35,6 @@ export function useFinanceiro() {
         configObj.metaSalarial || 5000,
         configObj.horasTrabalhadas || 160
       );
-
       const riscoMultiplier = profissaoData ? profissaoData.riscoBase : 1.0;
       const valorMinutoAjustado = valorMinutoBase * riscoMultiplier;
 
@@ -62,7 +59,12 @@ export function useFinanceiro() {
 
   const updateConfig = async (chave, valor) => {
     try {
-      await db.config.put({ chave, valor }); // put insere ou atualiza baseado na chave primária
+      const existing = await db.config.get(chave);
+      if (existing) {
+        await db.config.update(chave, { valor });
+      } else {
+        await db.config.add({ chave, valor });
+      }
       await loadConfig();
       return true;
     } catch (error) {
@@ -74,7 +76,12 @@ export function useFinanceiro() {
   const updateAllConfig = async (newConfig) => {
     try {
       for (const [chave, valor] of Object.entries(newConfig)) {
-        await db.config.put({ chave, valor });
+        const existing = await db.config.get(chave);
+        if (existing) {
+          await db.config.update(chave, { valor });
+        } else {
+          await db.config.add({ chave, valor });
+        }
       }
       await loadConfig();
       return true;
@@ -94,8 +101,8 @@ export function useFinanceiro() {
       else if (profissaoData.riscoBase >= 1.1) adicionalPericulosidade = 0.15;
       else adicionalPericulosidade = 0.10;
       await updateConfig('adicionalPericulosidade', adicionalPericulosidade);
-
       await updateConfig('primeiroAcesso', 0);
+
       await loadConfig();
       return true;
     } catch (error) {
