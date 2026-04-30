@@ -44,16 +44,29 @@ function AppContent() {
     switch (activeTab) {
       case 'dashboard':
         return <DashboardPage onNewBudget={() => setActiveTab('novo')} onViewBudget={(id) => { setSelectedBudgetId(id); setActiveTab('visualizar'); }} />;
-      case 'clientes': return <ClientesPage />;
-      case 'catalogo': return <ServicosPage />;
-      case 'financeiro': return <ConfiguracoesPage />;
-      case 'novo': return <NovoOrcamento onSave={() => setActiveTab('dashboard')} />;
-      case 'visualizar': return <VisualizarOrcamento onBack={() => setActiveTab('dashboard')} id={selectedBudgetId} />;
-      default: return <DashboardPage onNewBudget={() => setActiveTab('novo')} onViewBudget={(id) => { setSelectedBudgetId(id); setActiveTab('visualizar'); }} />;
+      case 'clientes':
+        return <ClientesPage />;
+      case 'catalogo':
+        return <ServicosPage />;
+      case 'financeiro':
+        return <ConfiguracoesPage />;
+      case 'novo':
+        return <NovoOrcamento onSave={() => setActiveTab('dashboard')} />;
+      case 'visualizar':
+        return <VisualizarOrcamento onBack={() => setActiveTab('dashboard')} id={selectedBudgetId} />;
+      default:
+        return <DashboardPage onNewBudget={() => setActiveTab('novo')} onViewBudget={(id) => { setSelectedBudgetId(id); setActiveTab('visualizar'); }} />;
     }
   };
 
-  if (!dbReady) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div><p className="mt-4">Carregando...</p></div>;
+  if (!dbReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
+        <p className="mt-4">Carregando...</p>
+      </div>
+    );
+  }
   if (showSetup) return <SetupPage onComplete={handleSetupComplete} />;
   return <Layout activeTab={activeTab} onTabChange={setActiveTab}>{renderContent()}</Layout>;
 }
