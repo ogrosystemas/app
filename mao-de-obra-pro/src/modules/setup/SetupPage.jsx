@@ -32,24 +32,34 @@ const SetupPage = ({ onComplete, showToast }) => {
   };
 
   const handleSaveConfig = async () => {
-    // Salvar configurações financeiras
-    await updateAllConfig({
-      metaSalarial: formData.metaSalarial,
-      horasTrabalhadas: formData.horasTrabalhadas,
-      taxaDeslocamento: formData.taxaDeslocamento,
-      margemReserva: 0.2
-    });
+    try {
+      // Salvar configurações financeiras
+      await updateAllConfig({
+        metaSalarial: formData.metaSalarial,
+        horasTrabalhadas: formData.horasTrabalhadas,
+        taxaDeslocamento: formData.taxaDeslocamento,
+        margemReserva: 0.2
+      });
 
-    // Marcar setup como concluído
-    const existing = await db.config.where('chave').equals('setupConcluido').first();
-    if (existing) {
-      await db.config.update(existing.id, { valor: 1 });
-    } else {
-      await db.config.add({ chave: 'setupConcluido', valor: 1 });
+      // Marcar setup como concluído de forma robusta
+      const existing = await db.config.where('chave').equals('setupConcluido').first();
+      if (existing) {
+        await db.config.update(existing.id, { valor: 1 });
+      } else {
+        await db.config.add({ chave: 'setupConcluido', valor: 1 });
+      }
+
+      // Aguardar um pouco para garantir que a gravação foi concluída
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      if (showToast) showToast('Configuração concluída!', 'success');
+
+      // Chamar o callback para sair da tela de setup
+      onComplete();
+    } catch (error) {
+      console.error('Erro ao salvar configuração:', error);
+      if (showToast) showToast('Erro ao salvar. Tente novamente.', 'error');
     }
-
-    showToast('Configuração concluída!', 'success');
-    onComplete();
   };
 
   const valorHoraCalculado = formData.metaSalarial / formData.horasTrabalhadas;
