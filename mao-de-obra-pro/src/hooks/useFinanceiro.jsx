@@ -17,7 +17,9 @@ export function useFinanceiro() {
   const [loading, setLoading] = useState(true);
   const [profissao, setProfissao] = useState(null);
 
-  useEffect(() => { loadConfig(); }, []);
+  useEffect(() => {
+    loadConfig();
+  }, []);
 
   const loadConfig = async () => {
     try {
@@ -29,32 +31,40 @@ export function useFinanceiro() {
       const profissaoSlug = configObj.profissaoSelecionada || 'eletricista';
       const profissaoData = await db.profissoes.where('slug').equals(profissaoSlug).first();
 
-      const valorMinutoBase = calcularValorMinuto(configObj.metaSalarial||5000, configObj.horasTrabalhadas||160);
+      const valorMinutoBase = calcularValorMinuto(
+        configObj.metaSalarial || 5000,
+        configObj.horasTrabalhadas || 160
+      );
       const riscoMultiplier = profissaoData ? profissaoData.riscoBase : 1.0;
       const valorMinutoAjustado = valorMinutoBase * riscoMultiplier;
 
       setProfissao(profissaoData);
       setConfig({
-        metaSalarial: configObj.metaSalarial||5000,
-        horasTrabalhadas: configObj.horasTrabalhadas||160,
-        margemReserva: configObj.margemReserva||0.2,
-        taxaDeslocamento: configObj.taxaDeslocamento||50,
+        metaSalarial: configObj.metaSalarial || 5000,
+        horasTrabalhadas: configObj.horasTrabalhadas || 160,
+        margemReserva: configObj.margemReserva || 0.2,
+        taxaDeslocamento: configObj.taxaDeslocamento || 50,
         valorMinuto: valorMinutoAjustado,
         profissaoSelecionada: profissaoSlug,
-        adicionalPericulosidade: configObj.adicionalPericulosidade||0.15,
-        custoManutencaoFerramenta: configObj.custoManutencaoFerramenta||300,
-        primeiroAcesso: configObj.primeiroAcesso||true
+        adicionalPericulosidade: configObj.adicionalPericulosidade || 0.15,
+        custoManutencaoFerramenta: configObj.custoManutencaoFerramenta || 300,
+        primeiroAcesso: configObj.primeiroAcesso || true
       });
     } catch (error) {
       console.error('Error loading config:', error);
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const updateConfig = async (chave, valor) => {
     try {
       const existing = await db.config.get(chave);
-      if (existing) await db.config.update(chave, { valor });
-      else await db.config.add({ chave, valor });
+      if (existing) {
+        await db.config.update(chave, { valor });
+      } else {
+        await db.config.add({ chave, valor });
+      }
       await loadConfig();
       return true;
     } catch (error) {

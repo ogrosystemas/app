@@ -38,23 +38,26 @@ const SetupPage = ({ onComplete }) => {
     if (saving) return;
     setSaving(true);
     try {
-      // Salva as configurações financeiras
+      // Salvar configurações financeiras
       const success = await updateAllConfig({
         metaSalarial: formData.metaSalarial,
         horasTrabalhadas: formData.horasTrabalhadas,
         taxaDeslocamento: formData.taxaDeslocamento,
         margemReserva: 0.2
       });
-      if (!success) throw new Error('Erro ao salvar configurações');
+      if (!success) throw new Error('Falha ao salvar configurações financeiras');
 
-      // Flag de setup concluído já será salva pelo onComplete (App.jsx), mas garantimos aqui também
+      // Marcar setup como concluído (garantir que o banco está aberto)
       await db.config.put({ chave: 'setupConcluido', valor: 1 });
 
-      showToast('Configurações salvas!', 'success');
-      onComplete(); // Chama o callback que leva ao dashboard
-    } catch (err) {
-      console.error(err);
-      showToast(err.message, 'error');
+      showToast('Configuração salva! Redirecionando...', 'success');
+      // Pequeno delay para garantir o salvamento
+      setTimeout(() => {
+        onComplete();
+      }, 200);
+    } catch (error) {
+      console.error('Erro no salvamento:', error);
+      showToast(error.message, 'error');
       setSaving(false);
     }
   };

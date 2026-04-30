@@ -21,16 +21,14 @@ function AppContent() {
     const initialize = async () => {
       try {
         await initDatabase();
-        // Lê a flag setupConcluido da tabela config
         const setupFlag = await db.config.get('setupConcluido');
-        // Se não existir ou for 0, mostra o setup; se for 1, vai direto para o dashboard
-        const precisaSetup = !setupFlag || setupFlag.valor !== 1;
-        setShowSetup(precisaSetup);
-        setDbReady(true);
+        // Se o valor for 1, setup já foi feito; caso contrário (0 ou undefined), mostra setup
+        const isSetupDone = setupFlag && setupFlag.valor === 1;
+        setShowSetup(!isSetupDone);
       } catch (err) {
-        console.error('Erro ao inicializar:', err);
-        // Fallback: se der erro, não mostrar setup (evita loop)
-        setShowSetup(false);
+        console.error('Erro ao inicializar banco:', err);
+        showToast('Erro ao carregar dados, tente recarregar', 'error');
+      } finally {
         setDbReady(true);
       }
     };
@@ -38,11 +36,14 @@ function AppContent() {
   }, []);
 
   const handleSetupComplete = async () => {
-    // Salva a flag como 1 (concluído)
-    await db.config.put({ chave: 'setupConcluido', valor: 1 });
-    setShowSetup(false);
-    setActiveTab('dashboard');
-    showToast('Configuração concluída!', 'success');
+    try {
+      await db.config.put({ chave: 'setupConcluido', valor: 1 });
+      setShowSetup(false);
+      setActiveTab('dashboard');
+      showToast('Configuração concluída!', 'success');
+    } catch (err) {
+      showToast('Erro ao finalizar configuração', 'error');
+    }
   };
 
   const renderContent = () => {
@@ -68,7 +69,7 @@ function AppContent() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
-        <p className="mt-4">Carregando...</p>
+        <p className="mt-4 text-slate-600">Carregando...</p>
       </div>
     );
   }

@@ -2,8 +2,7 @@ import Dexie from 'dexie';
 
 export const db = new Dexie('MaoDeObraPro');
 
-// Versão 15 – força recriação de tudo
-db.version(15).stores({
+db.version(16).stores({
   clientes: '++id, nome, whatsapp, endereco',
   servicos: '++id, nome, tempoPadrao, categoria, profissaoId, precoFixo',
   orcamentos: '++id, clienteId, data, total, desconto, status, itens, fotos, taxaDeslocamento, subtotal, profissaoId, profissaoNome, validade, dataVencimento',
@@ -12,14 +11,28 @@ db.version(15).stores({
   caixa: '++id, data, tipo, categoria, descricao, valor, orcamentoId'
 });
 
-// Upgrade que limpa e recria os dados
-db.version(15).upgrade(async (trans) => {
-  // Apaga tudo para começar limpo
-  await trans.table('config').clear();
-  await trans.table('profissoes').clear();
-  await trans.table('servicos').clear();
+// Upgrade para garantir que a configuração inicial exista
+db.version(16).upgrade(async (trans) => {
+  const configTable = trans.table('config');
+  const setupExists = await configTable.get('setupConcluido');
+  if (!setupExists) {
+    await configTable.add({ chave: 'setupConcluido', valor: 0 });
+  }
+  const metaExists = await configTable.get('metaSalarial');
+  if (!metaExists) {
+    await configTable.bulkAdd([
+      { chave: 'metaSalarial', valor: 5000 },
+      { chave: 'horasTrabalhadas', valor: 160 },
+      { chave: 'margemReserva', valor: 0.2 },
+      { chave: 'taxaDeslocamento', valor: 50 },
+      { chave: 'profissaoSelecionada', valor: 'eletricista' }
+    ]);
+  }
+});
 
-  // Profissões
+// Populate apenas se banco vazio (primeira execução)
+db.on('populate', async () => {
+  const profissoesIds = {};
   const profissoesData = [
     { slug: 'eletricista', nome: 'Eletricista', icone: 'Zap', riscoBase: 1.2, custoFerramental: 300, descricao: 'Requer EPIs e normas técnicas (NR10)', ativo: 1 },
     { slug: 'encanador', nome: 'Encanador', icone: 'Wrench', riscoBase: 1.1, custoFerramental: 200, descricao: 'Foco em tempo de estanqueidade e reparo', ativo: 1 },
@@ -27,13 +40,11 @@ db.version(15).upgrade(async (trans) => {
     { slug: 'pedreiro', nome: 'Pedreiro', icone: 'Hammer', riscoBase: 1.4, custoFerramental: 800, descricao: 'Alvenaria estrutural, fundações, lajes, demolição pesada', ativo: 1 },
     { slug: 'pintor', nome: 'Pintor', icone: 'Paintbrush', riscoBase: 1.0, custoFerramental: 150, descricao: 'Preparação de superfícies, pintura interna/externa, texturas', ativo: 1 }
   ];
-  const profissoesIds = {};
   for (const prof of profissoesData) {
-    const id = await trans.table('profissoes').add(prof);
+    const id = await db.profissoes.add(prof);
     profissoesIds[prof.slug] = id;
   }
 
-  // Serviços – todos (Pedreiro com muitos itens)
   const servicosData = [
     // ELETRICISTA
     { nome: 'Instalação de tomada', tempoPadrao: 30, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista, precoFixo: null },
@@ -88,13 +99,11 @@ db.version(15).upgrade(async (trans) => {
     { nome: 'Textura rolo texturizado', tempoPadrao: 60, categoria: 'Textura', profissaoId: profissoesIds.pintor, precoFixo: null },
     { nome: 'Aplicação de verniz em madeira', tempoPadrao: 90, categoria: 'Acabamento', profissaoId: profissoesIds.pintor, precoFixo: null }
   ];
-
   for (const s of servicosData) {
-    await trans.table('servicos').add(s);
+    await db.servicos.add(s);
   }
 
-  // Configurações padrão
-  await trans.table('config').bulkAdd([
+  await db.config.bulkAdd([
     { chave: 'metaSalarial', valor: 5000 },
     { chave: 'horasTrabalhadas', valor: 160 },
     { chave: 'margemReserva', valor: 0.2 },
@@ -107,10 +116,10 @@ db.version(15).upgrade(async (trans) => {
 export async function initDatabase() {
   try {
     await db.open();
-    console.log('Banco versão 15 aberto com sucesso');
+    console.log('Database opened successfully');
     return db;
   } catch (error) {
-    console.error('Erro fatal:', error);
+    console.error('Failed to open database:', error);
     throw error;
   }
 }
