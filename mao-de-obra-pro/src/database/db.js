@@ -2,17 +2,15 @@ import Dexie from 'dexie';
 
 export const db = new Dexie('MaoDeObraPro');
 
-// Versão 6 – schema limpo
 db.version(6).stores({
   clientes: '++id, nome, whatsapp, endereco',
   servicos: '++id, nome, tempoPadrao, categoria, profissaoId, precoFixo',
   orcamentos: '++id, clienteId, data, total, desconto, status, itens, fotos, taxaDeslocamento, subtotal, profissaoId, profissaoNome, validade, dataVencimento',
-  config: 'id, chave, valor',
+  config: '&chave, valor',  // chave como chave primária, sem id auto increment
   profissoes: '++id, slug, nome, icone, riscoBase, custoFerramental, descricao, ativo',
   caixa: '++id, data, tipo, categoria, descricao, valor, orcamentoId'
 });
 
-// Popula apenas se o banco estiver vazio
 db.on('populate', async () => {
   console.log('Populando banco...');
 
@@ -40,14 +38,15 @@ db.on('populate', async () => {
     { nome: 'Pintura interna', tempoPadrao: 120, categoria: 'Pintura', profissaoId: profissoesIds.pintor, precoFixo: null }
   ]);
 
+  // Configurações: agora usando chave como primary key
   await db.config.bulkAdd([
-    { id: 1, chave: 'metaSalarial', valor: 5000 },
-    { id: 2, chave: 'horasTrabalhadas', valor: 160 },
-    { id: 3, chave: 'margemReserva', valor: 0.2 },
-    { id: 4, chave: 'taxaDeslocamento', valor: 50 },
-    { id: 5, chave: 'profissaoSelecionada', valor: 'eletricista' },
-    { id: 6, chave: 'setupConcluido', valor: 0 },
-    { id: 7, chave: 'primeiroAcesso', valor: 0 }
+    { chave: 'metaSalarial', valor: 5000 },
+    { chave: 'horasTrabalhadas', valor: 160 },
+    { chave: 'margemReserva', valor: 0.2 },
+    { chave: 'taxaDeslocamento', valor: 50 },
+    { chave: 'profissaoSelecionada', valor: 'eletricista' },
+    { chave: 'setupConcluido', valor: 0 },
+    { chave: 'primeiroAcesso', valor: 0 }
   ]);
 });
 
@@ -59,7 +58,7 @@ export async function initDatabase() {
       await db.populate();
     }
     // Garante que a flag exista (migração)
-    const setupFlag = await db.config.where('chave').equals('setupConcluido').first();
+    const setupFlag = await db.config.get('setupConcluido');
     if (!setupFlag) {
       await db.config.add({ chave: 'setupConcluido', valor: 0 });
     }

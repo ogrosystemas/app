@@ -24,7 +24,7 @@ export function useFinanceiro() {
   const loadConfig = async () => {
     try {
       setLoading(true);
-      const configs = await db.config.toArray();
+      const configs = await db.config.toArray(); // retorna objetos com chave e valor
       const configObj = {};
       configs.forEach(c => {
         configObj[c.chave] = c.valor;
@@ -33,13 +33,11 @@ export function useFinanceiro() {
       const profissaoSlug = configObj.profissaoSelecionada || 'eletricista';
       const profissaoData = await db.profissoes.where('slug').equals(profissaoSlug).first();
 
-      // Calcular valor minuto baseado na meta salarial e horas
       const valorMinutoBase = calcularValorMinuto(
         configObj.metaSalarial || 5000,
         configObj.horasTrabalhadas || 160
       );
 
-      // Aplicar multiplicador de risco da profissão
       const riscoMultiplier = profissaoData ? profissaoData.riscoBase : 1.0;
       const valorMinutoAjustado = valorMinutoBase * riscoMultiplier;
 
@@ -64,7 +62,7 @@ export function useFinanceiro() {
 
   const updateConfig = async (chave, valor) => {
     try {
-      await db.config.where('chave').equals(chave).modify({ valor });
+      await db.config.put({ chave, valor }); // put insere ou atualiza baseado na chave primária
       await loadConfig();
       return true;
     } catch (error) {
@@ -76,12 +74,7 @@ export function useFinanceiro() {
   const updateAllConfig = async (newConfig) => {
     try {
       for (const [chave, valor] of Object.entries(newConfig)) {
-        const existing = await db.config.where('chave').equals(chave).first();
-        if (existing) {
-          await db.config.where('chave').equals(chave).modify({ valor });
-        } else {
-          await db.config.add({ chave, valor });
-        }
+        await db.config.put({ chave, valor });
       }
       await loadConfig();
       return true;
@@ -93,34 +86,17 @@ export function useFinanceiro() {
 
   const selecionarProfissao = async (profissaoData) => {
     try {
-      console.log('Selecionando profissão:', profissaoData);
+      await updateConfig('profissaoSelecionada', profissaoData.slug);
+      await updateConfig('custoManutencaoFerramenta', profissaoData.custoFerramental);
 
-      // Atualizar profissão no banco
-      await db.config.where('chave').equals('profissaoSelecionada').modify({ valor: profissaoData.slug });
-      await db.config.where('chave').equals('custoManutencaoFerramenta').modify({ valor: profissaoData.custoFerramental });
-
-      // Calcular adicional de periculosidade baseado no risco
       let adicionalPericulosidade = 0.15;
-      if (profissaoData.riscoBase >= 1.2) {
-        adicionalPericulosidade = 0.20;
-      } else if (profissaoData.riscoBase >= 1.1) {
-        adicionalPericulosidade = 0.15;
-      } else {
-        adicionalPericulosidade = 0.10;
-      }
-      await db.config.where('chave').equals('adicionalPericulosidade').modify({ valor: adicionalPericulosidade });
+      if (profissaoData.riscoBase >= 1.2) adicionalPericulosidade = 0.20;
+      else if (profissaoData.riscoBase >= 1.1) adicionalPericulosidade = 0.15;
+      else adicionalPericulosidade = 0.10;
+      await updateConfig('adicionalPericulosidade', adicionalPericulosidade);
 
-      // Marcar primeiro acesso como falso
-      const primeiroAcessoConfig = await db.config.where('chave').equals('primeiroAcesso').first();
-      if (primeiroAcessoConfig && primeiroAcessoConfig.valor === true) {
-        await db.config.where('chave').equals('primeiroAcesso').modify({ valor: false });
-      }
-
-      // Recarregar configurações para atualizar todos os valores
+      await updateConfig('primeiroAcesso', 0);
       await loadConfig();
-
-      console.log('Profissão selecionada com sucesso, novo valorMinuto:', config.valorMinuto);
-
       return true;
     } catch (error) {
       console.error('Error selecting profession:', error);
