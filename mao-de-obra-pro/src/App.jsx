@@ -13,31 +13,45 @@ import { useToast } from './components/Toast.jsx';
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [dbReady, setDbReady] = useState(false);
-  const [primeiroAcesso, setPrimeiroAcesso] = useState(true);
+  const [setupConcluido, setSetupConcluido] = useState(false);
   const [selectedBudgetId, setSelectedBudgetId] = useState(null);
   const { showToast, ToastComponent } = useToast();
 
   useEffect(() => {
+    let timeoutId;
     const initialize = async () => {
       try {
         await initDatabase();
-        // Verifica se já existe algum cliente ou orçamento para decidir se é primeiro acesso
-        const clientesCount = await db.clientes.count();
-        const orcamentosCount = await db.orcamentos.count();
-        // Considera primeiro acesso se não houver clientes E não houver orçamentos
-        const isFirstAccess = (clientesCount === 0 && orcamentosCount === 0);
-        setPrimeiroAcesso(isFirstAccess);
+        // Verifica se o setup já foi concluído pela chave no config
+        const configSetup = await db.config.where('chave').equals('setupConcluido').first();
+        setSetupConcluido(!!configSetup && configSetup.valor === 1);
         setDbReady(true);
       } catch (err) {
-        console.error('Failed to initialize database:', err);
+        console.error('Erro ao inicializar banco:', err);
+        // Se der erro, mesmo assim sai do loading para não travar
         setDbReady(true);
       }
     };
     initialize();
+    // Timeout de segurança: após 3 segundos, sai do loading
+    timeoutId = setTimeout(() => {
+      if (!dbReady) {
+        console.warn('Timeout na inicialização, forçando saída do loading');
+        setDbReady(true);
+      }
+    }, 3000);
+    return () => clearTimeout(timeoutId);
   }, []);
 
-  const handleSetupComplete = () => {
-    setPrimeiroAcesso(false);
+  const handleSetupComplete = async () => {
+    // Marca o setup como concluído no banco
+    const existing = await db.config.where('chave').equals('setupConcluido').first();
+    if (existing) {
+      await db.config.where('chave').equals('setupConcluido').modify({ valor: 1 });
+    } else {
+      await db.config.add({ chave: 'setupConcluido', valor: 1 });
+    }
+    setSetupConcluido(true);
     setActiveTab('dashboard');
   };
 
@@ -87,7 +101,7 @@ function App() {
     );
   }
 
-  if (primeiroAcesso) {
+  if (!setupConcluido) {
     return <SetupPage onComplete={handleSetupComplete} showToast={showToast} />;
   }
 
