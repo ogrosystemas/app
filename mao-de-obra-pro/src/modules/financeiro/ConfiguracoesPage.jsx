@@ -1,4 +1,3 @@
-// src/modules/financeiro/ConfiguracoesPage.jsx – com a borda cinza definitivamente removida
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Clock, TrendingUp, Car, Save, AlertCircle, Briefcase, Settings, Calendar, Wallet, BarChart3 } from 'lucide-react';
 import { useFinanceiro } from '../../hooks/useFinanceiro';
@@ -39,42 +38,40 @@ const ConfiguracoesPage = () => {
   const saldo = totalEntradas - totalSaidas;
 
   const menus = [
-    { id: 'config', label: 'Configurações', icon: Settings },
-    { id: 'profissao', label: 'Perfil Profissional', icon: Briefcase },
-    { id: 'caixa', label: 'Controle de Caixa', icon: Wallet }
+    { id: 'config', label: 'Config', icon: Settings },
+    { id: 'profissao', label: 'Perfil', icon: Briefcase },
+    { id: 'caixa', label: 'Caixa', icon: Wallet }
   ];
 
   return (
     <div className="space-y-6 pb-20">
       <div><h1 className="text-2xl font-bold">Financeiro</h1><p className="text-slate-500">Gerencie suas finanças</p></div>
 
-      {/* MENU – SEM qualquer borda cinza, scroll horizontal mantido */}
-      <div className="overflow-x-auto -mx-4 px-4">
-        <div className="flex gap-2 min-w-max">
-          {menus.map(menu => {
-            const Icon = menu.icon;
-            const isActive = activeMenu === menu.id;
-            return (
-              <button
-                key={menu.id}
-                onClick={() => setActiveMenu(menu.id)}
-                className={`px-4 py-2 font-semibold whitespace-nowrap transition-all focus:outline-none ${
-                  isActive
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-slate-500 hover:text-slate-700 border-b-2 border-transparent'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Icon size={18} />
-                  <span>{menu.label}</span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+      {/* Menu sem scroll horizontal – os nomes agora são curtos */}
+      <div className="flex gap-2 border-b border-transparent">
+        {menus.map(menu => {
+          const Icon = menu.icon;
+          const isActive = activeMenu === menu.id;
+          return (
+            <button
+              key={menu.id}
+              onClick={() => setActiveMenu(menu.id)}
+              className={`px-4 py-2 font-semibold transition-all -mb-[1px] ${
+                isActive
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <div className="flex items-center gap-2 whitespace-nowrap">
+                <Icon size={18} />
+                <span>{menu.label}</span>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
-      {/* (restante do conteúdo – inalterado) */}
+      {/* Conteúdo igual ao anterior – inalterado */}
       {activeMenu === 'config' && (
         <>
           <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
