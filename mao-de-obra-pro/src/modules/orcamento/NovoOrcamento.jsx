@@ -7,6 +7,7 @@ import {
   Send,
   Trash2,
   Plus,
+  Minus,
   ChevronRight,
   DollarSign,
   Calendar
@@ -79,15 +80,15 @@ const NovoOrcamento = ({ onSave }) => {
     setNewCliente({ nome: '', whatsapp: '', endereco: '' });
   };
 
-  const handleAddServicoToBudget = (servico) => {
-    let precoCalculado;
+  const handleAddServicoToBudget = (servico, quantidade = 1) => {
+    let precoUnitario;
     let usaPrecoFixo = false;
 
     if (servico.precoFixo && servico.precoFixo > 0) {
-      precoCalculado = servico.precoFixo;
+      precoUnitario = servico.precoFixo;
       usaPrecoFixo = true;
     } else {
-      precoCalculado = calcularPrecoServico(
+      precoUnitario = calcularPrecoServico(
         servico.tempoPadrao,
         config.valorMinuto,
         DIFICULDADE.NORMAL.fator,
@@ -97,14 +98,33 @@ const NovoOrcamento = ({ onSave }) => {
 
     setSelectedServicos([...selectedServicos, {
       id: Date.now(),
+      servicoOriginalId: servico.id,
       nome: servico.nome,
       tempoAjustado: servico.tempoPadrao,
       dificuldade: 'NORMAL',
-      preco: precoCalculado,
+      precoUnitario: precoUnitario,
+      quantidade: quantidade,
+      precoTotal: precoUnitario * quantidade,
       precoFixo: servico.precoFixo || null,
       usaPrecoFixo: usaPrecoFixo
     }]);
     setShowServicoModal(false);
+  };
+
+  const aumentarQuantidade = (index) => {
+    const updated = [...selectedServicos];
+    updated[index].quantidade += 1;
+    updated[index].precoTotal = updated[index].precoUnitario * updated[index].quantidade;
+    setSelectedServicos(updated);
+  };
+
+  const diminuirQuantidade = (index) => {
+    const updated = [...selectedServicos];
+    if (updated[index].quantidade > 1) {
+      updated[index].quantidade -= 1;
+      updated[index].precoTotal = updated[index].precoUnitario * updated[index].quantidade;
+      setSelectedServicos(updated);
+    }
   };
 
   const updateServicoItem = (index, field, value) => {
@@ -112,22 +132,24 @@ const NovoOrcamento = ({ onSave }) => {
     if (field === 'tempoAjustado') {
       updated[index].tempoAjustado = parseInt(value);
       if (!updated[index].usaPrecoFixo) {
-        updated[index].preco = calcularPrecoServico(
+        updated[index].precoUnitario = calcularPrecoServico(
           updated[index].tempoAjustado,
           config.valorMinuto,
           DIFICULDADE[updated[index].dificuldade].fator,
           config.margemReserva
         );
+        updated[index].precoTotal = updated[index].precoUnitario * updated[index].quantidade;
       }
     } else if (field === 'dificuldade') {
       updated[index].dificuldade = value;
       if (!updated[index].usaPrecoFixo) {
-        updated[index].preco = calcularPrecoServico(
+        updated[index].precoUnitario = calcularPrecoServico(
           updated[index].tempoAjustado,
           config.valorMinuto,
           DIFICULDADE[value].fator,
           config.margemReserva
         );
+        updated[index].precoTotal = updated[index].precoUnitario * updated[index].quantidade;
       }
     }
     setSelectedServicos(updated);
@@ -145,7 +167,10 @@ const NovoOrcamento = ({ onSave }) => {
     setFotos(fotos.filter((_, i) => i !== index));
   };
 
-  const totalOrcamento = calcularTotalOrcamento(selectedServicos, config.taxaDeslocamento);
+  const totalOrcamento = calcularTotalOrcamento(
+    selectedServicos.map(s => ({ preco: s.precoTotal })),
+    config.taxaDeslocamento
+  );
 
   const calcularDataVencimento = () => {
     const data = new Date();
@@ -168,7 +193,7 @@ const NovoOrcamento = ({ onSave }) => {
 *Válido até:* ${dataVencimento}
 
 *SERVIÇOS:*
-${selectedServicos.map(item => `✓ ${item.nome}`).join('\n')}
+${selectedServicos.map(item => `✓ ${item.nome} x${item.quantidade} - ${formatarMoeda(item.precoTotal)}`).join('\n')}
 
 *TOTAL: ${formatarMoeda(orcamentoSalvo.total)}*
 
@@ -206,7 +231,9 @@ Entre em contato para mais informações.`;
         nome: s.nome,
         tempo: s.tempoAjustado,
         dificuldade: s.dificuldade,
-        preco: s.preco,
+        precoUnitario: s.precoUnitario,
+        quantidade: s.quantidade,
+        precoTotal: s.precoTotal,
         usaPrecoFixo: s.usaPrecoFixo || false
       })),
       fotos: fotos,
@@ -374,13 +401,34 @@ Entre em contato para mais informações.`;
                       </button>
                     </div>
 
+                    {/* Controle de quantidade */}
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm text-slate-500">Quantidade:</span>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => diminuirQuantidade(idx)}
+                          className="p-1 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
+                          disabled={servico.quantidade <= 1}
+                        >
+                          <Minus size={16} className={servico.quantidade <= 1 ? 'text-slate-300' : 'text-slate-600'} />
+                        </button>
+                        <span className="font-semibold text-slate-900 w-8 text-center">{servico.quantidade}</span>
+                        <button
+                          onClick={() => aumentarQuantidade(idx)}
+                          className="p-1 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
+                        >
+                          <Plus size={16} className="text-slate-600" />
+                        </button>
+                      </div>
+                    </div>
+
                     {servico.usaPrecoFixo ? (
                       <div className="flex items-center gap-2 text-sm text-green-600 mb-2">
                         <DollarSign size={16} />
-                        <span>Preço fixo: {formatarMoeda(servico.preco)}</span>
+                        <span>Preço unitário: {formatarMoeda(servico.precoUnitario)}</span>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="grid grid-cols-2 gap-2 text-sm mb-2">
                         <div>
                           <label className="text-xs text-slate-500">Tempo (min)</label>
                           <input
@@ -407,8 +455,12 @@ Entre em contato para mais informações.`;
                     )}
 
                     <div className="mt-2 pt-2 border-t border-slate-100">
+                      <div className="flex justify-between text-sm text-slate-500 mb-1">
+                        <span>Preço unitário:</span>
+                        <span>{formatarMoeda(servico.precoUnitario)}</span>
+                      </div>
                       <p className="text-right font-semibold text-blue-600">
-                        {formatarMoeda(servico.preco)}
+                        Total: {formatarMoeda(servico.precoTotal)}
                       </p>
                     </div>
                   </div>
@@ -512,14 +564,14 @@ Entre em contato para mais informações.`;
                 {selectedServicos.map((servico, idx) => (
                   <div key={idx} className="flex justify-between text-sm py-1">
                     <div>
-                      <span>{servico.nome}</span>
+                      <span>{servico.nome} x{servico.quantidade}</span>
                       {servico.usaPrecoFixo ? (
                         <span className="text-xs text-green-600 ml-2">(Preço fixo)</span>
                       ) : (
                         <span className="text-xs text-slate-500 ml-2">({formatarTempo(servico.tempoAjustado)})</span>
                       )}
                     </div>
-                    <span className="font-medium">{formatarMoeda(servico.preco)}</span>
+                    <span className="font-medium">{formatarMoeda(servico.precoTotal)}</span>
                   </div>
                 ))}
               </div>
@@ -530,7 +582,7 @@ Entre em contato para mais informações.`;
                   <Calendar size={16} />
                   Validade do Orçamento
                 </label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   {opcoesValidade.map(op => (
                     <button
                       key={op.dias}
@@ -644,7 +696,7 @@ Entre em contato para mais informações.`;
                 servicos.map(servico => (
                   <button
                     key={servico.id}
-                    onClick={() => handleAddServicoToBudget(servico)}
+                    onClick={() => handleAddServicoToBudget(servico, 1)}
                     className="w-full text-left p-3 border rounded-lg hover:border-blue-500 transition-colors"
                   >
                     <p className="font-medium">{servico.nome}</p>
