@@ -9,6 +9,7 @@ import NovoOrcamento from './modules/orcamento/NovoOrcamento';
 import VisualizarOrcamento from './modules/orcamento/VisualizarOrcamento';
 import { initDatabase, db } from './database/db';
 import { useToast } from './components/Toast';
+import './index.css';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
