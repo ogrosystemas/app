@@ -44,29 +44,29 @@ const ConfiguracoesPage = () => {
   ];
 
   return (
-    <div className="space-y-6 pb-20">
-      <div><h1 className="text-2xl font-bold">Financeiro</h1><p className="text-slate-500">Gerencie suas finanças</p></div>
-
-      {/* Menu com scroll horizontal, mas sem a linha cinza (borda agora transparente) */}
-      <div className="overflow-x-auto -mx-4 px-4">
-        <div className="flex gap-2 border-b border-transparent min-w-max">
-          {menus.map(m => {
-            const Icon = m.icon;
-            return (
-              <button
-                key={m.id}
-                onClick={() => setActiveMenu(m.id)}
-                className={`px-4 py-2 font-semibold whitespace-nowrap ${activeMenu === m.id ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500'}`}
-              >
-                <div className="flex items-center gap-2">
-                  <Icon size={18} />
-                  <span>{m.label}</span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+    <div className="overflow-x-auto -mx-4 px-4">
+  <div className="flex gap-2 min-w-max">
+    {menus.map(menu => {
+      const Icon = menu.icon;
+      return (
+        <button
+          key={menu.id}
+          onClick={() => setActiveMenu(menu.id)}
+          className={`px-4 py-2 font-semibold whitespace-nowrap ${
+            activeMenu === menu.id
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-slate-500'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Icon size={18} />
+            <span>{menu.label}</span>
+          </div>
+        </button>
+      );
+    })}
+  </div>
+</div>
 
       {activeMenu === 'config' && (<>
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white"><div><p className="text-sm">Seu valor por minuto</p><p className="text-3xl font-bold">{formatarMoeda(config.valorMinuto)}</p><p className="text-sm">{config.valorMinuto > 0 ? `Risco: ${Math.round((profissao?.riscoBase-1)*100)}%` : ''}</p></div></div>
