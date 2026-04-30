@@ -38,6 +38,7 @@ const SetupPage = ({ onComplete }) => {
     if (saving) return;
     setSaving(true);
     try {
+      // Salva as configurações financeiras
       const success = await updateAllConfig({
         metaSalarial: formData.metaSalarial,
         horasTrabalhadas: formData.horasTrabalhadas,
@@ -45,8 +46,12 @@ const SetupPage = ({ onComplete }) => {
         margemReserva: 0.2
       });
       if (!success) throw new Error('Erro ao salvar configurações');
+
+      // Flag de setup concluído já será salva pelo onComplete (App.jsx), mas garantimos aqui também
+      await db.config.put({ chave: 'setupConcluido', valor: 1 });
+
       showToast('Configurações salvas!', 'success');
-      onComplete();
+      onComplete(); // Chama o callback que leva ao dashboard
     } catch (err) {
       console.error(err);
       showToast(err.message, 'error');

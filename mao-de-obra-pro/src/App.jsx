@@ -21,12 +21,16 @@ function AppContent() {
     const initialize = async () => {
       try {
         await initDatabase();
+        // Lê a flag setupConcluido da tabela config
         const setupFlag = await db.config.get('setupConcluido');
-        setShowSetup(!setupFlag || setupFlag.valor !== 1);
+        // Se não existir ou for 0, mostra o setup; se for 1, vai direto para o dashboard
+        const precisaSetup = !setupFlag || setupFlag.valor !== 1;
+        setShowSetup(precisaSetup);
         setDbReady(true);
       } catch (err) {
-        console.error(err);
-        showToast('Erro ao inicializar banco', 'error');
+        console.error('Erro ao inicializar:', err);
+        // Fallback: se der erro, não mostrar setup (evita loop)
+        setShowSetup(false);
         setDbReady(true);
       }
     };
@@ -34,6 +38,7 @@ function AppContent() {
   }, []);
 
   const handleSetupComplete = async () => {
+    // Salva a flag como 1 (concluído)
     await db.config.put({ chave: 'setupConcluido', valor: 1 });
     setShowSetup(false);
     setActiveTab('dashboard');
@@ -67,7 +72,11 @@ function AppContent() {
       </div>
     );
   }
-  if (showSetup) return <SetupPage onComplete={handleSetupComplete} />;
+
+  if (showSetup) {
+    return <SetupPage onComplete={handleSetupComplete} />;
+  }
+
   return <Layout activeTab={activeTab} onTabChange={setActiveTab}>{renderContent()}</Layout>;
 }
 
