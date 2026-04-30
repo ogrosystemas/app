@@ -13,11 +13,12 @@ import {
   BarChart3
 } from 'lucide-react';
 import { useFinanceiro } from '../../hooks/useFinanceiro';
-import { formatarMoeda, calcularValorMinuto } from '../../core/calculadora';
+import { formatarMoeda } from '../../core/calculadora';
 import ProfissaoSelector from '../../components/ProfissaoSelector';
 import db from '../../database/db';
+import ConfirmModal from '../../components/ConfirmModal';
 
-const ConfiguracoesPage = () => {
+const ConfiguracoesPage = ({ showToast }) => {
   const { config, profissao, updateAllConfig, selecionarProfissao, loading, refresh } = useFinanceiro();
   const [activeMenu, setActiveMenu] = useState('config');
   const [formData, setFormData] = useState({
@@ -29,6 +30,7 @@ const ConfiguracoesPage = () => {
   const [validadePadrao, setValidadePadrao] = useState(30);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   // Estado do caixa
   const [lancamentos, setLancamentos] = useState([]);
@@ -39,9 +41,6 @@ const ConfiguracoesPage = () => {
     descricao: '',
     valor: ''
   });
-  const [totalEntradas, setTotalEntradas] = useState(0);
-  const [totalSaidas, setTotalSaidas] = useState(0);
-  const [saldo, setSaldo] = useState(0);
 
   useEffect(() => {
     if (config) {
@@ -56,14 +55,6 @@ const ConfiguracoesPage = () => {
     loadLancamentos();
   }, [config]);
 
-  useEffect(() => {
-    const entradas = lancamentos.filter(l => l.tipo === 'entrada').reduce((sum, l) => sum + l.valor, 0);
-    const saidas = lancamentos.filter(l => l.tipo === 'saida').reduce((sum, l) => sum + l.valor, 0);
-    setTotalEntradas(entradas);
-    setTotalSaidas(saidas);
-    setSaldo(entradas - saidas);
-  }, [lancamentos]);
-
   const loadValidadePadrao = async () => {
     const configValidade = await db.config.where('chave').equals('validadePadrao').first();
     if (configValidade) setValidadePadrao(configValidade.valor);
@@ -71,7 +62,7 @@ const ConfiguracoesPage = () => {
 
   const saveValidadePadrao = async () => {
     await db.config.where('chave').equals('validadePadrao').modify({ valor: validadePadrao });
-    alert('Validade padrão salva!');
+    showToast('Validade padrão salva!', 'success');
   };
 
   const loadLancamentos = async () => {
@@ -81,7 +72,7 @@ const ConfiguracoesPage = () => {
 
   const addLancamento = async () => {
     if (!novoLancamento.descricao || !novoLancamento.valor) {
-      alert('Preencha descrição e valor');
+      showToast('Preencha descrição e valor', 'error');
       return;
     }
     await db.caixa.add({
@@ -95,13 +86,14 @@ const ConfiguracoesPage = () => {
     setNovoLancamento({ tipo: 'entrada', categoria: '', descricao: '', valor: '' });
     setShowLancamentoModal(false);
     await loadLancamentos();
+    showToast('Lançamento adicionado!', 'success');
   };
 
   const deleteLancamento = async (id) => {
-    if (confirm('Excluir este lançamento?')) {
-      await db.caixa.delete(id);
-      await loadLancamentos();
-    }
+    await db.caixa.delete(id);
+    await loadLancamentos();
+    setDeleteConfirm(null);
+    showToast('Lançamento excluído!', 'success');
   };
 
   const handleSave = async () => {
@@ -110,6 +102,7 @@ const ConfiguracoesPage = () => {
     if (success) {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
+      showToast('Configurações salvas!', 'success');
     }
     setSaving(false);
   };
@@ -120,6 +113,10 @@ const ConfiguracoesPage = () => {
     { id: 'caixa', label: 'Controle de Caixa', icon: Wallet }
   ];
 
+  const totalEntradas = lancamentos.filter(l => l.tipo === 'entrada').reduce((sum, l) => sum + l.valor, 0);
+  const totalSaidas = lancamentos.filter(l => l.tipo === 'saida').reduce((sum, l) => sum + l.valor, 0);
+  const saldo = totalEntradas - totalSaidas;
+
   return (
     <div className="space-y-6 animate-fade-in pb-20">
       <div>
@@ -127,7 +124,6 @@ const ConfiguracoesPage = () => {
         <p className="text-slate-500 mt-1">Gerencie suas finanças</p>
       </div>
 
-      {/* Menu de navegação com scroll horizontal */}
       <div className="overflow-x-auto -mx-4 px-4 scrollbar-hide">
         <div className="flex gap-2 border-b border-slate-200 min-w-max">
           {menus.map(menu => {
@@ -152,7 +148,6 @@ const ConfiguracoesPage = () => {
         </div>
       </div>
 
-      {/* Configurações Gerais */}
       {activeMenu === 'config' && (
         <>
           <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
@@ -282,7 +277,6 @@ const ConfiguracoesPage = () => {
         </>
       )}
 
-      {/* Perfil Profissional */}
       {activeMenu === 'profissao' && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="p-6 border-b border-slate-200">
@@ -296,7 +290,6 @@ const ConfiguracoesPage = () => {
               onSelect={async (prof) => {
                 await selecionarProfissao(prof);
                 await refresh();
-                // Forçar atualização dos valores no formData também
                 const novaConfig = await db.config.toArray();
                 const configObj = {};
                 novaConfig.forEach(c => { configObj[c.chave] = c.valor; });
@@ -306,6 +299,7 @@ const ConfiguracoesPage = () => {
                   margemReserva: configObj.margemReserva || 0.2,
                   taxaDeslocamento: configObj.taxaDeslocamento || 50
                 });
+                showToast(`Perfil alterado para ${prof.nome}`, 'success');
               }}
               selectedSlug={config.profissaoSelecionada}
             />
@@ -322,7 +316,6 @@ const ConfiguracoesPage = () => {
         </div>
       )}
 
-      {/* Controle de Caixa */}
       {activeMenu === 'caixa' && (
         <>
           <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-6 text-white">
@@ -374,7 +367,7 @@ const ConfiguracoesPage = () => {
                         {l.tipo === 'entrada' ? '+' : '-'} {formatarMoeda(l.valor)}
                       </p>
                       <button
-                        onClick={() => deleteLancamento(l.id)}
+                        onClick={() => setDeleteConfirm(l.id)}
                         className="text-xs text-red-500 mt-1"
                       >
                         Excluir
@@ -449,6 +442,17 @@ const ConfiguracoesPage = () => {
           </div>
         </div>
       )}
+
+      {/* Confirm modal para exclusão de lançamento */}
+      <ConfirmModal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={() => deleteLancamento(deleteConfirm)}
+        title="Excluir Lançamento"
+        message="Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+      />
     </div>
   );
 };
