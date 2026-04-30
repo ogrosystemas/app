@@ -43,7 +43,7 @@ const SetupPage = ({ onComplete, showToast }) => {
     // Marcar setup como concluído
     const existing = await db.config.where('chave').equals('setupConcluido').first();
     if (existing) {
-      await db.config.where('chave').equals('setupConcluido').modify({ valor: 1 });
+      await db.config.update(existing.id, { valor: 1 });
     } else {
       await db.config.add({ chave: 'setupConcluido', valor: 1 });
     }
