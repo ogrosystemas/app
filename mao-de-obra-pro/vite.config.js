@@ -8,10 +8,25 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
+        // Muda o nome base do cache para forçar novo download
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        modifyURLPrefix: { '/': '/' },
+        cacheId: 'mao-de-obra-pro-v2', // <-- NOVO ID
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-        skipWaiting: true,   // força nova versão
-        clientsClaim: true    // toma controle imediato
+        runtimeCaching: [
+          {
+            urlPattern: /\/$/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'html-cache-v2',
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 10, maxAgeSeconds: 24 * 60 * 60 }
+            }
+          }
+        ]
       },
       manifest: {
         name: 'Mão de Obra PRO',

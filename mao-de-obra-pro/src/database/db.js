@@ -2,7 +2,8 @@ import Dexie from 'dexie';
 
 export const db = new Dexie('MaoDeObraPro');
 
-db.version(11).stores({
+// Versão 15 – força recriação de tudo
+db.version(15).stores({
   clientes: '++id, nome, whatsapp, endereco',
   servicos: '++id, nome, tempoPadrao, categoria, profissaoId, precoFixo',
   orcamentos: '++id, clienteId, data, total, desconto, status, itens, fotos, taxaDeslocamento, subtotal, profissaoId, profissaoNome, validade, dataVencimento',
@@ -11,8 +12,14 @@ db.version(11).stores({
   caixa: '++id, data, tipo, categoria, descricao, valor, orcamentoId'
 });
 
-db.on('populate', async () => {
-  const profissoesIds = {};
+// Upgrade que limpa e recria os dados
+db.version(15).upgrade(async (trans) => {
+  // Apaga tudo para começar limpo
+  await trans.table('config').clear();
+  await trans.table('profissoes').clear();
+  await trans.table('servicos').clear();
+
+  // Profissões
   const profissoesData = [
     { slug: 'eletricista', nome: 'Eletricista', icone: 'Zap', riscoBase: 1.2, custoFerramental: 300, descricao: 'Requer EPIs e normas técnicas (NR10)', ativo: 1 },
     { slug: 'encanador', nome: 'Encanador', icone: 'Wrench', riscoBase: 1.1, custoFerramental: 200, descricao: 'Foco em tempo de estanqueidade e reparo', ativo: 1 },
@@ -20,14 +27,15 @@ db.on('populate', async () => {
     { slug: 'pedreiro', nome: 'Pedreiro', icone: 'Hammer', riscoBase: 1.4, custoFerramental: 800, descricao: 'Alvenaria estrutural, fundações, lajes, demolição pesada', ativo: 1 },
     { slug: 'pintor', nome: 'Pintor', icone: 'Paintbrush', riscoBase: 1.0, custoFerramental: 150, descricao: 'Preparação de superfícies, pintura interna/externa, texturas', ativo: 1 }
   ];
+  const profissoesIds = {};
   for (const prof of profissoesData) {
-    const id = await db.profissoes.add(prof);
+    const id = await trans.table('profissoes').add(prof);
     profissoesIds[prof.slug] = id;
   }
 
-  // Serviços completos
-  await db.servicos.bulkAdd([
-    // ----- ELETRICISTA -----
+  // Serviços – todos (Pedreiro com muitos itens)
+  const servicosData = [
+    // ELETRICISTA
     { nome: 'Instalação de tomada', tempoPadrao: 30, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista, precoFixo: null },
     { nome: 'Troca de disjuntor', tempoPadrao: 45, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista, precoFixo: null },
     { nome: 'Instalação de chuveiro elétrico', tempoPadrao: 60, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista, precoFixo: 150.00 },
@@ -36,7 +44,7 @@ db.on('populate', async () => {
     { nome: 'Instalação de quadro de disjuntores', tempoPadrao: 180, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista, precoFixo: null },
     { nome: 'Instalação de iluminação LED', tempoPadrao: 50, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista, precoFixo: null },
     { nome: 'Aterramento elétrico', tempoPadrao: 90, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista, precoFixo: null },
-    // ----- ENCANADOR -----
+    // ENCANADOR
     { nome: 'Desentupimento de pia', tempoPadrao: 60, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador, precoFixo: 120.00 },
     { nome: 'Troca de registro', tempoPadrao: 45, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador, precoFixo: null },
     { nome: 'Reparo de vazamento', tempoPadrao: 90, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador, precoFixo: null },
@@ -45,14 +53,14 @@ db.on('populate', async () => {
     { nome: 'Desentupimento de vaso sanitário', tempoPadrao: 45, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador, precoFixo: 100.00 },
     { nome: 'Instalação de chuveiro a gás', tempoPadrao: 90, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador, precoFixo: null },
     { nome: 'Manutenção de caixa d\'água', tempoPadrao: 120, categoria: 'Hidráulica', profissaoId: profissoesIds.encanador, precoFixo: null },
-    // ----- TÉCNICO AC -----
+    // TÉCNICO AC
     { nome: 'Instalação de ar condicionado split', tempoPadrao: 180, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'], precoFixo: 600.00 },
     { nome: 'Limpeza de ar condicionado', tempoPadrao: 90, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'], precoFixo: 200.00 },
     { nome: 'Recarga de gás refrigerante', tempoPadrao: 60, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'], precoFixo: 300.00 },
     { nome: 'Manutenção preventiva AC', tempoPadrao: 120, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'], precoFixo: null },
     { nome: 'Instalação de ar condicionado janela', tempoPadrao: 120, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'], precoFixo: null },
     { nome: 'Diagnóstico de falhas AC', tempoPadrao: 60, categoria: 'Climatização', profissaoId: profissoesIds['tecnico-ac'], precoFixo: null },
-    // ----- PEDREIRO (completo) -----
+    // PEDREIRO (completo)
     { nome: 'Levantamento de alvenaria', tempoPadrao: 60, categoria: 'Alvenaria', profissaoId: profissoesIds.pedreiro, precoFixo: null },
     { nome: 'Assentamento de tijolos/blocos', tempoPadrao: 60, categoria: 'Alvenaria', profissaoId: profissoesIds.pedreiro, precoFixo: null },
     { nome: 'Concretagem de laje', tempoPadrao: 300, categoria: 'Laje', profissaoId: profissoesIds.pedreiro, precoFixo: null },
@@ -69,7 +77,7 @@ db.on('populate', async () => {
     { nome: 'Cinta de amarração', tempoPadrao: 180, categoria: 'Concreto', profissaoId: profissoesIds.pedreiro, precoFixo: null },
     { nome: 'Laje pré-moldada', tempoPadrao: 240, categoria: 'Laje', profissaoId: profissoesIds.pedreiro, precoFixo: null },
     { nome: 'Assentamento de cerâmica', tempoPadrao: 60, categoria: 'Revestimento', profissaoId: profissoesIds.pedreiro, precoFixo: null },
-    // ----- PINTOR -----
+    // PINTOR
     { nome: 'Lixamento de parede', tempoPadrao: 60, categoria: 'Preparação', profissaoId: profissoesIds.pintor, precoFixo: null },
     { nome: 'Aplicação de massa corrida', tempoPadrao: 90, categoria: 'Preparação', profissaoId: profissoesIds.pintor, precoFixo: null },
     { nome: 'Selador de parede', tempoPadrao: 45, categoria: 'Preparação', profissaoId: profissoesIds.pintor, precoFixo: null },
@@ -79,9 +87,14 @@ db.on('populate', async () => {
     { nome: 'Textura grafiato', tempoPadrao: 90, categoria: 'Textura', profissaoId: profissoesIds.pintor, precoFixo: null },
     { nome: 'Textura rolo texturizado', tempoPadrao: 60, categoria: 'Textura', profissaoId: profissoesIds.pintor, precoFixo: null },
     { nome: 'Aplicação de verniz em madeira', tempoPadrao: 90, categoria: 'Acabamento', profissaoId: profissoesIds.pintor, precoFixo: null }
-  ]);
+  ];
 
-  await db.config.bulkAdd([
+  for (const s of servicosData) {
+    await trans.table('servicos').add(s);
+  }
+
+  // Configurações padrão
+  await trans.table('config').bulkAdd([
     { chave: 'metaSalarial', valor: 5000 },
     { chave: 'horasTrabalhadas', valor: 160 },
     { chave: 'margemReserva', valor: 0.2 },
@@ -94,11 +107,10 @@ db.on('populate', async () => {
 export async function initDatabase() {
   try {
     await db.open();
-    const count = await db.config.count();
-    if (count === 0) await db.populate();
+    console.log('Banco versão 15 aberto com sucesso');
     return db;
   } catch (error) {
-    console.error(error);
+    console.error('Erro fatal:', error);
     throw error;
   }
 }

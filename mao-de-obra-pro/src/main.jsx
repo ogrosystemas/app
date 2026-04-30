@@ -7,37 +7,19 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then(registration => {
-        console.log('SW registrado:', registration);
-
-        // Verifica se há um SW aguardando (nova versão)
-        if (registration.waiting) {
-          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-        }
-
-        // Detecta nova versão
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // Notifica o usuário sobre a atualização
-              if (confirm('Nova versão disponível! Recarregar agora?')) {
-                window.location.reload();
-              }
-            }
-          });
-        });
+        console.log('SW registrado');
+        registration.update(); // verifica atualização ao carregar
+        setInterval(() => registration.update(), 60 * 60 * 1000);
       })
-      .catch(err => console.error('Erro ao registrar SW:', err));
+      .catch(err => console.error('SW erro:', err));
 
-    // Recarrega sempre que o SW assume o controle
+    let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing) return;
+      refreshing = true;
       window.location.reload();
     });
   });
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
