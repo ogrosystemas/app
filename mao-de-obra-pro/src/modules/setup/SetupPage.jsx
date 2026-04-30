@@ -9,6 +9,7 @@ const SetupPage = ({ onComplete, showToast }) => {
   const { config, profissao, selecionarProfissao, updateAllConfig, loading } = useFinanceiro();
   const [step, setStep] = useState(1);
   const [selectedProfissao, setSelectedProfissao] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     metaSalarial: 5000,
     horasTrabalhadas: 160,
@@ -32,8 +33,11 @@ const SetupPage = ({ onComplete, showToast }) => {
   };
 
   const handleSaveConfig = async () => {
+    if (saving) return;
+    setSaving(true);
+
     try {
-      // Salvar configurações financeiras
+      // 1. Salvar configurações financeiras
       await updateAllConfig({
         metaSalarial: formData.metaSalarial,
         horasTrabalhadas: formData.horasTrabalhadas,
@@ -41,7 +45,7 @@ const SetupPage = ({ onComplete, showToast }) => {
         margemReserva: 0.2
       });
 
-      // Marcar setup como concluído de forma robusta
+      // 2. Marcar setup como concluído (forçar criação/atualização)
       const existing = await db.config.where('chave').equals('setupConcluido').first();
       if (existing) {
         await db.config.update(existing.id, { valor: 1 });
@@ -49,16 +53,23 @@ const SetupPage = ({ onComplete, showToast }) => {
         await db.config.add({ chave: 'setupConcluido', valor: 1 });
       }
 
-      // Aguardar um pouco para garantir que a gravação foi concluída
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Verificar se realmente foi salvo
+      const check = await db.config.where('chave').equals('setupConcluido').first();
+      if (!check || check.valor !== 1) {
+        throw new Error('Falha ao salvar flag de conclusão');
+      }
 
-      if (showToast) showToast('Configuração concluída!', 'success');
+      if (showToast) showToast('Configuração concluída! Redirecionando...', 'success');
 
-      // Chamar o callback para sair da tela de setup
-      onComplete();
+      // Pequeno atraso para o toast aparecer
+      setTimeout(() => {
+        onComplete();
+      }, 500);
+
     } catch (error) {
-      console.error('Erro ao salvar configuração:', error);
-      if (showToast) showToast('Erro ao salvar. Tente novamente.', 'error');
+      console.error('Erro detalhado:', error);
+      if (showToast) showToast('Erro: ' + error.message, 'error');
+      setSaving(false);
     }
   };
 
@@ -208,11 +219,11 @@ const SetupPage = ({ onComplete, showToast }) => {
             {step === 2 && (
               <button
                 onClick={handleSaveConfig}
-                disabled={loading}
-                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2"
+                disabled={saving || loading}
+                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <Save size={20} />
-                Iniciar Mão de Obra PRO
+                {saving ? 'Salvando...' : 'Iniciar Mão de Obra PRO'}
               </button>
             )}
           </div>
