@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Phone, MapPin, Trash2, Edit2, X, Check, Users } from 'lucide-react';
 import db from '../../database/db';
+import ConfirmModal from '../../components/ConfirmModal';
 
-const ClientesPage = () => {
+const ClientesPage = ({ showToast }) => {
   const [clientes, setClientes] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingCliente, setEditingCliente] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [formData, setFormData] = useState({
     nome: '',
     whatsapp: '',
@@ -24,29 +26,31 @@ const ClientesPage = () => {
 
   const handleSave = async () => {
     if (!formData.nome.trim()) {
-      alert('Nome é obrigatório');
+      showToast('Nome é obrigatório', 'error');
       return;
     }
 
     try {
       if (editingCliente) {
         await db.clientes.update(editingCliente.id, formData);
+        showToast('Cliente atualizado com sucesso!', 'success');
       } else {
         await db.clientes.add(formData);
+        showToast('Cliente adicionado com sucesso!', 'success');
       }
       await loadClientes();
       handleCloseModal();
     } catch (error) {
       console.error('Error saving client:', error);
-      alert('Erro ao salvar cliente');
+      showToast('Erro ao salvar cliente', 'error');
     }
   };
 
   const handleDelete = async (id) => {
-    if (confirm('Tem certeza que deseja excluir este cliente?')) {
-      await db.clientes.delete(id);
-      await loadClientes();
-    }
+    await db.clientes.delete(id);
+    await loadClientes();
+    setDeleteConfirm(null);
+    showToast('Cliente excluído com sucesso!', 'success');
   };
 
   const handleCloseModal = () => {
@@ -145,7 +149,7 @@ const ClientesPage = () => {
                     <Edit2 size={18} />
                   </button>
                   <button
-                    onClick={() => handleDelete(cliente.id)}
+                    onClick={() => setDeleteConfirm(cliente.id)}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   >
                     <Trash2 size={18} />
@@ -157,6 +161,7 @@ const ClientesPage = () => {
         )}
       </div>
 
+      {/* Modal de cadastro/edição */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 animate-fade-in">
           <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
@@ -228,6 +233,17 @@ const ClientesPage = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de confirmação de exclusão */}
+      <ConfirmModal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={() => handleDelete(deleteConfirm)}
+        title="Excluir Cliente"
+        message="Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+      />
     </div>
   );
 };
