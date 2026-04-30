@@ -1,3 +1,4 @@
+// src/modules/financeiro/ConfiguracoesPage.jsx – com a borda cinza definitivamente removida
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Clock, TrendingUp, Car, Save, AlertCircle, Briefcase, Settings, Calendar, Wallet, BarChart3 } from 'lucide-react';
 import { useFinanceiro } from '../../hooks/useFinanceiro';
@@ -47,7 +48,7 @@ const ConfiguracoesPage = () => {
     <div className="space-y-6 pb-20">
       <div><h1 className="text-2xl font-bold">Financeiro</h1><p className="text-slate-500">Gerencie suas finanças</p></div>
 
-      {/* MENU CORRIGIDO – sem borda cinza, apenas sublinhado azul no ativo */}
+      {/* MENU – SEM qualquer borda cinza, scroll horizontal mantido */}
       <div className="overflow-x-auto -mx-4 px-4">
         <div className="flex gap-2 min-w-max">
           {menus.map(menu => {
@@ -57,10 +58,10 @@ const ConfiguracoesPage = () => {
               <button
                 key={menu.id}
                 onClick={() => setActiveMenu(menu.id)}
-                className={`px-4 py-2 font-semibold whitespace-nowrap transition-all ${
+                className={`px-4 py-2 font-semibold whitespace-nowrap transition-all focus:outline-none ${
                   isActive
                     ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-slate-500 hover:text-slate-700'
+                    : 'text-slate-500 hover:text-slate-700 border-b-2 border-transparent'
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -73,7 +74,7 @@ const ConfiguracoesPage = () => {
         </div>
       </div>
 
-      {/* Conteúdo (config, profissao, caixa) – inalterado */}
+      {/* (restante do conteúdo – inalterado) */}
       {activeMenu === 'config' && (
         <>
           <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
