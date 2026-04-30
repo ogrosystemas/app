@@ -6,14 +6,13 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      strategies: 'injectManifest',   // <-- importante para usar seu sw.js
-      srcDir: 'public',
-      filename: 'sw.js',
-      injectManifest: {
-        swDest: 'dist/sw.js'
+      registerType: 'autoUpdate',
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        skipWaiting: true,   // força nova versão
+        clientsClaim: true    // toma controle imediato
       },
-      manifest: false, // se quiser gerar o manifest via plugin, mantenha true; caso contrário, false e forneça manualmente
-      // Se quiser que o plugin ainda gere o manifest, remova manifest:false e configure as opções abaixo
       manifest: {
         name: 'Mão de Obra PRO',
         short_name: 'MDO Pro',
@@ -28,5 +27,6 @@ export default defineConfig({
         ]
       }
     })
-  ]
+  ],
+  resolve: { extensions: ['.jsx', '.js', '.json'] }
 });
