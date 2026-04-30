@@ -2,8 +2,7 @@ import Dexie from 'dexie';
 
 export const db = new Dexie('MaoDeObraPro');
 
-// Versão 9: store config com chave como primary key
-db.version(9).stores({
+db.version(10).stores({
   clientes: '++id, nome, whatsapp, endereco',
   servicos: '++id, nome, tempoPadrao, categoria, profissaoId, precoFixo',
   orcamentos: '++id, clienteId, data, total, desconto, status, itens, fotos, taxaDeslocamento, subtotal, profissaoId, profissaoNome, validade, dataVencimento',
@@ -12,28 +11,7 @@ db.version(9).stores({
   caixa: '++id, data, tipo, categoria, descricao, valor, orcamentoId'
 });
 
-// Upgrade para garantir dados corretos e limpeza
-db.version(9).upgrade(async (trans) => {
-  try {
-    const configTable = trans.table('config');
-    await configTable.clear();
-    await configTable.bulkAdd([
-      { chave: 'metaSalarial', valor: 5000 },
-      { chave: 'horasTrabalhadas', valor: 160 },
-      { chave: 'margemReserva', valor: 0.2 },
-      { chave: 'taxaDeslocamento', valor: 50 },
-      { chave: 'profissaoSelecionada', valor: 'eletricista' },
-      { chave: 'setupConcluido', valor: 0 },
-      { chave: 'comprou', valor: 0 }
-    ]);
-    console.log('Upgrade v9: config recriada');
-  } catch (err) {
-    console.error('Erro no upgrade:', err);
-  }
-});
-
 db.on('populate', async () => {
-  console.log('Populando banco...');
   const profissoesIds = {};
   const profissoesData = [
     { slug: 'eletricista', nome: 'Eletricista', icone: 'Zap', riscoBase: 1.2, custoFerramental: 300, descricao: 'Requer EPIs e normas técnicas (NR10)', ativo: 1 },
@@ -46,6 +24,7 @@ db.on('populate', async () => {
     const id = await db.profissoes.add(prof);
     profissoesIds[prof.slug] = id;
   }
+
   await db.servicos.bulkAdd([
     { nome: 'Instalação de tomada', tempoPadrao: 30, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista, precoFixo: null },
     { nome: 'Troca de disjuntor', tempoPadrao: 45, categoria: 'Elétrica', profissaoId: profissoesIds.eletricista, precoFixo: null },
@@ -55,33 +34,29 @@ db.on('populate', async () => {
     { nome: 'Levantamento de alvenaria', tempoPadrao: 60, categoria: 'Alvenaria', profissaoId: profissoesIds.pedreiro, precoFixo: null },
     { nome: 'Pintura interna', tempoPadrao: 120, categoria: 'Pintura', profissaoId: profissoesIds.pintor, precoFixo: null }
   ]);
+
   await db.config.bulkAdd([
     { chave: 'metaSalarial', valor: 5000 },
     { chave: 'horasTrabalhadas', valor: 160 },
     { chave: 'margemReserva', valor: 0.2 },
     { chave: 'taxaDeslocamento', valor: 50 },
     { chave: 'profissaoSelecionada', valor: 'eletricista' },
-    { chave: 'setupConcluido', valor: 0 },
-    { chave: 'comprou', valor: 0 }
+    { chave: 'setupConcluido', valor: 0 }
   ]);
 });
 
 export async function initDatabase() {
   try {
     await db.open();
-    console.log('Banco aberto com sucesso');
+    console.log('Banco inicializado');
     return db;
   } catch (error) {
-    console.error('Erro ao abrir banco:', error);
-    if (error.name === 'DataError' || error.name === 'VersionError') {
-      console.warn('Tentando deletar banco e recriar...');
-      await db.delete();
-      await db.open();
-      console.log('Banco recriado com sucesso');
-      return db;
-    }
-    throw error;
+    console.error('Falha ao abrir banco:', error);
+    // Forçar recriação limpa
+    await db.delete();
+    await db.open();
+    return db;
   }
 }
 
-export default db;  // <-- garante o export default
+export default db;

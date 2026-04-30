@@ -8,13 +8,14 @@ import ConfiguracoesPage from './modules/financeiro/ConfiguracoesPage';
 import NovoOrcamento from './modules/orcamento/NovoOrcamento';
 import VisualizarOrcamento from './modules/orcamento/VisualizarOrcamento';
 import { initDatabase, db } from './database/db';
+import { ToastProvider, useToast } from './context/ToastContext';
 
-function App() {
+function AppContent() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [dbReady, setDbReady] = useState(false);
   const [showSetup, setShowSetup] = useState(true);
   const [selectedBudgetId, setSelectedBudgetId] = useState(null);
-  const [error, setError] = useState(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     const initialize = async () => {
@@ -24,17 +25,19 @@ function App() {
         setShowSetup(!setupFlag || setupFlag.valor !== 1);
         setDbReady(true);
       } catch (err) {
-        console.error('Erro fatal:', err);
-        setError('Falha ao inicializar o banco de dados. Clique em Recarregar.');
+        console.error(err);
+        showToast('Erro ao inicializar banco', 'error');
         setDbReady(true);
       }
     };
     initialize();
   }, []);
 
-  const handleSetupComplete = () => {
+  const handleSetupComplete = async () => {
+    await db.config.put({ chave: 'setupConcluido', valor: 1 });
     setShowSetup(false);
     setActiveTab('dashboard');
+    showToast('Configuração concluída!', 'success');
   };
 
   const renderContent = () => {
@@ -50,10 +53,17 @@ function App() {
     }
   };
 
-  if (!dbReady) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div><p className="mt-4 text-slate-600">Carregando...</p></div>;
-  if (error) return <div className="min-h-screen flex items-center justify-center"><div className="text-center bg-red-50 p-6 rounded-xl"><p className="text-red-800">{error}</p><button onClick={() => window.location.reload()} className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg">Recarregar</button></div></div>;
+  if (!dbReady) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div><p className="mt-4">Carregando...</p></div>;
   if (showSetup) return <SetupPage onComplete={handleSetupComplete} />;
   return <Layout activeTab={activeTab} onTabChange={setActiveTab}>{renderContent()}</Layout>;
+}
+
+function App() {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
+  );
 }
 
 export default App;
