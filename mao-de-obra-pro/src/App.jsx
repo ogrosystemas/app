@@ -20,12 +20,12 @@ function App() {
     const initialize = async () => {
       try {
         await initDatabase();
-        const setupFlag = await db.config.get('setupConcluido');
-        setShowSetup(!setupFlag || setupFlag.valor !== 1);
+        const setupObj = await db.config.get('setupConcluido');
+        setShowSetup(!setupObj || setupObj.valor !== 1);
         setDbReady(true);
       } catch (err) {
-        console.error('Erro fatal:', err);
-        setError('Falha ao inicializar o banco de dados. Clique em Recarregar.');
+        console.error('Fatal error:', err);
+        setError('Erro crítico. Recarregue a página.');
         setDbReady(true);
       }
     };
@@ -61,7 +61,7 @@ function App() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-slate-600">Carregando...</p>
+          <p className="mt-4">Carregando...</p>
         </div>
       </div>
     );

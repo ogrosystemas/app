@@ -17,10 +17,6 @@ export function useFinanceiro() {
   const [loading, setLoading] = useState(true);
   const [profissao, setProfissao] = useState(null);
 
-  useEffect(() => {
-    loadConfig();
-  }, []);
-
   const loadConfig = async () => {
     try {
       setLoading(true);
@@ -76,12 +72,7 @@ export function useFinanceiro() {
   const updateAllConfig = async (newConfig) => {
     try {
       for (const [chave, valor] of Object.entries(newConfig)) {
-        const existing = await db.config.get(chave);
-        if (existing) {
-          await db.config.update(chave, { valor });
-        } else {
-          await db.config.add({ chave, valor });
-        }
+        await updateConfig(chave, valor);
       }
       await loadConfig();
       return true;
@@ -110,6 +101,10 @@ export function useFinanceiro() {
       return false;
     }
   };
+
+  useEffect(() => {
+    loadConfig();
+  }, []);
 
   return {
     config,
