@@ -8,7 +8,7 @@ import ConfiguracoesPage from './modules/financeiro/ConfiguracoesPage';
 import NovoOrcamento from './modules/orcamento/NovoOrcamento';
 import VisualizarOrcamento from './modules/orcamento/VisualizarOrcamento';
 import { initDatabase, db } from './database/db';
-import { useToast } from './components/Toast';
+import { useToast } from './components/Toast.jsx';
 import './index.css';
 
 function App() {
