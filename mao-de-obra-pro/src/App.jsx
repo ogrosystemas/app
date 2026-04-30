@@ -13,7 +13,7 @@ import { useToast } from './components/Toast.jsx';
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [dbReady, setDbReady] = useState(false);
-  const [showSetup, setShowSetup] = useState(false);
+  const [showSetup, setShowSetup] = useState(true); // começa como true para segurança
   const [selectedBudgetId, setSelectedBudgetId] = useState(null);
   const { showToast, ToastComponent } = useToast();
 
@@ -21,15 +21,22 @@ function App() {
     const initialize = async () => {
       try {
         await initDatabase();
-        // Verificar se já existe algum cliente para decidir se mostra setup
-        const clientesCount = await db.clientes.count();
+        // Verifica se o setup já foi concluído
         const configSetup = await db.config.where('chave').equals('setupConcluido').first();
-        const setupJaFeito = configSetup ? configSetup.valor === 1 : false;
-        // Mostra setup se não tiver clientes E não tiver setup concluído
-        const precisaSetup = clientesCount === 0 && !setupJaFeito;
+        const setupFeito = configSetup && configSetup.valor === 1;
+
+        // Se já tem clientes ou orçamentos, considera que já está configurado
+        const clientesCount = await db.clientes.count();
+        const orcamentosCount = await db.orcamentos.count();
+        const possuiDados = clientesCount > 0 || orcamentosCount > 0;
+
+        // Mostra setup apenas se NÃO tiver dados E NÃO tiver a flag de setup concluído
+        const precisaSetup = !possuiDados && !setupFeito;
+
         setShowSetup(precisaSetup);
       } catch (err) {
-        console.error('Erro:', err);
+        console.error('Erro na inicialização:', err);
+        // Em caso de erro, assume que não precisa de setup (evita loop)
         setShowSetup(false);
       } finally {
         setDbReady(true);
