@@ -7,7 +7,8 @@ import {
   XCircle,
   Clock,
   Calendar,
-  Trash2
+  Trash2,
+  CheckSquare
 } from 'lucide-react';
 import db from '../../database/db';
 import { formatarMoeda } from '../../core/calculadora';
@@ -20,6 +21,7 @@ const VisualizarOrcamento = ({ onBack, id, showToast }) => {
   const [enviando, setEnviando] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showConcluirModal, setShowConcluirModal] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -69,8 +71,52 @@ const VisualizarOrcamento = ({ onBack, id, showToast }) => {
     }
   };
 
+  const concluirOrcamento = async () => {
+    if (!orcamento) return;
+
+    // Verificar se já foi concluído
+    if (orcamento.status === 'concluido') {
+      showToast('Orçamento já está concluído!', 'warning');
+      setShowConcluirModal(false);
+      return;
+    }
+
+    // Verificar se está aprovado
+    if (orcamento.status !== 'aprovado') {
+      showToast('Apenas orçamentos aprovados podem ser concluídos.', 'warning');
+      setShowConcluirModal(false);
+      return;
+    }
+
+    // Lançar no caixa
+    const lancamento = {
+      data: new Date().toISOString(),
+      tipo: 'entrada',
+      categoria: 'Serviço',
+      descricao: `Orçamento #${orcamento.id} - ${cliente?.nome}`,
+      valor: orcamento.total,
+      orcamentoId: orcamento.id
+    };
+
+    await db.caixa.add(lancamento);
+
+    // Atualizar status do orçamento
+    await db.orcamentos.update(orcamento.id, { status: 'concluido' });
+    setOrcamento({ ...orcamento, status: 'concluido' });
+
+    showToast(`Orçamento concluído! Valor de ${formatarMoeda(orcamento.total)} lançado no caixa.`, 'success');
+    setShowConcluirModal(false);
+  };
+
   const deleteOrcamento = async () => {
     if (orcamento) {
+      // Verificar se existe lançamento no caixa associado e perguntar se quer remover também
+      const lancamentoExistente = await db.caixa.where('orcamentoId').equals(orcamento.id).first();
+      if (lancamentoExistente) {
+        if (confirm('Este orçamento possui um lançamento no caixa. Deseja excluí-lo também?')) {
+          await db.caixa.where('orcamentoId').equals(orcamento.id).delete();
+        }
+      }
       await db.orcamentos.delete(orcamento.id);
       setShowDeleteModal(false);
       showToast('Orçamento excluído com sucesso!', 'success');
@@ -90,6 +136,9 @@ const VisualizarOrcamento = ({ onBack, id, showToast }) => {
       ? new Date(orcamento.dataVencimento).toLocaleDateString('pt-BR')
       : 'Não informada';
 
+    const descontoInfo = orcamento.desconto ?
+      (orcamento.desconto > 0 ? `Desconto: ${formatarMoeda(orcamento.desconto)}` : `Desconto: ${Math.abs(orcamento.desconto)}%`) : '';
+
     const message = `*ORÇAMENTO MÃO DE OBRA PRO*
 *Nº:* ${orcamento.id}
 *Cliente:* ${cliente.nome}
@@ -97,8 +146,10 @@ const VisualizarOrcamento = ({ onBack, id, showToast }) => {
 *Válido até:* ${dataVencimento}
 
 *SERVIÇOS:*
-${orcamento.itens.map(item => `✓ ${item.nome} x${item.quantidade} - ${formatarMoeda(item.precoTotal || item.preco)}`).join('\n')}
+${orcamento.itens.map(item => `✓ ${item.nome} x${item.quantidade || 1} - ${formatarMoeda(item.precoTotal || item.preco)}`).join('\n')}
 
+*DESLOCAMENTO:* ${formatarMoeda(orcamento.taxaDeslocamento)}
+${descontoInfo ? `*${descontoInfo}*` : ''}
 *TOTAL: ${formatarMoeda(orcamento.total)}*
 
 ---
@@ -136,7 +187,9 @@ Entre em contato para mais informações.`;
     ? new Date(orcamento.dataVencimento).toLocaleDateString('pt-BR')
     : 'Não informada';
 
-  const isVencido = orcamento.dataVencimento && new Date(orcamento.dataVencimento) < new Date();
+  const isVencido = orcamento.dataVencimento && new Date(orcamento.dataVencimento) < new Date() && orcamento.status !== 'concluido';
+
+  const podeConcluir = orcamento.status === 'aprovado';
 
   return (
     <div className="space-y-4 animate-fade-in pb-32">
@@ -168,6 +221,15 @@ Entre em contato para mais informações.`;
             <Send size={18} />
             {enviando ? 'Enviando...' : 'WhatsApp'}
           </button>
+          {podeConcluir && (
+            <button
+              onClick={() => setShowConcluirModal(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:bg-blue-700 transition-colors"
+            >
+              <CheckSquare size={18} />
+              Concluir
+            </button>
+          )}
           <button
             onClick={() => setShowDeleteModal(true)}
             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -179,15 +241,22 @@ Entre em contato para mais informações.`;
       </div>
 
       <div
-        className={`rounded-xl p-4 text-center cursor-pointer ${orcamento.status === 'aprovado' ? 'bg-green-50 border border-green-200' : orcamento.status === 'pendente' ? 'bg-yellow-50 border border-yellow-200' : 'bg-red-50 border border-red-200'}`}
+        className={`rounded-xl p-4 text-center cursor-pointer ${
+          orcamento.status === 'concluido' ? 'bg-green-100 border border-green-300' :
+          orcamento.status === 'aprovado' ? 'bg-green-50 border border-green-200' :
+          orcamento.status === 'pendente' ? 'bg-yellow-50 border border-yellow-200' :
+          'bg-red-50 border border-red-200'
+        }`}
         onClick={() => setShowStatusModal(true)}
       >
         <div className="flex items-center justify-center gap-2">
+          {orcamento.status === 'concluido' && <CheckCircle className="text-green-700" size={20} />}
           {orcamento.status === 'aprovado' && <CheckCircle className="text-green-600" size={20} />}
           {orcamento.status === 'pendente' && <Clock className="text-yellow-600" size={20} />}
           {orcamento.status === 'recusado' && <XCircle className="text-red-600" size={20} />}
           <span className="font-semibold">
-            {orcamento.status === 'aprovado' ? 'Orçamento Aprovado' :
+            {orcamento.status === 'concluido' ? 'Orçamento Concluído' :
+             orcamento.status === 'aprovado' ? 'Orçamento Aprovado' :
              orcamento.status === 'pendente' ? 'Aguardando Aprovação' : 'Orçamento Recusado'}
           </span>
         </div>
@@ -216,12 +285,28 @@ Entre em contato para mais informações.`;
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-4 bg-slate-50 border-b border-slate-200">
-          <h3 className="font-semibold text-slate-900">Total</h3>
+          <h3 className="font-semibold text-slate-900">Resumo Financeiro</h3>
         </div>
-        <div className="p-4">
-          <div className="flex justify-between text-xl font-bold">
-            <span>Total do Orçamento</span>
-            <span className="text-blue-600">{formatarMoeda(orcamento.total)}</span>
+        <div className="p-4 space-y-2">
+          <div className="flex justify-between text-sm">
+            <span>Subtotal</span>
+            <span>{formatarMoeda(orcamento.subtotal)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span>Deslocamento</span>
+            <span>{formatarMoeda(orcamento.taxaDeslocamento)}</span>
+          </div>
+          {orcamento.desconto && orcamento.desconto !== 0 && (
+            <div className="flex justify-between text-sm text-red-600">
+              <span>Desconto</span>
+              <span>- {orcamento.desconto > 0 ? formatarMoeda(orcamento.desconto) : `${Math.abs(orcamento.desconto)}%`}</span>
+            </div>
+          )}
+          <div className="border-t border-slate-200 pt-2 mt-2">
+            <div className="flex justify-between text-lg font-bold">
+              <span>Total</span>
+              <span className="text-blue-600">{formatarMoeda(orcamento.total)}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -330,6 +415,17 @@ Entre em contato para mais informações.`;
         title="Excluir Orçamento"
         message={`Tem certeza que deseja excluir o orçamento #${orcamento.id}? Esta ação não pode ser desfeita.`}
         confirmText="Excluir"
+        cancelText="Cancelar"
+      />
+
+      {/* Modal de concluir */}
+      <ConfirmModal
+        isOpen={showConcluirModal}
+        onClose={() => setShowConcluirModal(false)}
+        onConfirm={concluirOrcamento}
+        title="Concluir Orçamento"
+        message={`Deseja marcar o orçamento #${orcamento.id} como concluído? Isso lançará o valor de ${formatarMoeda(orcamento.total)} no seu controle de caixa.`}
+        confirmText="Concluir"
         cancelText="Cancelar"
       />
     </div>
