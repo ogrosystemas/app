@@ -5,7 +5,7 @@ import { useFinanceiro } from '../../hooks/useFinanceiro';
 import { formatarMoeda } from '../../core/calculadora';
 import db from '../../database/db';
 
-const SetupPage = ({ onComplete }) => {
+const SetupPage = ({ onComplete, showToast }) => {
   const { config, profissao, selecionarProfissao, updateAllConfig, loading } = useFinanceiro();
   const [step, setStep] = useState(1);
   const [selectedProfissao, setSelectedProfissao] = useState(null);
@@ -32,7 +32,7 @@ const SetupPage = ({ onComplete }) => {
   };
 
   const handleSaveConfig = async () => {
-    // Salvar configurações
+    // Salvar configurações financeiras
     await updateAllConfig({
       metaSalarial: formData.metaSalarial,
       horasTrabalhadas: formData.horasTrabalhadas,
@@ -40,14 +40,15 @@ const SetupPage = ({ onComplete }) => {
       margemReserva: 0.2
     });
 
-    // Garantir que primeiroAcesso seja salvo como 0
-    const existing = await db.config.where('chave').equals('primeiroAcesso').first();
+    // Marcar setup como concluído
+    const existing = await db.config.where('chave').equals('setupConcluido').first();
     if (existing) {
-      await db.config.where('chave').equals('primeiroAcesso').modify({ valor: 0 });
+      await db.config.where('chave').equals('setupConcluido').modify({ valor: 1 });
     } else {
-      await db.config.add({ chave: 'primeiroAcesso', valor: 0 });
+      await db.config.add({ chave: 'setupConcluido', valor: 1 });
     }
 
+    showToast('Configuração concluída!', 'success');
     onComplete();
   };
 
