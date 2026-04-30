@@ -9,6 +9,7 @@ const ClientesPage = ({ showToast }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingCliente, setEditingCliente] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
     whatsapp: '',
@@ -20,43 +21,70 @@ const ClientesPage = ({ showToast }) => {
   }, []);
 
   const loadClientes = async () => {
-    const allClientes = await db.clientes.toArray();
-    setClientes(allClientes.reverse());
+    try {
+      if (!db.isOpen()) await db.open();
+      const allClientes = await db.clientes.toArray();
+      setClientes(allClientes.reverse());
+    } catch (error) {
+      console.error('Erro ao carregar clientes:', error);
+      if (showToast) showToast('Erro ao carregar clientes', 'error');
+    }
   };
 
   const handleSave = async () => {
+    if (saving) return;
     if (!formData.nome.trim()) {
-      showToast('Nome é obrigatório', 'error');
+      if (showToast) showToast('Nome é obrigatório', 'error');
       return;
     }
 
+    setSaving(true);
     try {
+      if (!db.isOpen()) await db.open();
+
       if (editingCliente) {
-        await db.clientes.update(editingCliente.id, formData);
-        showToast('Cliente atualizado com sucesso!', 'success');
+        await db.clientes.update(editingCliente.id, {
+          nome: formData.nome.trim(),
+          whatsapp: formData.whatsapp || '',
+          endereco: formData.endereco || ''
+        });
+        if (showToast) showToast('Cliente atualizado com sucesso!', 'success');
       } else {
-        await db.clientes.add(formData);
-        showToast('Cliente adicionado com sucesso!', 'success');
+        await db.clientes.add({
+          nome: formData.nome.trim(),
+          whatsapp: formData.whatsapp || '',
+          endereco: formData.endereco || ''
+        });
+        if (showToast) showToast('Cliente adicionado com sucesso!', 'success');
       }
       await loadClientes();
       handleCloseModal();
     } catch (error) {
-      console.error('Error saving client:', error);
-      showToast('Erro ao salvar cliente', 'error');
+      console.error('Erro ao salvar cliente:', error);
+      if (showToast) showToast('Erro ao salvar cliente. Tente novamente.', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleDelete = async (id) => {
-    await db.clientes.delete(id);
-    await loadClientes();
-    setDeleteConfirm(null);
-    showToast('Cliente excluído com sucesso!', 'success');
+    try {
+      if (!db.isOpen()) await db.open();
+      await db.clientes.delete(id);
+      await loadClientes();
+      setDeleteConfirm(null);
+      if (showToast) showToast('Cliente excluído com sucesso!', 'success');
+    } catch (error) {
+      console.error('Erro ao excluir cliente:', error);
+      if (showToast) showToast('Erro ao excluir cliente', 'error');
+    }
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingCliente(null);
     setFormData({ nome: '', whatsapp: '', endereco: '' });
+    setSaving(false);
   };
 
   const handleEdit = (cliente) => {
@@ -224,17 +252,17 @@ const ClientesPage = ({ showToast }) => {
               </button>
               <button
                 onClick={handleSave}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                disabled={saving}
+                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <Check size={20} />
-                Salvar
+                {saving ? 'Salvando...' : 'Salvar'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal de confirmação de exclusão */}
       <ConfirmModal
         isOpen={!!deleteConfirm}
         onClose={() => setDeleteConfirm(null)}
