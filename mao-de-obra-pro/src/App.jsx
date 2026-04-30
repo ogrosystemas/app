@@ -8,19 +8,20 @@ import ConfiguracoesPage from './modules/financeiro/ConfiguracoesPage';
 import NovoOrcamento from './modules/orcamento/NovoOrcamento';
 import VisualizarOrcamento from './modules/orcamento/VisualizarOrcamento';
 import { initDatabase, db } from './database/db';
+import { useToast } from './components/Toast';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [dbReady, setDbReady] = useState(false);
   const [primeiroAcesso, setPrimeiroAcesso] = useState(true);
   const [selectedBudgetId, setSelectedBudgetId] = useState(null);
+  const { showToast, ToastComponent } = useToast();
 
   useEffect(() => {
     const initialize = async () => {
       try {
         await initDatabase();
         const config = await db.config.where('chave').equals('primeiroAcesso').first();
-        // Garantir que primeiroAcesso seja tratado como número
         const isFirstAccess = config ? config.valor === 1 || config.valor === true : true;
         setPrimeiroAcesso(isFirstAccess);
         setDbReady(true);
@@ -33,7 +34,6 @@ function App() {
   }, []);
 
   const handleSetupComplete = async () => {
-    // Garantir que salva como número 0
     const existing = await db.config.where('chave').equals('primeiroAcesso').first();
     if (existing) {
       await db.config.where('chave').equals('primeiroAcesso').modify({ valor: 0 });
@@ -55,17 +55,18 @@ function App() {
           }}
         />;
       case 'clientes':
-        return <ClientesPage />;
+        return <ClientesPage showToast={showToast} />;
       case 'catalogo':
-        return <ServicosPage />;
+        return <ServicosPage showToast={showToast} />;
       case 'financeiro':
-        return <ConfiguracoesPage />;
+        return <ConfiguracoesPage showToast={showToast} />;
       case 'novo':
-        return <NovoOrcamento onSave={() => setActiveTab('dashboard')} />;
+        return <NovoOrcamento onSave={() => setActiveTab('dashboard')} showToast={showToast} />;
       case 'visualizar':
         return <VisualizarOrcamento
           onBack={() => setActiveTab('dashboard')}
           id={selectedBudgetId}
+          showToast={showToast}
         />;
       default:
         return <DashboardPage
@@ -90,13 +91,16 @@ function App() {
   }
 
   if (primeiroAcesso) {
-    return <SetupPage onComplete={handleSetupComplete} />;
+    return <SetupPage onComplete={handleSetupComplete} showToast={showToast} />;
   }
 
   return (
-    <Layout activeTab={activeTab} onTabChange={setActiveTab}>
-      {renderContent()}
-    </Layout>
+    <>
+      <Layout activeTab={activeTab} onTabChange={setActiveTab}>
+        {renderContent()}
+      </Layout>
+      {ToastComponent}
+    </>
   );
 }
 
