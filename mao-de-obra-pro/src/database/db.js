@@ -2,24 +2,25 @@ import Dexie from 'dexie';
 
 export const db = new Dexie('MaoDeObraPro');
 
-// Versão 8 – store config com chave primária 'chave'
-db.version(8).stores({
+// Versão 9 – recria a tabela config com chave primária 'chave'
+db.version(9).stores({
   clientes: '++id, nome, whatsapp, endereco',
   servicos: '++id, nome, tempoPadrao, categoria, profissaoId, precoFixo',
   orcamentos: '++id, clienteId, data, total, desconto, status, itens, fotos, taxaDeslocamento, subtotal, profissaoId, profissaoNome, validade, dataVencimento',
-  config: 'chave, valor',  // chave é a chave primária
+  config: 'chave, valor',  // chave agora é primária
   profissoes: '++id, slug, nome, icone, riscoBase, custoFerramental, descricao, ativo',
   caixa: '++id, data, tipo, categoria, descricao, valor, orcamentoId'
 });
 
-// Upgrade da versão 7 para 8: recria a tabela config com a nova estrutura
-db.version(8).upgrade(async (trans) => {
+// Upgrade da versão 8 para 9: força exclusão e recriação da tabela config
+db.version(9).upgrade(async (trans) => {
   try {
-    const configTable = trans.table('config');
-    // Remove todos os registros antigos (estrutura anterior)
-    await configTable.clear();
-    // Adiciona os registros padrão usando chave como primary key
-    await configTable.bulkAdd([
+    // Se a tabela antiga 'config' existir, deleta
+    await trans.db.deleteTable('config');
+    // Recria a tabela com a nova estrutura (já definida no stores acima)
+    // e popula os dados padrão
+    const newConfig = trans.db.table('config');
+    await newConfig.bulkAdd([
       { chave: 'metaSalarial', valor: 5000 },
       { chave: 'horasTrabalhadas', valor: 160 },
       { chave: 'margemReserva', valor: 0.2 },
@@ -28,13 +29,13 @@ db.version(8).upgrade(async (trans) => {
       { chave: 'setupConcluido', valor: 0 },
       { chave: 'primeiroAcesso', valor: 0 }
     ]);
-    console.log('Upgrade para v8 concluído: config com chave primária');
+    console.log('Upgrade para v9 concluído: tabela config recriada');
   } catch (err) {
-    console.error('Erro no upgrade para v8:', err);
+    console.error('Erro no upgrade para v9:', err);
   }
 });
 
-// Populate apenas se banco estiver vazio (primeira execução)
+// Populate (primeira execução)
 db.on('populate', async () => {
   console.log('Populando banco do zero...');
   const profissoesIds = {};
@@ -58,7 +59,6 @@ db.on('populate', async () => {
     { nome: 'Levantamento de alvenaria', tempoPadrao: 60, categoria: 'Alvenaria', profissaoId: profissoesIds.pedreiro, precoFixo: null },
     { nome: 'Pintura interna', tempoPadrao: 120, categoria: 'Pintura', profissaoId: profissoesIds.pintor, precoFixo: null }
   ]);
-  // Config padrão
   await db.config.bulkAdd([
     { chave: 'metaSalarial', valor: 5000 },
     { chave: 'horasTrabalhadas', valor: 160 },
@@ -77,7 +77,7 @@ export async function initDatabase() {
     return db;
   } catch (error) {
     console.error('Erro ao abrir banco:', error);
-    if (error.name === 'DataError' || error.name === 'VersionError') {
+    if (error.name === 'DataError' || error.name === 'VersionError' || error.name === 'UpgradeError') {
       console.warn('Tentando deletar banco corrompido e recriar...');
       await db.delete();
       await db.open();
