@@ -11,8 +11,9 @@ import {
 } from 'lucide-react';
 import db from '../../database/db';
 import { formatarMoeda } from '../../core/calculadora';
+import ConfirmModal from '../../components/ConfirmModal';
 
-const VisualizarOrcamento = ({ onBack, id }) => {
+const VisualizarOrcamento = ({ onBack, id, showToast }) => {
   const [orcamento, setOrcamento] = useState(null);
   const [cliente, setCliente] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -63,7 +64,8 @@ const VisualizarOrcamento = ({ onBack, id }) => {
       await db.orcamentos.update(orcamento.id, { status: newStatus });
       setOrcamento({ ...orcamento, status: newStatus });
       setShowStatusModal(false);
-      alert(`Status alterado para ${newStatus === 'aprovado' ? 'Aprovado' : newStatus === 'pendente' ? 'Pendente' : 'Recusado'}!`);
+      const statusMsg = newStatus === 'aprovado' ? 'Aprovado' : newStatus === 'pendente' ? 'Pendente' : 'Recusado';
+      showToast(`Status alterado para ${statusMsg}!`, 'success');
     }
   };
 
@@ -71,14 +73,14 @@ const VisualizarOrcamento = ({ onBack, id }) => {
     if (orcamento) {
       await db.orcamentos.delete(orcamento.id);
       setShowDeleteModal(false);
-      alert('Orçamento excluído com sucesso!');
+      showToast('Orçamento excluído com sucesso!', 'success');
       onBack();
     }
   };
 
   const sendWhatsApp = async () => {
     if (!cliente?.whatsapp) {
-      alert('Cliente não possui WhatsApp cadastrado');
+      showToast('Cliente não possui WhatsApp cadastrado', 'warning');
       return;
     }
 
@@ -95,7 +97,7 @@ const VisualizarOrcamento = ({ onBack, id }) => {
 *Válido até:* ${dataVencimento}
 
 *SERVIÇOS:*
-${orcamento.itens.map(item => `✓ ${item.nome}`).join('\n')}
+${orcamento.itens.map(item => `✓ ${item.nome} x${item.quantidade} - ${formatarMoeda(item.precoTotal || item.preco)}`).join('\n')}
 
 *TOTAL: ${formatarMoeda(orcamento.total)}*
 
@@ -205,7 +207,8 @@ Entre em contato para mais informações.`;
         <div className="p-4 space-y-2">
           {orcamento.itens.map((item, idx) => (
             <div key={idx} className="flex justify-between items-center py-1">
-              <p className="text-slate-700">{item.nome}</p>
+              <p className="text-slate-700">{item.nome} x{item.quantidade || 1}</p>
+              <p className="font-semibold text-blue-600">{formatarMoeda(item.precoTotal || item.preco)}</p>
             </div>
           ))}
         </div>
@@ -223,7 +226,6 @@ Entre em contato para mais informações.`;
         </div>
       </div>
 
-      {/* Validade */}
       <div className={`bg-white rounded-xl shadow-sm border overflow-hidden ${isVencido ? 'border-red-300 bg-red-50' : 'border-slate-200'}`}>
         <div className="p-4 bg-slate-50 border-b border-slate-200">
           <h3 className="font-semibold text-slate-900 flex items-center gap-2">
@@ -321,31 +323,15 @@ Entre em contato para mais informações.`;
       )}
 
       {/* Modal de excluir */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 animate-fade-in">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-slate-900 mb-4">Excluir Orçamento</h3>
-            <p className="text-slate-600 mb-6">
-              Tem certeza que deseja excluir o orçamento #{orcamento.id}?
-              Esta ação não pode ser desfeita.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="flex-1 border border-slate-300 py-2 rounded-lg font-semibold"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={deleteOrcamento}
-                className="flex-1 bg-red-600 text-white py-2 rounded-lg font-semibold"
-              >
-                Excluir
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={deleteOrcamento}
+        title="Excluir Orçamento"
+        message={`Tem certeza que deseja excluir o orçamento #${orcamento.id}? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+      />
     </div>
   );
 };
