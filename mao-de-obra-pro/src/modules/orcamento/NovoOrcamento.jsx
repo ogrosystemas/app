@@ -23,7 +23,7 @@ import {
   DIFICULDADE
 } from '../../core/calculadora';
 
-const NovoOrcamento = ({ onSave }) => {
+const NovoOrcamento = ({ onSave, showToast }) => {
   const { config, profissao } = useFinanceiro();
   const [step, setStep] = useState(1);
   const [clientes, setClientes] = useState([]);
@@ -69,7 +69,7 @@ const NovoOrcamento = ({ onSave }) => {
 
   const handleAddCliente = async () => {
     if (!newCliente.nome.trim()) {
-      alert('Nome é obrigatório');
+      showToast('Nome do cliente é obrigatório', 'error');
       return;
     }
     const id = await db.clientes.add(newCliente);
@@ -78,6 +78,7 @@ const NovoOrcamento = ({ onSave }) => {
     setSelectedCliente(added);
     setShowClientModal(false);
     setNewCliente({ nome: '', whatsapp: '', endereco: '' });
+    showToast('Cliente adicionado com sucesso!', 'success');
   };
 
   const handleAddServicoToBudget = (servico, quantidade = 1) => {
@@ -180,7 +181,7 @@ const NovoOrcamento = ({ onSave }) => {
 
   const sendWhatsApp = async (orcamentoSalvo) => {
     if (!selectedCliente?.whatsapp) {
-      alert('Cliente não possui WhatsApp cadastrado');
+      showToast('Cliente não possui WhatsApp cadastrado', 'warning');
       return false;
     }
 
@@ -210,11 +211,11 @@ Entre em contato para mais informações.`;
 
   const handleSaveBudget = async () => {
     if (!selectedCliente) {
-      alert('Selecione um cliente');
+      showToast('Selecione um cliente', 'warning');
       return;
     }
     if (selectedServicos.length === 0) {
-      alert('Adicione pelo menos um serviço');
+      showToast('Adicione pelo menos um serviço', 'warning');
       return;
     }
 
@@ -250,7 +251,7 @@ Entre em contato para mais informações.`;
 
     await sendWhatsApp(budgetSalvo);
 
-    alert('Orçamento salvo e enviado com sucesso!');
+    showToast('Orçamento salvo e enviado com sucesso!', 'success');
     setEnviando(false);
     if (onSave) onSave();
   };
@@ -401,7 +402,6 @@ Entre em contato para mais informações.`;
                       </button>
                     </div>
 
-                    {/* Controle de quantidade */}
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-sm text-slate-500">Quantidade:</span>
                       <div className="flex items-center gap-3">
@@ -576,7 +576,6 @@ Entre em contato para mais informações.`;
                 ))}
               </div>
 
-              {/* Validade */}
               <div className="border-t border-slate-200 pt-3">
                 <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
                   <Calendar size={16} />
@@ -644,7 +643,6 @@ Entre em contato para mais informações.`;
         </div>
       )}
 
-      {/* Modais */}
       {showClientModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
