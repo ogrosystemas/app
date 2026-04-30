@@ -80,4 +80,19 @@
 .animate-slide-down {
   animation: slide-down 0.3s ease-out;
   }
+
+  /* Esconder barra de scroll horizontal em elementos com overflow-x-auto */
+.overflow-x-auto {
+  scrollbar-width: thin; /* Firefox */
+  -ms-overflow-style: none; /* IE e Edge */
+}
+.overflow-x-auto::-webkit-scrollbar {
+  height: 0;
+  display: none;
+}
+
+/* Garantir que a linha indicadora do menu ativo apareça mesmo com scroll */
+.flex.gap-2.border-b {
+  border-bottom-width: 1px;
+}
 }
