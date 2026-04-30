@@ -20,10 +20,11 @@ function App() {
       try {
         await initDatabase();
         const setupFlag = await db.config.where('chave').equals('setupConcluido').first();
-        setShowSetup(!setupFlag || setupFlag.valor !== 1);
+        const setupFeito = setupFlag && setupFlag.valor === 1;
+        setShowSetup(!setupFeito);
         setDbReady(true);
       } catch (err) {
-        console.error('Erro:', err);
+        console.error('Erro inicial:', err);
         setDbReady(true);
       }
     };
