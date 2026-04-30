@@ -3,13 +3,15 @@ import { Plus, Search, Clock, Trash2, Edit2, X, Check, Package, Briefcase, Dolla
 import db from '../../database/db';
 import { formatarTempo, formatarMoeda } from '../../core/calculadora';
 import { useFinanceiro } from '../../hooks/useFinanceiro';
+import ConfirmModal from '../../components/ConfirmModal';
 
-const ServicosPage = () => {
+const ServicosPage = ({ showToast }) => {
   const { config, profissao } = useFinanceiro();
   const [servicos, setServicos] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingServico, setEditingServico] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [formData, setFormData] = useState({
     nome: '',
     tempoPadrao: '',
@@ -35,11 +37,11 @@ const ServicosPage = () => {
 
   const handleSave = async () => {
     if (!formData.nome.trim()) {
-      alert('Nome do serviço é obrigatório');
+      showToast('Nome do serviço é obrigatório', 'error');
       return;
     }
     if (!formData.tempoPadrao || formData.tempoPadrao <= 0) {
-      alert('Tempo padrão é obrigatório e deve ser maior que zero');
+      showToast('Tempo padrão deve ser maior que zero', 'error');
       return;
     }
 
@@ -54,22 +56,24 @@ const ServicosPage = () => {
 
       if (editingServico) {
         await db.servicos.update(editingServico.id, servicoData);
+        showToast('Serviço atualizado com sucesso!', 'success');
       } else {
         await db.servicos.add(servicoData);
+        showToast('Serviço adicionado com sucesso!', 'success');
       }
       await loadServicos();
       handleCloseModal();
     } catch (error) {
       console.error('Error saving service:', error);
-      alert('Erro ao salvar serviço');
+      showToast('Erro ao salvar serviço', 'error');
     }
   };
 
   const handleDelete = async (id) => {
-    if (confirm('Tem certeza que deseja excluir este serviço?')) {
-      await db.servicos.delete(id);
-      await loadServicos();
-    }
+    await db.servicos.delete(id);
+    await loadServicos();
+    setDeleteConfirm(null);
+    showToast('Serviço excluído com sucesso!', 'success');
   };
 
   const handleCloseModal = () => {
@@ -202,7 +206,7 @@ const ServicosPage = () => {
                     <Edit2 size={18} />
                   </button>
                   <button
-                    onClick={() => handleDelete(servico.id)}
+                    onClick={() => setDeleteConfirm(servico.id)}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   >
                     <Trash2 size={18} />
@@ -214,7 +218,7 @@ const ServicosPage = () => {
         )}
       </div>
 
-      {/* Modal de Cadastro/Edição */}
+      {/* Modal de cadastro/edição */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 animate-fade-in">
           <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
@@ -316,6 +320,17 @@ const ServicosPage = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de confirmação de exclusão */}
+      <ConfirmModal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={() => handleDelete(deleteConfirm)}
+        title="Excluir Serviço"
+        message="Tem certeza que deseja excluir este serviço? Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+      />
     </div>
   );
 };
