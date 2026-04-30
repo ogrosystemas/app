@@ -8,37 +8,22 @@ import ConfiguracoesPage from './modules/financeiro/ConfiguracoesPage';
 import NovoOrcamento from './modules/orcamento/NovoOrcamento';
 import VisualizarOrcamento from './modules/orcamento/VisualizarOrcamento';
 import { initDatabase, db } from './database/db';
-import { useToast } from './components/Toast.jsx';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [dbReady, setDbReady] = useState(false);
-  const [showSetup, setShowSetup] = useState(true); // começa como true para segurança
+  const [showSetup, setShowSetup] = useState(true);
   const [selectedBudgetId, setSelectedBudgetId] = useState(null);
-  const { showToast, ToastComponent } = useToast();
 
   useEffect(() => {
     const initialize = async () => {
       try {
         await initDatabase();
-        // Verifica se o setup já foi concluído
-        const configSetup = await db.config.where('chave').equals('setupConcluido').first();
-        const setupFeito = configSetup && configSetup.valor === 1;
-
-        // Se já tem clientes ou orçamentos, considera que já está configurado
-        const clientesCount = await db.clientes.count();
-        const orcamentosCount = await db.orcamentos.count();
-        const possuiDados = clientesCount > 0 || orcamentosCount > 0;
-
-        // Mostra setup apenas se NÃO tiver dados E NÃO tiver a flag de setup concluído
-        const precisaSetup = !possuiDados && !setupFeito;
-
-        setShowSetup(precisaSetup);
+        const setupFlag = await db.config.where('chave').equals('setupConcluido').first();
+        setShowSetup(!setupFlag || setupFlag.valor !== 1);
+        setDbReady(true);
       } catch (err) {
-        console.error('Erro na inicialização:', err);
-        // Em caso de erro, assume que não precisa de setup (evita loop)
-        setShowSetup(false);
-      } finally {
+        console.error('Erro:', err);
         setDbReady(true);
       }
     };
@@ -61,18 +46,17 @@ function App() {
           }}
         />;
       case 'clientes':
-        return <ClientesPage showToast={showToast} />;
+        return <ClientesPage />;
       case 'catalogo':
-        return <ServicosPage showToast={showToast} />;
+        return <ServicosPage />;
       case 'financeiro':
-        return <ConfiguracoesPage showToast={showToast} />;
+        return <ConfiguracoesPage />;
       case 'novo':
-        return <NovoOrcamento onSave={() => setActiveTab('dashboard')} showToast={showToast} />;
+        return <NovoOrcamento onSave={() => setActiveTab('dashboard')} />;
       case 'visualizar':
         return <VisualizarOrcamento
           onBack={() => setActiveTab('dashboard')}
           id={selectedBudgetId}
-          showToast={showToast}
         />;
       default:
         return <DashboardPage
@@ -97,16 +81,13 @@ function App() {
   }
 
   if (showSetup) {
-    return <SetupPage onComplete={handleSetupComplete} showToast={showToast} />;
+    return <SetupPage onComplete={handleSetupComplete} />;
   }
 
   return (
-    <>
-      <Layout activeTab={activeTab} onTabChange={setActiveTab}>
-        {renderContent()}
-      </Layout>
-      {ToastComponent}
-    </>
+    <Layout activeTab={activeTab} onTabChange={setActiveTab}>
+      {renderContent()}
+    </Layout>
   );
 }
 
