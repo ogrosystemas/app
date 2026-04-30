@@ -74,14 +74,12 @@ const VisualizarOrcamento = ({ onBack, id, showToast }) => {
   const concluirOrcamento = async () => {
     if (!orcamento) return;
 
-    // Verificar se já foi concluído
     if (orcamento.status === 'concluido') {
       showToast('Orçamento já está concluído!', 'warning');
       setShowConcluirModal(false);
       return;
     }
 
-    // Verificar se está aprovado
     if (orcamento.status !== 'aprovado') {
       showToast('Apenas orçamentos aprovados podem ser concluídos.', 'warning');
       setShowConcluirModal(false);
@@ -97,7 +95,6 @@ const VisualizarOrcamento = ({ onBack, id, showToast }) => {
       valor: orcamento.total,
       orcamentoId: orcamento.id
     };
-
     await db.caixa.add(lancamento);
 
     // Atualizar status do orçamento
@@ -110,12 +107,9 @@ const VisualizarOrcamento = ({ onBack, id, showToast }) => {
 
   const deleteOrcamento = async () => {
     if (orcamento) {
-      // Verificar se existe lançamento no caixa associado e perguntar se quer remover também
       const lancamentoExistente = await db.caixa.where('orcamentoId').equals(orcamento.id).first();
-      if (lancamentoExistente) {
-        if (confirm('Este orçamento possui um lançamento no caixa. Deseja excluí-lo também?')) {
-          await db.caixa.where('orcamentoId').equals(orcamento.id).delete();
-        }
+      if (lancamentoExistente && confirm('Este orçamento possui um lançamento no caixa. Deseja excluí-lo também?')) {
+        await db.caixa.where('orcamentoId').equals(orcamento.id).delete();
       }
       await db.orcamentos.delete(orcamento.id);
       setShowDeleteModal(false);
@@ -158,7 +152,6 @@ Entre em contato para mais informações.`;
 
     const whatsappNumber = cliente.whatsapp.replace(/\D/g, '');
     const url = `https://wa.me/55${whatsappNumber}?text=${encodeURIComponent(message)}`;
-
     window.open(url, '_blank');
     setEnviando(false);
   };
@@ -195,7 +188,7 @@ Entre em contato para mais informações.`;
     <div className="space-y-4 animate-fade-in pb-32">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+          <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-lg">
             <ArrowLeft size={24} />
           </button>
           <div>
@@ -216,7 +209,7 @@ Entre em contato para mais informações.`;
           <button
             onClick={sendWhatsApp}
             disabled={enviando}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:bg-green-700 transition-colors disabled:opacity-50"
+            className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2"
           >
             <Send size={18} />
             {enviando ? 'Enviando...' : 'WhatsApp'}
@@ -224,7 +217,7 @@ Entre em contato para mais informações.`;
           {podeConcluir && (
             <button
               onClick={() => setShowConcluirModal(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:bg-blue-700 transition-colors"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2"
             >
               <CheckSquare size={18} />
               Concluir
@@ -232,14 +225,14 @@ Entre em contato para mais informações.`;
           )}
           <button
             onClick={() => setShowDeleteModal(true)}
-            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            title="Excluir orçamento"
+            className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
           >
             <Trash2 size={20} />
           </button>
         </div>
       </div>
 
+      {/* status badge */}
       <div
         className={`rounded-xl p-4 text-center cursor-pointer ${
           orcamento.status === 'concluido' ? 'bg-green-100 border border-green-300' :
@@ -262,6 +255,7 @@ Entre em contato para mais informações.`;
         </div>
       </div>
 
+      {/* restante do conteúdo (cliente, serviços, resumo, fotos) igual ao já existente */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
         <h3 className="font-semibold text-slate-900 mb-2">Cliente</h3>
         <p className="text-slate-800">{cliente.nome}</p>
@@ -314,19 +308,18 @@ Entre em contato para mais informações.`;
       <div className={`bg-white rounded-xl shadow-sm border overflow-hidden ${isVencido ? 'border-red-300 bg-red-50' : 'border-slate-200'}`}>
         <div className="p-4 bg-slate-50 border-b border-slate-200">
           <h3 className="font-semibold text-slate-900 flex items-center gap-2">
-            <Calendar size={18} />
-            Validade
+            <Calendar size={18} /> Validade
           </h3>
         </div>
         <div className="p-4">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between">
             <span className="text-slate-600">Válido até:</span>
             <span className={`font-semibold ${isVencido ? 'text-red-600' : 'text-green-600'}`}>
               {dataVencimento} {isVencido && '(Vencido)'}
             </span>
           </div>
           {orcamento.validade && (
-            <div className="flex justify-between items-center mt-2">
+            <div className="flex justify-between mt-2">
               <span className="text-slate-600">Validade original:</span>
               <span className="text-slate-700">{orcamento.validade} dias</span>
             </div>
@@ -335,96 +328,63 @@ Entre em contato para mais informações.`;
       </div>
 
       {orcamento.fotos && orcamento.fotos.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
           <div className="p-4 bg-slate-50 border-b border-slate-200">
-            <h3 className="font-semibold text-slate-900 flex items-center gap-2">
-              <CameraIcon size={18} />
-              Fotos do Serviço ({orcamento.fotos.length})
+            <h3 className="font-semibold flex items-center gap-2">
+              <CameraIcon size={18} /> Fotos ({orcamento.fotos.length})
             </h3>
           </div>
           <div className="p-4 grid grid-cols-2 gap-2">
             {orcamento.fotos.map((foto, idx) => (
-              <img
-                key={idx}
-                src={foto}
-                alt={`Serviço ${idx + 1}`}
-                className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                onClick={() => window.open(foto, '_blank')}
-              />
+              <img key={idx} src={foto} className="w-full h-32 object-cover rounded-lg cursor-pointer" onClick={() => window.open(foto, '_blank')} />
             ))}
           </div>
         </div>
       )}
 
-      <div className="fixed bottom-0 left-0 right-0 lg:left-64 p-4 bg-white border-t border-slate-200 shadow-lg">
-        <div className="max-w-7xl mx-auto">
-          <button
-            onClick={sendWhatsApp}
-            disabled={enviando}
-            className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-green-700 transition-colors disabled:opacity-50"
-          >
-            <Send size={20} />
-            {enviando ? 'Enviando...' : 'Enviar via WhatsApp'}
-          </button>
-        </div>
+      <div className="fixed bottom-0 left-0 right-0 lg:left-64 p-4 bg-white border-t shadow-lg">
+        <button onClick={sendWhatsApp} disabled={enviando} className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold flex justify-center gap-2">
+          <Send size={20} /> {enviando ? 'Enviando...' : 'Enviar via WhatsApp'}
+        </button>
       </div>
 
-      {/* Modal de alterar status */}
+      {/* Modais */}
       {showStatusModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 animate-fade-in">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-slate-900 mb-4">Alterar Status</h3>
+            <h3 className="text-xl font-bold mb-4">Alterar Status</h3>
             <div className="space-y-3">
-              <button
-                onClick={() => updateStatus('pendente')}
-                className={`w-full p-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${orcamento.status === 'pendente' ? 'border-yellow-500 bg-yellow-50' : 'border-slate-200'}`}
-              >
-                <Clock size={20} className="text-yellow-600" />
-                <span>Pendente</span>
+              <button onClick={() => updateStatus('pendente')} className="w-full p-3 border-2 rounded-lg flex items-center justify-center gap-2 border-yellow-500 bg-yellow-50">
+                <Clock size={20} className="text-yellow-600" /> Pendente
               </button>
-              <button
-                onClick={() => updateStatus('aprovado')}
-                className={`w-full p-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${orcamento.status === 'aprovado' ? 'border-green-500 bg-green-50' : 'border-slate-200'}`}
-              >
-                <CheckCircle size={20} className="text-green-600" />
-                <span>Aprovado</span>
+              <button onClick={() => updateStatus('aprovado')} className="w-full p-3 border-2 rounded-lg flex items-center justify-center gap-2 border-green-500 bg-green-50">
+                <CheckCircle size={20} className="text-green-600" /> Aprovado
               </button>
-              <button
-                onClick={() => updateStatus('recusado')}
-                className={`w-full p-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${orcamento.status === 'recusado' ? 'border-red-500 bg-red-50' : 'border-slate-200'}`}
-              >
-                <XCircle size={20} className="text-red-600" />
-                <span>Recusado</span>
+              <button onClick={() => updateStatus('recusado')} className="w-full p-3 border-2 rounded-lg flex items-center justify-center gap-2 border-red-500 bg-red-50">
+                <XCircle size={20} className="text-red-600" /> Recusado
               </button>
             </div>
-            <button
-              onClick={() => setShowStatusModal(false)}
-              className="w-full mt-4 border border-slate-300 py-2 rounded-lg font-semibold"
-            >
-              Cancelar
-            </button>
+            <button onClick={() => setShowStatusModal(false)} className="w-full mt-4 border py-2 rounded-lg">Cancelar</button>
           </div>
         </div>
       )}
 
-      {/* Modal de excluir */}
       <ConfirmModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={deleteOrcamento}
         title="Excluir Orçamento"
-        message={`Tem certeza que deseja excluir o orçamento #${orcamento.id}? Esta ação não pode ser desfeita.`}
+        message={`Tem certeza que deseja excluir o orçamento #${orcamento.id}?`}
         confirmText="Excluir"
         cancelText="Cancelar"
       />
 
-      {/* Modal de concluir */}
       <ConfirmModal
         isOpen={showConcluirModal}
         onClose={() => setShowConcluirModal(false)}
         onConfirm={concluirOrcamento}
         title="Concluir Orçamento"
-        message={`Deseja marcar o orçamento #${orcamento.id} como concluído? Isso lançará o valor de ${formatarMoeda(orcamento.total)} no seu controle de caixa.`}
+        message={`Deseja marcar o orçamento #${orcamento.id} como concluído? Isso lançará R$ ${orcamento.total.toFixed(2)} no caixa.`}
         confirmText="Concluir"
         cancelText="Cancelar"
       />
