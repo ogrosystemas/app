@@ -18,6 +18,10 @@ import {
   orcamentoPage
 } from './pages/orcamento.js';
 
+import {
+  financeiroPage
+} from './pages/financeiro.js';
+
 const app =
   document.getElementById('app');
 
@@ -54,6 +58,9 @@ async function renderRoute() {
 
     '#producao':
       producaoPage,
+
+    '#financeiro':
+      financeiroPage,
 
     '#configuracoes':
       configuracoesPage
@@ -114,6 +121,13 @@ function renderNavbar(active) {
       class="${active === '#producao' ? 'active' : ''}"
     >
       Produção
+    </a>
+
+    <a
+      href="#financeiro"
+      class="${active === '#financeiro' ? 'active' : ''}"
+    >
+      Financeiro
     </a>
 
     <a
