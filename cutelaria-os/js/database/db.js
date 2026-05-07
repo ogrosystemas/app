@@ -1,6 +1,6 @@
 export const db = new Dexie('cutelariaOS');
 
-db.version(2).stores({
+db.version(3).stores({
 
   materiais: `
     ++id,
@@ -14,7 +14,9 @@ db.version(2).stores({
   equipamentos: `
     ++id,
     nome,
-    valorCompra
+    valorCompra,
+    vidaUtil,
+    custoHora
   `,
 
   composicoes: `
@@ -23,6 +25,7 @@ db.version(2).stores({
     categoria,
     custoMateriais,
     custoMaoObra,
+    custoEnergia,
     custoTotal,
     margemLucro,
     valorFinal,
@@ -33,8 +36,18 @@ db.version(2).stores({
     ++id,
     composicaoId,
     materialId,
+    nome,
     quantidade,
+    valorUnitario,
     subtotal
+  `,
+
+  etapas: `
+    ++id,
+    composicaoId,
+    nome,
+    horas,
+    custo
   `
 
 });
