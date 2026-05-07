@@ -2,7 +2,7 @@ export const db = new Dexie(
   'CutelariaOS'
 );
 
-db.version(2).stores({
+db.version(3).stores({
 
   materiais:
     '++id,nome,categoria,valor,unidade',
@@ -67,6 +67,18 @@ db.version(2).stores({
       ++id,
       composicaoId,
       imagem,
+      createdAt
+    `,
+
+  financeiro:
+    `
+      ++id,
+      tipo,
+      categoria,
+      descricao,
+      valor,
+      vencimento,
+      status,
       createdAt
     `
 
