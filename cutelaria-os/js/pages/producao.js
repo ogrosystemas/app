@@ -29,25 +29,155 @@ export async function producaoPage() {
 
       <div class="card">
 
-        <h2 class="text-2xl font-bold mb-5">
+        <h2 class="text-2xl font-bold mb-6">
           Nova Produção
         </h2>
 
         <form id="producaoForm">
 
-          <input
-            class="input"
-            type="text"
-            id="nome"
-            placeholder="Nome da faca"
-            required
-          />
+          <!-- IDENTIFICAÇÃO -->
+
+          <div class="grid gap-3">
+
+            <input
+              class="input"
+              type="text"
+              id="nome"
+              placeholder="Nome da faca"
+              required
+            />
+
+            <select
+              class="select"
+              id="tipoFaca"
+            >
+
+              <option value="Chef">
+                Chef
+              </option>
+
+              <option value="Bushcraft">
+                Bushcraft
+              </option>
+
+              <option value="Hunter">
+                Hunter
+              </option>
+
+              <option value="Skinner">
+                Skinner
+              </option>
+
+              <option value="Utilitária">
+                Utilitária
+              </option>
+
+              <option value="Personalizada">
+                Personalizada
+              </option>
+
+            </select>
+
+          </div>
+
+          <!-- FICHA TÉCNICA -->
+
+          <div class="mt-8">
+
+            <h3 class="font-bold text-lg mb-4">
+              Ficha Técnica
+            </h3>
+
+            <div class="grid gap-3">
+
+              <input
+                class="input"
+                type="text"
+                id="tipoAco"
+                placeholder="Tipo de aço"
+              />
+
+              <input
+                class="input"
+                type="number"
+                step="0.1"
+                id="hrc"
+                placeholder="HRC"
+              />
+
+              <input
+                class="input"
+                type="number"
+                step="0.1"
+                id="espessura"
+                placeholder="Espessura (mm)"
+              />
+
+              <input
+                class="input"
+                type="number"
+                step="0.1"
+                id="comprimento"
+                placeholder="Comprimento (cm)"
+              />
+
+              <input
+                class="input"
+                type="number"
+                step="0.1"
+                id="peso"
+                placeholder="Peso (g)"
+              />
+
+              <input
+                class="input"
+                type="text"
+                id="acabamento"
+                placeholder="Acabamento"
+              />
+
+              <input
+                class="input"
+                type="text"
+                id="desbaste"
+                placeholder="Tipo de desbaste"
+              />
+
+              <input
+                class="input"
+                type="text"
+                id="tipoCabo"
+                placeholder="Tipo de cabo"
+              />
+
+              <label class="flex items-center gap-3">
+
+                <input
+                  type="checkbox"
+                  id="possuiBainha"
+                />
+
+                <span>
+                  Possui bainha
+                </span>
+
+              </label>
+
+              <textarea
+                class="input"
+                id="observacoes"
+                placeholder="Observações técnicas"
+              ></textarea>
+
+            </div>
+
+          </div>
 
           <!-- MATERIAIS -->
 
-          <div class="mt-5">
+          <div class="mt-8">
 
-            <h3 class="font-bold mb-3">
+            <h3 class="font-bold text-lg mb-4">
               Materiais
             </h3>
 
@@ -86,7 +216,7 @@ export async function producaoPage() {
 
           <div class="mt-8">
 
-            <h3 class="font-bold mb-3">
+            <h3 class="font-bold text-lg mb-4">
               Equipamentos
             </h3>
 
@@ -122,7 +252,7 @@ export async function producaoPage() {
 
           <div class="mt-8">
 
-            <h3 class="font-bold mb-3">
+            <h3 class="font-bold text-lg mb-4">
               Etapas
             </h3>
 
@@ -175,18 +305,22 @@ export async function producaoPage() {
 
           </div>
 
-          <!-- MARGEM -->
+          <!-- LUCRO -->
 
-          <input
-            class="input mt-8"
-            type="number"
-            step="0.01"
-            id="margem"
-            placeholder="Margem de lucro (%)"
-          />
+          <div class="mt-8">
+
+            <input
+              class="input"
+              type="number"
+              step="0.01"
+              id="margem"
+              placeholder="Margem de lucro (%)"
+            />
+
+          </div>
 
           <button
-            class="primary-button"
+            class="primary-button mt-5"
             type="submit"
           >
             Salvar Produção
@@ -289,6 +423,7 @@ window.addEventListener('click', async (e) => {
             'etapaAbrasivos'
           ).value
         ) || 0
+
     };
 
     const equipamentosSelecionados =
@@ -364,6 +499,69 @@ document.addEventListener(
             ).value,
 
           categoria: 'faca',
+
+          tipoFaca:
+            document.getElementById(
+              'tipoFaca'
+            ).value,
+
+          tipoAco:
+            document.getElementById(
+              'tipoAco'
+            ).value,
+
+          hrc:
+            parseFloat(
+              document.getElementById(
+                'hrc'
+              ).value
+            ) || 0,
+
+          espessura:
+            parseFloat(
+              document.getElementById(
+                'espessura'
+              ).value
+            ) || 0,
+
+          comprimento:
+            parseFloat(
+              document.getElementById(
+                'comprimento'
+              ).value
+            ) || 0,
+
+          peso:
+            parseFloat(
+              document.getElementById(
+                'peso'
+              ).value
+            ) || 0,
+
+          acabamento:
+            document.getElementById(
+              'acabamento'
+            ).value,
+
+          desbaste:
+            document.getElementById(
+              'desbaste'
+            ).value,
+
+          tipoCabo:
+            document.getElementById(
+              'tipoCabo'
+            ).value,
+
+          possuiBainha:
+            document.getElementById(
+              'possuiBainha'
+            ).checked,
+
+          observacoes:
+            document.getElementById(
+              'observacoes'
+            ).value,
 
           custoMateriais:
             calculo.custoMateriais,
