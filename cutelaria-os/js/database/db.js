@@ -2,7 +2,7 @@ export const db = new Dexie(
   'CutelariaOS'
 );
 
-db.version(1).stores({
+db.version(2).stores({
 
   materiais:
     '++id,nome,categoria,valor,unidade',
@@ -27,6 +27,8 @@ db.version(1).stores({
       tipoCabo,
       possuiBainha,
       observacoes,
+
+      fotoCapa,
 
       custoMateriais,
       custoEtapas,
@@ -58,6 +60,14 @@ db.version(1).stores({
       custoEnergia,
       custoAbrasivos,
       custoTotal
+    `,
+
+  fotos:
+    `
+      ++id,
+      composicaoId,
+      imagem,
+      createdAt
     `
 
 });
