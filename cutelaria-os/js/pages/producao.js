@@ -4,6 +4,8 @@ import {
   calcularComposicao
 } from '../services/calculator.service.js';
 
+let itensTemporarios = [];
+
 export async function producaoPage() {
 
   const materiais =
@@ -15,7 +17,7 @@ export async function producaoPage() {
   return `
     <section>
 
-      <!-- FORM -->
+      <!-- FORM PRINCIPAL -->
 
       <div class="card">
 
@@ -29,43 +31,97 @@ export async function producaoPage() {
             class="input"
             type="text"
             id="nome"
-            placeholder="Nome da faca/composição"
+            placeholder="Nome da composição"
             required
           />
 
-          <label class="text-sm text-slate-400">
-            Material
-          </label>
+          <!-- ADICIONAR ITEM -->
 
-          <select
-            class="select"
-            id="materialId"
-          >
+          <div class="mt-5 mb-5">
 
-            ${materiais.map(material => `
-              <option value="${material.id}">
-                ${material.nome}
-                -
-                R$ ${material.valor}
-              </option>
+            <h3 class="font-bold mb-3">
+              Materiais da composição
+            </h3>
+
+            <select
+              class="select"
+              id="materialId"
+            >
+
+              ${materiais.map(material => `
+                <option value="${material.id}">
+                  ${material.nome}
+                  —
+                  R$ ${material.valor}
+                </option>
+              `).join('')}
+
+            </select>
+
+            <input
+              class="input"
+              type="number"
+              step="0.01"
+              id="quantidade"
+              placeholder="Quantidade"
+            />
+
+            <button
+              type="button"
+              id="addItemBtn"
+              class="primary-button mt-2"
+            >
+              Adicionar Material
+            </button>
+
+          </div>
+
+          <!-- LISTA -->
+
+          <div id="itensLista">
+
+            ${itensTemporarios.map(item => `
+              <div class="card">
+
+                <div class="flex justify-between">
+
+                  <div>
+
+                    <h4 class="font-bold">
+                      ${item.nome}
+                    </h4>
+
+                    <p class="text-sm text-slate-400">
+                      ${item.quantidade}
+                      x
+                      R$ ${item.valorUnitario}
+                    </p>
+
+                  </div>
+
+                  <div class="text-right">
+
+                    <p class="font-bold text-orange-400">
+                      R$ ${item.subtotal.toFixed(2)}
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </div>
             `).join('')}
 
-          </select>
+          </div>
 
-          <input
-            class="input"
-            type="number"
-            step="0.01"
-            id="quantidade"
-            placeholder="Quantidade utilizada"
-          />
+          <!-- CUSTOS -->
 
           <input
             class="input"
             type="number"
             step="0.01"
             id="horas"
-            placeholder="Horas de trabalho"
+            placeholder="Horas trabalhadas"
           />
 
           <input
@@ -74,6 +130,14 @@ export async function producaoPage() {
             step="0.01"
             id="valorHora"
             placeholder="Valor da hora"
+          />
+
+          <input
+            class="input"
+            type="number"
+            step="0.01"
+            id="energia"
+            placeholder="Custo energia/gás/carvão"
           />
 
           <input
@@ -155,10 +219,20 @@ export async function producaoPage() {
 
               <div class="flex justify-between">
                 <span class="text-slate-400">
-                  Custo total
+                  Energia
                 </span>
 
                 <span>
+                  R$ ${item.custoEnergia.toFixed(2)}
+                </span>
+              </div>
+
+              <div class="flex justify-between">
+                <span class="text-slate-400">
+                  Total
+                </span>
+
+                <span class="font-bold">
                   R$ ${item.custoTotal.toFixed(2)}
                 </span>
               </div>
@@ -174,24 +248,44 @@ export async function producaoPage() {
   `;
 }
 
-document.addEventListener('submit', async (e) => {
+window.addEventListener('click', async (e) => {
 
-  if (e.target.id === 'producaoForm') {
-
-    e.preventDefault();
+  if (e.target.id === 'addItemBtn') {
 
     const materialId =
       Number(
         document.getElementById('materialId').value
       );
 
-    const material =
-      await db.materiais.get(materialId);
-
     const quantidade =
       parseFloat(
         document.getElementById('quantidade').value
       );
+
+    const material =
+      await db.materiais.get(materialId);
+
+    const subtotal =
+      material.valor * quantidade;
+
+    itensTemporarios.push({
+      materialId,
+      nome: material.nome,
+      quantidade,
+      valorUnitario: material.valor,
+      subtotal
+    });
+
+    location.reload();
+  }
+
+});
+
+document.addEventListener('submit', async (e) => {
+
+  if (e.target.id === 'producaoForm') {
+
+    e.preventDefault();
 
     const horasTrabalho =
       parseFloat(
@@ -208,40 +302,58 @@ document.addEventListener('submit', async (e) => {
         document.getElementById('margem').value
       );
 
-    const custoMateriais =
-      material.valor * quantidade;
+    const custoEnergia =
+      parseFloat(
+        document.getElementById('energia').value
+      ) || 0;
 
     const calculo =
       calcularComposicao({
-        custoMateriais,
+        itens: itensTemporarios,
         horasTrabalho,
         valorHora,
-        margemLucro
+        margemLucro,
+        custoEnergia
       });
 
-    await db.composicoes.add({
+    const composicaoId =
+      await db.composicoes.add({
 
-      nome:
-        document.getElementById('nome').value,
+        nome:
+          document.getElementById('nome').value,
 
-      categoria: 'faca',
+        categoria: 'faca',
 
-      custoMateriais,
+        custoMateriais:
+          calculo.custoMateriais,
 
-      custoMaoObra:
-        calculo.custoMaoObra,
+        custoMaoObra:
+          calculo.custoMaoObra,
 
-      custoTotal:
-        calculo.custoTotal,
+        custoEnergia,
 
-      margemLucro,
+        custoTotal:
+          calculo.custoTotal,
 
-      valorFinal:
-        calculo.valorFinal,
+        margemLucro,
 
-      createdAt:
-        new Date().toISOString()
-    });
+        valorFinal:
+          calculo.valorFinal,
+
+        createdAt:
+          new Date().toISOString()
+      });
+
+    for (const item of itensTemporarios) {
+
+      await db.composicaoItens.add({
+        composicaoId,
+        ...item
+      });
+
+    }
+
+    itensTemporarios = [];
 
     location.reload();
   }
