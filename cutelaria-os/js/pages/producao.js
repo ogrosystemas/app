@@ -536,7 +536,15 @@ document.addEventListener('submit', async (e) => {
     itensTemporarios = [];
     etapasTemporarias = [];
 
-    location.reload();
+    showToast(
+  'Produção salva com sucesso!'
+);
+
+setTimeout(() => {
+
+  location.reload();
+
+}, 800);
   }
 
 });
