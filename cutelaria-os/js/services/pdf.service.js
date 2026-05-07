@@ -72,9 +72,9 @@ export async function gerarPDF({
     y
   );
 
-  y += 8;
+  y += 10;
 
-  doc.setFontSize(15);
+  doc.setFontSize(16);
 
   doc.text(
     `Valor final: R$ ${composicao.valorFinal.toFixed(2)}`,
@@ -97,11 +97,7 @@ export async function gerarPDF({
   itens.forEach(item => {
 
     doc.text(
-
-      `${item.nome}
-      | Qtd: ${item.quantidade}
-      | R$ ${item.subtotal.toFixed(2)}`,
-
+      `${item.nome} | Qtd: ${item.quantidade} | R$ ${item.subtotal.toFixed(2)}`,
       20,
       y
     );
@@ -125,11 +121,7 @@ export async function gerarPDF({
   etapas.forEach(etapa => {
 
     doc.text(
-
-      `${etapa.nome}
-      | ${etapa.horas}h
-      | R$ ${etapa.custoTotal.toFixed(2)}`,
-
+      `${etapa.nome} | ${etapa.horas}h | R$ ${etapa.custoTotal.toFixed(2)}`,
       20,
       y
     );
