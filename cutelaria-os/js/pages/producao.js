@@ -9,6 +9,7 @@ import {
 } from '../services/etapas.service.js';
 
 let itensTemporarios = [];
+let etapasTemporarias = [];
 
 export async function producaoPage() {
 
@@ -39,7 +40,7 @@ export async function producaoPage() {
             required
           />
 
-          <!-- ADICIONAR ITEM -->
+          <!-- MATERIAIS -->
 
           <div class="mt-5 mb-5">
 
@@ -80,7 +81,7 @@ export async function producaoPage() {
 
           </div>
 
-          <!-- LISTA -->
+          <!-- LISTA MATERIAIS -->
 
           <div id="itensLista">
 
@@ -118,124 +119,100 @@ export async function producaoPage() {
 
           </div>
 
-            <!-- ETAPAS -->
+          <!-- ETAPAS -->
 
-<div class="mt-8 mb-5">
+          <div class="mt-8 mb-5">
 
-  <h3 class="font-bold mb-3">
-    Etapas de Produção
-  </h3>
+            <h3 class="font-bold mb-3">
+              Etapas de Produção
+            </h3>
 
-  <input
-    class="input"
-    type="text"
-    id="etapaNome"
-    placeholder="Nome da etapa"
-  />
+            <input
+              class="input"
+              type="text"
+              id="etapaNome"
+              placeholder="Nome da etapa"
+            />
 
-  <input
-    class="input"
-    type="number"
-    step="0.01"
-    id="etapaHoras"
-    placeholder="Horas da etapa"
-  />
+            <input
+              class="input"
+              type="number"
+              step="0.01"
+              id="etapaHoras"
+              placeholder="Horas da etapa"
+            />
 
-  <input
-    class="input"
-    type="number"
-    step="0.01"
-    id="etapaValorHora"
-    placeholder="Valor hora"
-  />
+            <input
+              class="input"
+              type="number"
+              step="0.01"
+              id="etapaValorHora"
+              placeholder="Valor hora"
+            />
 
-  <input
-    class="input"
-    type="number"
-    step="0.01"
-    id="etapaEnergia"
-    placeholder="Custo energia"
-  />
+            <input
+              class="input"
+              type="number"
+              step="0.01"
+              id="etapaEnergia"
+              placeholder="Custo energia"
+            />
 
-  <input
-    class="input"
-    type="number"
-    step="0.01"
-    id="etapaAbrasivos"
-    placeholder="Custo abrasivos"
-  />
+            <input
+              class="input"
+              type="number"
+              step="0.01"
+              id="etapaAbrasivos"
+              placeholder="Custo abrasivos"
+            />
 
-  <button
-    type="button"
-    id="addEtapaBtn"
-    class="primary-button mt-2"
-  >
-    Adicionar Etapa
-  </button>
+            <button
+              type="button"
+              id="addEtapaBtn"
+              class="primary-button mt-2"
+            >
+              Adicionar Etapa
+            </button>
 
-</div>
+          </div>
 
-<!-- LISTA ETAPAS -->
+          <!-- LISTA ETAPAS -->
 
-<div>
+          <div>
 
-  ${etapasTemporarias.map(etapa => `
-    <div class="card">
+            ${etapasTemporarias.map(etapa => `
+              <div class="card">
 
-      <div class="flex justify-between">
+                <div class="flex justify-between">
 
-        <div>
+                  <div>
 
-          <h4 class="font-bold">
-            ${etapa.nome}
-          </h4>
+                    <h4 class="font-bold">
+                      ${etapa.nome}
+                    </h4>
 
-          <p class="text-sm text-slate-400">
-            ${etapa.horas}h
-          </p>
+                    <p class="text-sm text-slate-400">
+                      ${etapa.horas}h
+                    </p>
 
-        </div>
+                  </div>
 
-        <div class="text-right">
+                  <div class="text-right">
 
-          <p class="text-orange-400 font-bold">
-            R$ ${etapa.custoTotal.toFixed(2)}
-          </p>
+                    <p class="text-orange-400 font-bold">
+                      R$ ${etapa.custoTotal.toFixed(2)}
+                    </p>
 
-        </div>
+                  </div>
 
-      </div>
+                </div>
 
-    </div>
-  `).join('')}
+              </div>
+            `).join('')}
 
-</div>
+          </div>
 
-          <!-- CUSTOS -->
-
-          <input
-            class="input"
-            type="number"
-            step="0.01"
-            id="horas"
-            placeholder="Horas trabalhadas"
-          />
-
-          <input
-            class="input"
-            type="number"
-            step="0.01"
-            id="valorHora"
-            placeholder="Valor da hora"
-          />
-
-          <input
-            class="input"
-            type="number"
-            step="0.01"
-            id="energia"
-            placeholder="Custo energia/gás/carvão"
-          />
+          <!-- LUCRO -->
 
           <input
             class="input"
@@ -306,21 +283,11 @@ export async function producaoPage() {
 
               <div class="flex justify-between">
                 <span class="text-slate-400">
-                  Mão de obra
+                  Etapas
                 </span>
 
                 <span>
-                  R$ ${item.custoMaoObra.toFixed(2)}
-                </span>
-              </div>
-
-              <div class="flex justify-between">
-                <span class="text-slate-400">
-                  Energia
-                </span>
-
-                <span>
-                  R$ ${item.custoEnergia.toFixed(2)}
+                  R$ ${item.custoEtapas.toFixed(2)}
                 </span>
               </div>
 
@@ -347,40 +314,44 @@ export async function producaoPage() {
 
 window.addEventListener('click', async (e) => {
 
+  // ADICIONAR ETAPA
+
   if (e.target.id === 'addEtapaBtn') {
 
-  const etapa = {
-    nome:
-      document.getElementById('etapaNome').value,
+    const etapa = {
+      nome:
+        document.getElementById('etapaNome').value,
 
-    horas:
-      parseFloat(
-        document.getElementById('etapaHoras').value
-      ),
+      horas:
+        parseFloat(
+          document.getElementById('etapaHoras').value
+        ),
 
-    valorHora:
-      parseFloat(
-        document.getElementById('etapaValorHora').value
-      ),
+      valorHora:
+        parseFloat(
+          document.getElementById('etapaValorHora').value
+        ),
 
-    custoEnergia:
-      parseFloat(
-        document.getElementById('etapaEnergia').value
-      ) || 0,
+      custoEnergia:
+        parseFloat(
+          document.getElementById('etapaEnergia').value
+        ) || 0,
 
-    custoAbrasivos:
-      parseFloat(
-        document.getElementById('etapaAbrasivos').value
-      ) || 0
-  };
+      custoAbrasivos:
+        parseFloat(
+          document.getElementById('etapaAbrasivos').value
+        ) || 0
+    };
 
-  const [calculada] =
-    calcularEtapas([etapa]);
+    const [calculada] =
+      calcularEtapas([etapa]);
 
-  etapasTemporarias.push(calculada);
+    etapasTemporarias.push(calculada);
 
-  location.reload();
-}
+    location.reload();
+  }
+
+  // ADICIONAR MATERIAL
 
   if (e.target.id === 'addItemBtn') {
 
@@ -419,33 +390,16 @@ document.addEventListener('submit', async (e) => {
 
     e.preventDefault();
 
-    const horasTrabalho =
-      parseFloat(
-        document.getElementById('horas').value
-      );
-
-    const valorHora =
-      parseFloat(
-        document.getElementById('valorHora').value
-      );
-
     const margemLucro =
       parseFloat(
         document.getElementById('margem').value
       );
 
-    const custoEnergia =
-      parseFloat(
-        document.getElementById('energia').value
-      ) || 0;
-
     const calculo =
       calcularComposicao({
         itens: itensTemporarios,
-        horasTrabalho,
-        valorHora,
-        margemLucro,
-        custoEnergia
+        etapas: etapasTemporarias,
+        margemLucro
       });
 
     const composicaoId =
@@ -459,10 +413,8 @@ document.addEventListener('submit', async (e) => {
         custoMateriais:
           calculo.custoMateriais,
 
-        custoMaoObra:
-          calculo.custoMaoObra,
-
-        custoEnergia,
+        custoEtapas:
+          calculo.custoEtapas,
 
         custoTotal:
           calculo.custoTotal,
@@ -476,6 +428,8 @@ document.addEventListener('submit', async (e) => {
           new Date().toISOString()
       });
 
+    // SALVAR ITENS
+
     for (const item of itensTemporarios) {
 
       await db.composicaoItens.add({
@@ -485,8 +439,19 @@ document.addEventListener('submit', async (e) => {
 
     }
 
-    let itensTemporarios = [];
-    let etapasTemporarias = [];
+    // SALVAR ETAPAS
+
+    for (const etapa of etapasTemporarias) {
+
+      await db.etapas.add({
+        composicaoId,
+        ...etapa
+      });
+
+    }
+
+    itensTemporarios = [];
+    etapasTemporarias = [];
 
     location.reload();
   }
