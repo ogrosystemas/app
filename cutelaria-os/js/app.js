@@ -14,25 +14,51 @@ import {
   configuracoesPage
 } from './pages/configuracoes.js';
 
+import {
+  orcamentoPage
+} from './pages/orcamento.js';
+
 const app =
   document.getElementById('app');
-
-const routes = {
-
-  '#dashboard': dashboardPage,
-
-  '#materiais': materiaisPage,
-
-  '#producao': producaoPage,
-
-  '#configuracoes': configuracoesPage
-
-};
 
 async function renderRoute() {
 
   const hash =
     window.location.hash || '#dashboard';
+
+  // ORÇAMENTO
+
+  if (
+    hash.startsWith(
+      '#orcamento/'
+    )
+  ) {
+
+    const id =
+      hash.split('/')[1];
+
+    app.innerHTML =
+      await orcamentoPage(id);
+
+    return;
+
+  }
+
+  const routes = {
+
+    '#dashboard':
+      dashboardPage,
+
+    '#materiais':
+      materiaisPage,
+
+    '#producao':
+      producaoPage,
+
+    '#configuracoes':
+      configuracoesPage
+
+  };
 
   const page =
     routes[hash];
@@ -54,9 +80,10 @@ async function renderRoute() {
       'page-transition'
     );
 
-  }, 150);
+  }, 120);
 
   renderNavbar(hash);
+
 }
 
 function renderNavbar(active) {
@@ -97,6 +124,7 @@ function renderNavbar(active) {
     </a>
 
   `;
+
 }
 
 window.addEventListener(
