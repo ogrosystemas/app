@@ -1,9 +1,7 @@
 export function calcularComposicao({
   itens,
-  horasTrabalho,
-  valorHora,
-  margemLucro,
-  custoEnergia = 0
+  etapas,
+  margemLucro
 }) {
 
   const custoMateriais =
@@ -11,13 +9,13 @@ export function calcularComposicao({
       return total + item.subtotal;
     }, 0);
 
-  const custoMaoObra =
-    horasTrabalho * valorHora;
+  const custoEtapas =
+    etapas.reduce((total, etapa) => {
+      return total + etapa.custoTotal;
+    }, 0);
 
   const custoTotal =
-    custoMateriais +
-    custoMaoObra +
-    custoEnergia;
+    custoMateriais + custoEtapas;
 
   const lucro =
     custoTotal * (margemLucro / 100);
@@ -27,7 +25,7 @@ export function calcularComposicao({
 
   return {
     custoMateriais,
-    custoMaoObra,
+    custoEtapas,
     custoTotal,
     valorFinal
   };
