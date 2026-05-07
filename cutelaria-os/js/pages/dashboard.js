@@ -248,6 +248,126 @@ export async function dashboardPage() {
 
       </div>
 
+      <!-- HISTÓRICO -->
+
+      <div class="grid gap-4">
+
+        ${composicoes.reverse().map(item => `
+
+          <div class="card">
+
+            <!-- HEADER -->
+
+            <div class="flex justify-between items-start mb-5">
+
+              <div>
+
+                <h3 class="text-xl font-bold">
+                  ${item.nome}
+                </h3>
+
+                <p class="text-slate-400 text-sm mt-1">
+
+                  ${new Date(item.createdAt)
+                    .toLocaleDateString()}
+
+                </p>
+
+              </div>
+
+              <div class="text-right">
+
+                <p class="text-slate-400 text-sm">
+                  Valor Final
+                </p>
+
+                <h2 class="text-2xl font-bold text-orange-400">
+
+                  R$ ${item.valorFinal.toFixed(2)}
+
+                </h2>
+
+              </div>
+
+            </div>
+
+            <!-- DETALHES -->
+
+            <div class="grid gap-2 mb-5">
+
+              <div class="flex justify-between">
+
+                <span class="text-slate-400">
+                  Materiais
+                </span>
+
+                <span>
+                  R$ ${item.custoMateriais.toFixed(2)}
+                </span>
+
+              </div>
+
+              <div class="flex justify-between">
+
+                <span class="text-slate-400">
+                  Etapas
+                </span>
+
+                <span>
+                  R$ ${item.custoEtapas.toFixed(2)}
+                </span>
+
+              </div>
+
+              <div class="flex justify-between">
+
+                <span class="text-slate-400">
+                  Total
+                </span>
+
+                <span class="font-bold">
+
+                  R$ ${item.custoTotal.toFixed(2)}
+
+                </span>
+
+              </div>
+
+              <div class="flex justify-between">
+
+                <span class="text-slate-400">
+                  Margem
+                </span>
+
+                <span>
+
+                  ${item.margemLucro}%
+
+                </span>
+
+              </div>
+
+            </div>
+
+            <!-- ACTIONS -->
+
+            <div class="flex justify-end">
+
+              <button
+                class="primary-button export-btn"
+                data-id="${item.id}"
+              >
+                Exportar PDF
+              </button>
+
+            </div>
+
+          </div>
+
+        `).join('')}
+
+      </div>
+
     </section>
   `;
 }
@@ -309,9 +429,11 @@ function renderCharts(composicoes) {
       plugins: {
 
         legend: {
+
           labels: {
             color: '#cbd5e1'
           }
+
         }
 
       },
@@ -319,15 +441,19 @@ function renderCharts(composicoes) {
       scales: {
 
         x: {
+
           ticks: {
             color: '#94a3b8'
           }
+
         },
 
         y: {
+
           ticks: {
             color: '#94a3b8'
           }
+
         }
 
       }
@@ -336,7 +462,9 @@ function renderCharts(composicoes) {
 
   });
 
-  window.addEventListener('click', async (e) => {
+}
+
+window.addEventListener('click', async (e) => {
 
   if (
     e.target.classList.contains('export-btn')
@@ -373,5 +501,3 @@ function renderCharts(composicoes) {
   }
 
 });
-
-}
