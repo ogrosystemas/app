@@ -8,87 +8,269 @@ export async function gerarPDF({
 
   const doc = new jsPDF();
 
+  let y = 20;
+
   // HEADER
 
-  doc.setFontSize(22);
+  doc.setFontSize(24);
 
   doc.text(
     'CUTELARIA OS',
     20,
-    20
+    y
   );
+
+  y += 8;
 
   doc.setFontSize(12);
 
   doc.text(
-    composicao.nome,
-    20,
-    32
-  );
-
-  doc.setDrawColor(240);
-
-  doc.line(20, 38, 190, 38);
-
-  // RESUMO
-
-  let y = 50;
-
-  doc.setFontSize(16);
-
-  doc.text('Resumo Financeiro', 20, y);
-
-  y += 12;
-
-  doc.setFontSize(12);
-
-  doc.text(
-    `Custo materiais: R$ ${composicao.custoMateriais.toFixed(2)}`,
-    20,
-    y
-  );
-
-  y += 8;
-
-  doc.text(
-    `Custo etapas: R$ ${composicao.custoEtapas.toFixed(2)}`,
-    20,
-    y
-  );
-
-  y += 8;
-
-  doc.text(
-    `Custo total: R$ ${composicao.custoTotal.toFixed(2)}`,
-    20,
-    y
-  );
-
-  y += 8;
-
-  doc.text(
-    `Margem: ${composicao.margemLucro}%`,
+    'Ficha técnica e orçamento',
     20,
     y
   );
 
   y += 10;
 
-  doc.setFontSize(16);
+  doc.setDrawColor(220);
+
+  doc.line(20, y, 190, y);
+
+  // IDENTIFICAÇÃO
+
+  y += 12;
+
+  doc.setFontSize(18);
 
   doc.text(
-    `Valor final: R$ ${composicao.valorFinal.toFixed(2)}`,
+    composicao.nome,
     20,
     y
   );
 
-  // MATERIAIS
+  y += 10;
 
-  y += 20;
+  doc.setFontSize(11);
+
+  doc.text(
+    `Tipo: ${composicao.tipoFaca || '-'}`,
+    20,
+    y
+  );
+
+  y += 7;
+
+  doc.text(
+    `Data: ${new Date(
+      composicao.createdAt
+    ).toLocaleDateString()}`,
+    20,
+    y
+  );
+
+  // FICHA TÉCNICA
+
+  y += 15;
 
   doc.setFontSize(16);
 
-  doc.text('Materiais', 20, y);
+  doc.text(
+    'Ficha Técnica',
+    20,
+    y
+  );
+
+  y += 10;
+
+  doc.setFontSize(11);
+
+  const ficha = [
+
+    [
+      'Tipo de aço',
+      composicao.tipoAco || '-'
+    ],
+
+    [
+      'HRC',
+      composicao.hrc || '-'
+    ],
+
+    [
+      'Espessura',
+      `${composicao.espessura || '-'} mm`
+    ],
+
+    [
+      'Comprimento',
+      `${composicao.comprimento || '-'} cm`
+    ],
+
+    [
+      'Peso',
+      `${composicao.peso || '-'} g`
+    ],
+
+    [
+      'Acabamento',
+      composicao.acabamento || '-'
+    ],
+
+    [
+      'Desbaste',
+      composicao.desbaste || '-'
+    ],
+
+    [
+      'Tipo de cabo',
+      composicao.tipoCabo || '-'
+    ],
+
+    [
+      'Bainha',
+      composicao.possuiBainha
+        ? 'Sim'
+        : 'Não'
+    ]
+
+  ];
+
+  ficha.forEach(item => {
+
+    doc.text(
+      `${item[0]}: ${item[1]}`,
+      20,
+      y
+    );
+
+    y += 7;
+
+  });
+
+  // OBSERVAÇÕES
+
+  if (composicao.observacoes) {
+
+    y += 8;
+
+    doc.setFontSize(16);
+
+    doc.text(
+      'Observações',
+      20,
+      y
+    );
+
+    y += 10;
+
+    doc.setFontSize(11);
+
+    const observacoes =
+      doc.splitTextToSize(
+        composicao.observacoes,
+        170
+      );
+
+    doc.text(
+      observacoes,
+      20,
+      y
+    );
+
+    y +=
+      observacoes.length * 7;
+
+  }
+
+  // FINANCEIRO
+
+  y += 15;
+
+  doc.setFontSize(16);
+
+  doc.text(
+    'Resumo Financeiro',
+    20,
+    y
+  );
+
+  y += 10;
+
+  doc.setFontSize(11);
+
+  const lucro =
+    composicao.valorFinal -
+    composicao.custoTotal;
+
+  const margem =
+    (
+      (lucro /
+        composicao.valorFinal) *
+      100
+    ).toFixed(1);
+
+  const financeiro = [
+
+    [
+      'Materiais',
+      composicao.custoMateriais
+    ],
+
+    [
+      'Etapas',
+      composicao.custoEtapas
+    ],
+
+    [
+      'Custo total',
+      composicao.custoTotal
+    ],
+
+    [
+      'Lucro',
+      lucro
+    ],
+
+    [
+      'Margem',
+      `${margem}%`
+    ],
+
+    [
+      'Valor final',
+      composicao.valorFinal
+    ]
+
+  ];
+
+  financeiro.forEach(item => {
+
+    const valor =
+      typeof item[1] === 'number'
+        ? `R$ ${item[1].toFixed(2)}`
+        : item[1];
+
+    doc.text(
+      `${item[0]}: ${valor}`,
+      20,
+      y
+    );
+
+    y += 7;
+
+  });
+
+  // MATERIAIS
+
+  y += 15;
+
+  doc.setFontSize(16);
+
+  doc.text(
+    'Materiais Utilizados',
+    20,
+    y
+  );
 
   y += 10;
 
@@ -97,22 +279,28 @@ export async function gerarPDF({
   itens.forEach(item => {
 
     doc.text(
+
       `${item.nome} | Qtd: ${item.quantidade} | R$ ${item.subtotal.toFixed(2)}`,
+
       20,
       y
     );
 
-    y += 8;
+    y += 7;
 
   });
 
   // ETAPAS
 
-  y += 10;
+  y += 12;
 
   doc.setFontSize(16);
 
-  doc.text('Etapas', 20, y);
+  doc.text(
+    'Etapas da Produção',
+    20,
+    y
+  );
 
   y += 10;
 
@@ -121,18 +309,26 @@ export async function gerarPDF({
   etapas.forEach(etapa => {
 
     doc.text(
+
       `${etapa.nome} | ${etapa.horas}h | R$ ${etapa.custoTotal.toFixed(2)}`,
+
       20,
       y
     );
 
-    y += 8;
+    y += 7;
 
   });
 
-  // FOOTER
+  // RODAPÉ
 
   y += 20;
+
+  doc.setDrawColor(220);
+
+  doc.line(20, y, 190, y);
+
+  y += 10;
 
   doc.setFontSize(10);
 
@@ -141,6 +337,16 @@ export async function gerarPDF({
     20,
     y
   );
+
+  y += 6;
+
+  doc.text(
+    'Sistema profissional de gestão para cuteleiros',
+    20,
+    y
+  );
+
+  // SAVE
 
   doc.save(
     `${composicao.nome}.pdf`
