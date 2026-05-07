@@ -24,33 +24,73 @@ export async function dashboardPage() {
   const etapas =
     await db.etapas.toArray();
 
-  // MÉTRICAS
+  // KPIs
 
   const totalProducoes =
     composicoes.length;
 
   const faturamentoTotal =
-    composicoes.reduce((total, item) => {
-      return total + item.valorFinal;
-    }, 0);
+    composicoes.reduce(
+      (total, item) =>
+        total + item.valorFinal,
+      0
+    );
 
   const custoTotal =
-    composicoes.reduce((total, item) => {
-      return total + item.custoTotal;
-    }, 0);
+    composicoes.reduce(
+      (total, item) =>
+        total + item.custoTotal,
+      0
+    );
 
   const lucroTotal =
     faturamentoTotal - custoTotal;
 
+  const margemMedia =
+    faturamentoTotal > 0
+      ? (
+          (lucroTotal /
+            faturamentoTotal) *
+          100
+        ).toFixed(1)
+      : 0;
+
   const ticketMedio =
     totalProducoes > 0
-      ? faturamentoTotal / totalProducoes
+      ? faturamentoTotal /
+        totalProducoes
       : 0;
 
   const lucroMedio =
     totalProducoes > 0
-      ? lucroTotal / totalProducoes
+      ? lucroTotal /
+        totalProducoes
       : 0;
+
+  // MAIS LUCRATIVA
+
+  let facaMaisLucrativa = null;
+
+  composicoes.forEach(item => {
+
+    const lucro =
+      item.valorFinal -
+      item.custoTotal;
+
+    if (
+      !facaMaisLucrativa ||
+      lucro >
+        facaMaisLucrativa.lucro
+    ) {
+
+      facaMaisLucrativa = {
+        nome: item.nome,
+        lucro
+      };
+
+    }
+
+  });
 
   // MATERIAL MAIS USADO
 
@@ -59,14 +99,18 @@ export async function dashboardPage() {
   materiais.forEach(item => {
 
     if (!materiaisAgrupados[item.nome]) {
+
       materiaisAgrupados[item.nome] = 0;
+
     }
 
-    materiaisAgrupados[item.nome] += item.quantidade;
+    materiaisAgrupados[item.nome] +=
+      item.quantidade;
 
   });
 
   let materialMaisUsado = '-';
+
   let materialMaiorQtd = 0;
 
   for (const nome in materiaisAgrupados) {
@@ -80,6 +124,7 @@ export async function dashboardPage() {
         materiaisAgrupados[nome];
 
       materialMaisUsado = nome;
+
     }
 
   }
@@ -91,14 +136,18 @@ export async function dashboardPage() {
   etapas.forEach(etapa => {
 
     if (!etapasAgrupadas[etapa.nome]) {
+
       etapasAgrupadas[etapa.nome] = 0;
+
     }
 
-    etapasAgrupadas[etapa.nome] += etapa.custoTotal;
+    etapasAgrupadas[etapa.nome] +=
+      etapa.custoTotal;
 
   });
 
   let etapaMaisCara = '-';
+
   let maiorCustoEtapa = 0;
 
   for (const nome in etapasAgrupadas) {
@@ -112,6 +161,7 @@ export async function dashboardPage() {
         etapasAgrupadas[nome];
 
       etapaMaisCara = nome;
+
     }
 
   }
@@ -125,6 +175,8 @@ export async function dashboardPage() {
   return `
     <section class="dashboard-grid">
 
+      <!-- KPI GRID -->
+
       <div class="grid grid-cols-2 gap-4">
 
         <div class="card">
@@ -134,7 +186,9 @@ export async function dashboardPage() {
           </div>
 
           <div class="metric-value text-orange-400">
+
             R$ ${faturamentoTotal.toFixed(2)}
+
           </div>
 
         </div>
@@ -146,7 +200,9 @@ export async function dashboardPage() {
           </div>
 
           <div class="metric-value text-green-400">
+
             R$ ${lucroTotal.toFixed(2)}
+
           </div>
 
         </div>
@@ -158,7 +214,9 @@ export async function dashboardPage() {
           </div>
 
           <div class="metric-value">
+
             ${totalProducoes}
+
           </div>
 
         </div>
@@ -170,27 +228,69 @@ export async function dashboardPage() {
           </div>
 
           <div class="metric-value">
+
             R$ ${ticketMedio.toFixed(2)}
+
           </div>
 
         </div>
 
       </div>
 
+      <!-- ALERTAS -->
+
+      ${
+        margemMedia < 25
+          ? `
+            <div class="card border border-red-500/30">
+
+              <h3 class="text-red-400 font-bold mb-2">
+                ⚠️ Alerta Financeiro
+              </h3>
+
+              <p class="text-slate-300 text-sm">
+
+                Sua margem média está abaixo do ideal.
+                Considere revisar custos ou precificação.
+
+              </p>
+
+            </div>
+          `
+          : ''
+      }
+
+      <!-- CHART -->
+
       <div class="card">
 
-        <h3 class="font-bold text-lg mb-4">
-          Evolução Financeira
-        </h3>
+        <div class="flex justify-between items-center mb-5">
+
+          <h3 class="font-bold text-lg">
+            Evolução Financeira
+          </h3>
+
+          <div class="text-sm text-slate-400">
+
+            Margem média:
+            ${margemMedia}%
+
+          </div>
+
+        </div>
 
         <canvas id="financeChart"></canvas>
 
       </div>
 
+      <!-- INSIGHTS -->
+
       <div class="card">
 
         <h3 class="font-bold text-lg mb-5">
+
           Insights Operacionais
+
         </h3>
 
         <div class="grid gap-4">
@@ -202,7 +302,9 @@ export async function dashboardPage() {
             </span>
 
             <span class="font-bold text-green-400">
+
               R$ ${lucroMedio.toFixed(2)}
+
             </span>
 
           </div>
@@ -214,7 +316,9 @@ export async function dashboardPage() {
             </span>
 
             <span class="font-bold">
+
               ${materialMaisUsado}
+
             </span>
 
           </div>
@@ -226,7 +330,27 @@ export async function dashboardPage() {
             </span>
 
             <span class="font-bold text-orange-400">
+
               ${etapaMaisCara}
+
+            </span>
+
+          </div>
+
+          <div class="flex justify-between">
+
+            <span class="text-slate-400">
+              Faca mais lucrativa
+            </span>
+
+            <span class="font-bold text-green-400">
+
+              ${
+                facaMaisLucrativa
+                  ? facaMaisLucrativa.nome
+                  : '-'
+              }
+
             </span>
 
           </div>
@@ -235,99 +359,163 @@ export async function dashboardPage() {
 
       </div>
 
+      <!-- HISTÓRICO -->
+
       <div class="grid gap-4">
 
-        ${composicoes.reverse().map(item => `
+        ${composicoes.reverse().map(item => {
 
-          <div class="card">
+          const lucro =
+            item.valorFinal -
+            item.custoTotal;
 
-            <div class="flex justify-between items-start mb-5">
+          const margem =
+            (
+              (lucro /
+                item.valorFinal) *
+              100
+            ).toFixed(1);
 
-              <div>
+          return `
 
-                <h3 class="text-xl font-bold">
-                  ${item.nome}
-                </h3>
+            <div class="card">
 
-                <p class="text-slate-400 text-sm mt-1">
+              <div class="flex justify-between items-start mb-5">
 
-                  ${new Date(item.createdAt)
-                    .toLocaleDateString()}
+                <div>
 
-                </p>
+                  <h3 class="text-xl font-bold">
+
+                    ${item.nome}
+
+                  </h3>
+
+                  <p class="text-slate-400 text-sm mt-1">
+
+                    ${item.tipoFaca || 'Faca'}
+
+                  </p>
+
+                </div>
+
+                <div class="text-right">
+
+                  <p class="text-slate-400 text-sm">
+                    Valor Final
+                  </p>
+
+                  <h2 class="text-2xl font-bold text-orange-400">
+
+                    R$ ${item.valorFinal.toFixed(2)}
+
+                  </h2>
+
+                </div>
 
               </div>
 
-              <div class="text-right">
+              <!-- FICHA -->
 
-                <p class="text-slate-400 text-sm">
-                  Valor Final
-                </p>
+              <div class="grid gap-2 mb-5 text-sm">
 
-                <h2 class="text-2xl font-bold text-orange-400">
+                <div class="flex justify-between">
 
-                  R$ ${item.valorFinal.toFixed(2)}
+                  <span class="text-slate-400">
+                    Aço
+                  </span>
 
-                </h2>
+                  <span>
+                    ${item.tipoAco || '-'}
+                  </span>
+
+                </div>
+
+                <div class="flex justify-between">
+
+                  <span class="text-slate-400">
+                    HRC
+                  </span>
+
+                  <span>
+                    ${item.hrc || '-'}
+                  </span>
+
+                </div>
+
+                <div class="flex justify-between">
+
+                  <span class="text-slate-400">
+                    Cabo
+                  </span>
+
+                  <span>
+                    ${item.tipoCabo || '-'}
+                  </span>
+
+                </div>
+
+                <div class="flex justify-between">
+
+                  <span class="text-slate-400">
+                    Custo
+                  </span>
+
+                  <span>
+
+                    R$ ${item.custoTotal.toFixed(2)}
+
+                  </span>
+
+                </div>
+
+                <div class="flex justify-between">
+
+                  <span class="text-slate-400">
+                    Lucro
+                  </span>
+
+                  <span class="text-green-400 font-bold">
+
+                    R$ ${lucro.toFixed(2)}
+
+                  </span>
+
+                </div>
+
+                <div class="flex justify-between">
+
+                  <span class="text-slate-400">
+                    Margem
+                  </span>
+
+                  <span class="font-bold">
+
+                    ${margem}%
+
+                  </span>
+
+                </div>
+
+              </div>
+
+              <!-- ACTIONS -->
+
+              <div class="flex justify-end">
+
+                <button
+                  class="primary-button export-btn"
+                  data-id="${item.id}"
+                >
+                  Exportar PDF
+                </button>
 
               </div>
 
             </div>
 
-            <div class="grid gap-2 mb-5">
+          `;
 
-              <div class="flex justify-between">
-
-                <span class="text-slate-400">
-                  Materiais
-                </span>
-
-                <span>
-                  R$ ${item.custoMateriais.toFixed(2)}
-                </span>
-
-              </div>
-
-              <div class="flex justify-between">
-
-                <span class="text-slate-400">
-                  Etapas
-                </span>
-
-                <span>
-                  R$ ${item.custoEtapas.toFixed(2)}
-                </span>
-
-              </div>
-
-              <div class="flex justify-between">
-
-                <span class="text-slate-400">
-                  Total
-                </span>
-
-                <span class="font-bold">
-                  R$ ${item.custoTotal.toFixed(2)}
-                </span>
-
-              </div>
-
-            </div>
-
-            <div class="flex justify-end">
-
-              <button
-                class="primary-button export-btn"
-                data-id="${item.id}"
-              >
-                Exportar PDF
-              </button>
-
-            </div>
-
-          </div>
-
-        `).join('')}
+        }).join('')}
 
       </div>
 
@@ -348,9 +536,9 @@ function renderCharts(composicoes) {
     canvas.getContext('2d');
 
   const labels =
-    composicoes.map((_, index) => {
-      return `#${index + 1}`;
-    });
+    composicoes.map(
+      (_, index) => `#${index + 1}`
+    );
 
   const faturamento =
     composicoes.map(
@@ -360,6 +548,13 @@ function renderCharts(composicoes) {
   const custos =
     composicoes.map(
       item => item.custoTotal
+    );
+
+  const lucro =
+    composicoes.map(
+      item =>
+        item.valorFinal -
+        item.custoTotal
     );
 
   new Chart(ctx, {
@@ -382,6 +577,13 @@ function renderCharts(composicoes) {
         {
           label: 'Custos',
           data: custos,
+          borderColor: '#ef4444',
+          tension: 0.4
+        },
+
+        {
+          label: 'Lucro',
+          data: lucro,
           borderColor: '#22c55e',
           tension: 0.4
         }
@@ -392,7 +594,39 @@ function renderCharts(composicoes) {
 
     options: {
 
-      responsive: true
+      responsive: true,
+
+      plugins: {
+
+        legend: {
+
+          labels: {
+            color: '#cbd5e1'
+          }
+
+        }
+
+      },
+
+      scales: {
+
+        x: {
+
+          ticks: {
+            color: '#94a3b8'
+          }
+
+        },
+
+        y: {
+
+          ticks: {
+            color: '#94a3b8'
+          }
+
+        }
+
+      }
 
     }
 
@@ -433,9 +667,11 @@ window.addEventListener('click', async (e) => {
         .toArray();
 
     await gerarPDF({
+
       composicao,
       itens,
       etapas
+
     });
 
     hideLoading();
