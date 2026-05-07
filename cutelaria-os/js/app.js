@@ -1,41 +1,110 @@
-import { registerRoute, loadRoute } from './core/router.js';
+import {
+  dashboardPage
+} from './pages/dashboard.js';
 
-import { renderNavbar } from './components/navbar.js';
+import {
+  materiaisPage
+} from './pages/materiais.js';
 
-import { dashboardPage } from './pages/dashboard.js';
-import { materiaisPage } from './pages/materiais.js';
-import { producaoPage } from './pages/producao.js';
-import { historicoPage } from './pages/historico.js';
-import { configuracoesPage } from './pages/configuracoes.js';
+import {
+  producaoPage
+} from './pages/producao.js';
 
-import './database/db.js';
+import {
+  configuracoesPage
+} from './pages/configuracoes.js';
 
-registerRoute('dashboard', dashboardPage);
-registerRoute('materiais', materiaisPage);
-registerRoute('producao', producaoPage);
-registerRoute('historico', historicoPage);
-registerRoute('configuracoes', configuracoesPage);
+const app =
+  document.getElementById('app');
 
-window.addEventListener('hashchange', loadRoute);
+const routes = {
 
-window.addEventListener('DOMContentLoaded', async () => {
+  '#dashboard': dashboardPage,
 
-  renderNavbar();
+  '#materiais': materiaisPage,
 
-  if (!window.location.hash) {
-    window.location.hash = 'dashboard';
-  }
+  '#producao': producaoPage,
 
-  await loadRoute();
+  '#configuracoes': configuracoesPage
 
-  // Service Worker
-  if ('serviceWorker' in navigator) {
-    try {
-      await navigator.serviceWorker.register('./sw.js');
-      console.log('SW registrado');
-    } catch (err) {
-      console.error(err);
-    }
-  }
+};
 
-});
+async function renderRoute() {
+
+  const hash =
+    window.location.hash || '#dashboard';
+
+  const page =
+    routes[hash];
+
+  if (!page) return;
+
+  app.classList.add(
+    'page-transition'
+  );
+
+  const content =
+    await page();
+
+  setTimeout(() => {
+
+    app.innerHTML = content;
+
+    app.classList.remove(
+      'page-transition'
+    );
+
+  }, 150);
+
+  renderNavbar(hash);
+}
+
+function renderNavbar(active) {
+
+  const nav =
+    document.getElementById(
+      'bottomNav'
+    );
+
+  nav.innerHTML = `
+
+    <a
+      href="#dashboard"
+      class="${active === '#dashboard' ? 'active' : ''}"
+    >
+      Dashboard
+    </a>
+
+    <a
+      href="#materiais"
+      class="${active === '#materiais' ? 'active' : ''}"
+    >
+      Materiais
+    </a>
+
+    <a
+      href="#producao"
+      class="${active === '#producao' ? 'active' : ''}"
+    >
+      Produção
+    </a>
+
+    <a
+      href="#configuracoes"
+      class="${active === '#configuracoes' ? 'active' : ''}"
+    >
+      Config
+    </a>
+
+  `;
+}
+
+window.addEventListener(
+  'hashchange',
+  renderRoute
+);
+
+window.addEventListener(
+  'load',
+  renderRoute
+);
