@@ -1,5 +1,9 @@
 import { db } from '../database/db.js';
 
+import {
+  gerarPDF
+} from '../services/pdf.service.js';
+
 export async function dashboardPage() {
 
   const composicoes =
