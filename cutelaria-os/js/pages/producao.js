@@ -4,6 +4,10 @@ import {
   calcularComposicao
 } from '../services/calculator.service.js';
 
+import {
+  calcularEtapas
+} from '../services/etapas.service.js';
+
 let itensTemporarios = [];
 
 export async function producaoPage() {
