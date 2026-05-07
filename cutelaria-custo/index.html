@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Calculadora de custos para cutelaria artesanal">
+
+    <title>Cutelaria Custo</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Ícones PWA -->
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="assets/icons/icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/icon-512.png">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/pages.css">
+    <link rel="stylesheet" href="css/animations.css">
+
+    <!-- Chart.js via CDN (para gráficos do dashboard) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- App Container -->
+    <div id="app">
+
+        <!-- Header -->
+        <header id="header" class="app-header">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">🔪</span>
+                    <h1>Cutelaria Custo</h1>
+                </div>
+                <button id="btn-menu" class="btn-icon" aria-label="Menu">
+                    <span class="hamburger"></span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main id="main-content" class="main-content">
+            <!-- As páginas serão injetadas aqui via JavaScript -->
+            <div id="page-container" class="page-container">
+                <div class="loading-screen">
+                    <div class="spinner"></div>
+                    <p>Carregando...</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation (Mobile) -->
+        <nav id="bottom-nav" class="bottom-nav">
+            <a href="#dashboard" class="nav-item active" data-page="dashboard">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Dashboard</span>
+            </a>
+            <a href="#materiais" class="nav-item" data-page="materiais">
+                <span class="nav-icon">🔧</span>
+                <span class="nav-label">Materiais</span>
+            </a>
+            <a href="#faca" class="nav-item nav-item-main" data-page="faca">
+                <span class="nav-icon">➕</span>
+                <span class="nav-label">Nova Faca</span>
+            </a>
+            <a href="#historico" class="nav-item" data-page="historico">
+                <span class="nav-icon">📋</span>
+                <span class="nav-label">Histórico</span>
+            </a>
+            <a href="#configuracoes" class="nav-item" data-page="configuracoes">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">Ajustes</span>
+            </a>
+        </nav>
+
+        <!-- Modal Container -->
+        <div id="modal-overlay" class="modal-overlay hidden">
+            <div id="modal-content" class="modal-content">
+                <!-- Conteúdo do modal injetado via JS -->
+            </div>
+        </div>
+
+        <!-- Toast Container -->
+        <div id="toast-container" class="toast-container"></div>
+
+        <!-- Offline Indicator -->
+        <div id="offline-indicator" class="offline-indicator hidden">
+            <span>⚠️ Sem conexão - Modo offline ativo</span>
+        </div>
+
+    </div>
+
+    <!-- Scripts - Carregados como módulos ES6 -->
+    <script type="module" src="js/utils/constants.js"></script>
+    <script type="module" src="js/utils/helpers.js"></script>
+    <script type="module" src="js/utils/formatters.js"></script>
+    <script type="module" src="js/utils/validators.js"></script>
+    <script type="module" src="js/utils/calculations.js"></script>
+
+    <script type="module" src="js/services/db.js"></script>
+    <script type="module" src="js/services/storage.js"></script>
+    <script type="module" src="js/services/export-import.js"></script>
+    <script type="module" src="js/services/cache.js"></script>
+
+    <script type="module" src="js/modules/modal.js"></script>
+    <script type="module" src="js/modules/toast.js"></script>
+    <script type="module" src="js/modules/ui.js"></script>
+    <script type="module" src="js/modules/router.js"></script>
+    <script type="module" src="js/modules/navbar.js"></script>
+
+    <script type="module" src="js/pages/dashboard.js"></script>
+    <script type="module" src="js/pages/materiais.js"></script>
+    <script type="module" src="js/pages/insumos.js"></script>
+    <script type="module" src="js/pages/equipamentos.js"></script>
+    <script type="module" src="js/pages/faca.js"></script>
+    <script type="module" src="js/pages/historico.js"></script>
+    <script type="module" src="js/pages/configuracoes.js"></script>
+
+    <script type="module" src="js/modules/app.js"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('SW registrado:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('SW falhou:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
