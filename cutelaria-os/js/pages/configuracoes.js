@@ -1,144 +1,82 @@
-import { db } from '../database/db.js';
-
 import {
-
   exportarBackup,
-
   importarBackup
-
 } from '../services/backup.service.js';
 
-export async function configuracoesPage() {
+import {
+  showToast
+} from '../modules/toast.js';
 
-  const equipamentos =
-    await db.equipamentos.toArray();
+export async function configuracoesPage() {
 
   return `
     <section>
 
-      <!-- EQUIPAMENTOS -->
-
       <div class="card">
 
-        <h2 class="text-2xl font-bold mb-5">
-          Equipamentos
+        <h2 class="text-2xl font-bold mb-6">
+
+          Configurações
+
         </h2>
 
-        <form id="equipamentoForm">
+        <!-- BACKUP -->
 
-          <input
-            class="input"
-            type="text"
-            id="nomeEquipamento"
-            placeholder="Nome do equipamento"
-            required
-          />
+        <div class="mb-8">
 
-          <input
-            class="input"
-            type="number"
-            step="0.01"
-            id="valorCompra"
-            placeholder="Valor de compra"
-          />
-
-          <input
-            class="input"
-            type="number"
-            step="1"
-            id="vidaUtil"
-            placeholder="Vida útil (meses)"
-          />
-
-          <input
-            class="input"
-            type="number"
-            step="1"
-            id="horasMes"
-            placeholder="Horas de uso/mês"
-          />
+          <h3 class="font-bold text-lg mb-3">
+            Backup
+          </h3>
 
           <button
-            class="primary-button"
-            type="submit"
-          >
-            Salvar Equipamento
-          </button>
-
-        </form>
-
-      </div>
-
-      <!-- LISTA -->
-
-      <div class="mt-6 grid gap-4">
-
-        ${equipamentos.map(item => `
-          <div class="card">
-
-            <div class="flex justify-between">
-
-              <div>
-
-                <h3 class="text-xl font-bold">
-                  ${item.nome}
-                </h3>
-
-                <p class="text-slate-400 text-sm mt-1">
-                  Vida útil:
-                  ${item.vidaUtil} meses
-                </p>
-
-              </div>
-
-              <div class="text-right">
-
-                <p class="text-sm text-slate-400">
-                  Custo/Hora
-                </p>
-
-                <h2 class="text-xl font-bold text-orange-400">
-                  R$ ${item.custoHora.toFixed(2)}
-                </h2>
-
-              </div>
-
-            </div>
-
-          </div>
-        `).join('')}
-
-      </div>
-
-      <!-- BACKUP -->
-
-      <div class="card mt-6">
-
-        <h2 class="text-2xl font-bold mb-5">
-          Backup & Restore
-        </h2>
-
-        <div class="grid gap-4">
-
-          <button
-            id="backupBtn"
-            class="primary-button"
+            id="exportBackupBtn"
+            class="primary-button w-full"
           >
             Exportar Backup
           </button>
 
-          <label class="primary-button text-center cursor-pointer">
+        </div>
 
-            Importar Backup
+        <!-- RESTORE -->
 
-            <input
-              hidden
-              type="file"
-              id="restoreInput"
-              accept=".json"
-            />
+        <div class="mb-8">
 
-          </label>
+          <h3 class="font-bold text-lg mb-3">
+            Restaurar Backup
+          </h3>
+
+          <input
+            type="file"
+            id="restoreInput"
+            accept=".json"
+            class="input"
+          />
+
+        </div>
+
+        <!-- APP -->
+
+        <div>
+
+          <h3 class="font-bold text-lg mb-3">
+            Sobre
+          </h3>
+
+          <div class="text-slate-400 text-sm leading-7">
+
+            <p>
+              Cutelaria OS
+            </p>
+
+            <p>
+              Sistema profissional para cuteleiros.
+            </p>
+
+            <p class="mt-3">
+              Versão: 1.0.0
+            </p>
+
+          </div>
 
         </div>
 
@@ -148,77 +86,65 @@ export async function configuracoesPage() {
   `;
 }
 
-document.addEventListener('submit', async (e) => {
+window.addEventListener(
+  'click',
+  async (e) => {
 
-  if (e.target.id === 'equipamentoForm') {
+    if (
+      e.target.id ===
+      'exportBackupBtn'
+    ) {
 
-    e.preventDefault();
+      await exportarBackup();
 
-    const valorCompra =
-      parseFloat(
-        document.getElementById('valorCompra').value
+      showToast(
+        'Backup exportado!'
       );
 
-    const vidaUtil =
-      parseFloat(
-        document.getElementById('vidaUtil').value
-      );
-
-    const horasMes =
-      parseFloat(
-        document.getElementById('horasMes').value
-      );
-
-    // DEPRECIAÇÃO
-
-    const custoHora =
-      valorCompra / (vidaUtil * horasMes);
-
-    await db.equipamentos.add({
-
-      nome:
-        document.getElementById('nomeEquipamento').value,
-
-      valorCompra,
-
-      vidaUtil,
-
-      horasMes,
-
-      custoHora
-
-    });
-
-    location.reload();
-  }
-
-});
-
-window.addEventListener('click', async (e) => {
-
-  // EXPORT
-
-  if (e.target.id === 'backupBtn') {
-
-    exportarBackup();
+    }
 
   }
+);
 
-});
+window.addEventListener(
+  'change',
+  async (e) => {
 
-window.addEventListener('change', async (e) => {
+    if (
+      e.target.id ===
+      'restoreInput'
+    ) {
 
-  // IMPORT
+      const file =
+        e.target.files[0];
 
-  if (e.target.id === 'restoreInput') {
+      if (!file) return;
 
-    const file =
-      e.target.files[0];
+      try {
 
-    if (!file) return;
+        await importarBackup(
+          file
+        );
 
-    importarBackup(file);
+        showToast(
+          'Backup restaurado!'
+        );
+
+        setTimeout(() => {
+
+          location.reload();
+
+        }, 1200);
+
+      } catch {
+
+        showToast(
+          'Erro ao restaurar backup'
+        );
+
+      }
+
+    }
 
   }
-
-});
+);
