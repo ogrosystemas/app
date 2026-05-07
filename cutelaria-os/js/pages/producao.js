@@ -9,6 +9,10 @@ import {
 } from '../services/etapas.service.js';
 
 import {
+  compressImage
+} from '../services/image.service.js';
+
+import {
   showToast
 } from '../modules/toast.js';
 
@@ -34,6 +38,28 @@ export async function producaoPage() {
         </h2>
 
         <form id="producaoForm">
+
+          <!-- FOTO -->
+
+          <div class="mt-2 mb-8">
+
+            <h3 class="font-bold text-lg mb-4">
+              Foto da Faca
+            </h3>
+
+            <input
+              class="input"
+              type="file"
+              id="fotoCapa"
+              accept="image/*"
+            />
+
+            <img
+              id="previewFoto"
+              class="mt-4 rounded-xl hidden w-full h-64 object-cover"
+            />
+
+          </div>
 
           <!-- IDENTIFICAÇÃO -->
 
@@ -305,7 +331,7 @@ export async function producaoPage() {
 
           </div>
 
-          <!-- LUCRO -->
+          <!-- MARGEM -->
 
           <div class="mt-8">
 
@@ -333,6 +359,37 @@ export async function producaoPage() {
     </section>
   `;
 }
+
+window.addEventListener(
+  'change',
+  async (e) => {
+
+    if (
+      e.target.id ===
+      'fotoCapa'
+    ) {
+
+      const file =
+        e.target.files[0];
+
+      if (!file) return;
+
+      const preview =
+        document.getElementById(
+          'previewFoto'
+        );
+
+      preview.src =
+        URL.createObjectURL(file);
+
+      preview.classList.remove(
+        'hidden'
+      );
+
+    }
+
+  }
+);
 
 window.addEventListener('click', async (e) => {
 
@@ -490,6 +547,24 @@ document.addEventListener(
 
         });
 
+      let fotoBase64 = '';
+
+      const fotoInput =
+        document.getElementById(
+          'fotoCapa'
+        );
+
+      if (
+        fotoInput.files.length
+      ) {
+
+        fotoBase64 =
+          await compressImage(
+            fotoInput.files[0]
+          );
+
+      }
+
       const composicaoId =
         await db.composicoes.add({
 
@@ -562,6 +637,9 @@ document.addEventListener(
             document.getElementById(
               'observacoes'
             ).value,
+
+          fotoCapa:
+            fotoBase64,
 
           custoMateriais:
             calculo.custoMateriais,
