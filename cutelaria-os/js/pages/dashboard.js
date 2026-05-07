@@ -336,4 +336,42 @@ function renderCharts(composicoes) {
 
   });
 
+  window.addEventListener('click', async (e) => {
+
+  if (
+    e.target.classList.contains('export-btn')
+  ) {
+
+    const composicaoId =
+      Number(
+        e.target.dataset.id
+      );
+
+    const composicao =
+      await db.composicoes.get(
+        composicaoId
+      );
+
+    const itens =
+      await db.composicaoItens
+        .where('composicaoId')
+        .equals(composicaoId)
+        .toArray();
+
+    const etapas =
+      await db.etapas
+        .where('composicaoId')
+        .equals(composicaoId)
+        .toArray();
+
+    gerarPDF({
+      composicao,
+      itens,
+      etapas
+    });
+
+  }
+
+});
+
 }
