@@ -1,15 +1,24 @@
 .dashboard-grid {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 .metric-value {
-  font-size: 2rem;
+  font-size: 1.8rem;
   font-weight: 800;
   margin-top: 10px;
+
+  line-height: 1.1;
 }
 
 .metric-label {
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+canvas {
+  width: 100% !important;
+  height: 260px !important;
 }
