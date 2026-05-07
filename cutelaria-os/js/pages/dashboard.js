@@ -175,8 +175,6 @@ export async function dashboardPage() {
   return `
     <section class="dashboard-grid">
 
-      <!-- KPI GRID -->
-
       <div class="grid grid-cols-2 gap-4">
 
         <div class="card">
@@ -237,8 +235,6 @@ export async function dashboardPage() {
 
       </div>
 
-      <!-- ALERTAS -->
-
       ${
         margemMedia < 25
           ? `
@@ -251,7 +247,6 @@ export async function dashboardPage() {
               <p class="text-slate-300 text-sm">
 
                 Sua margem média está abaixo do ideal.
-                Considere revisar custos ou precificação.
 
               </p>
 
@@ -259,8 +254,6 @@ export async function dashboardPage() {
           `
           : ''
       }
-
-      <!-- CHART -->
 
       <div class="card">
 
@@ -282,8 +275,6 @@ export async function dashboardPage() {
         <canvas id="financeChart"></canvas>
 
       </div>
-
-      <!-- INSIGHTS -->
 
       <div class="card">
 
@@ -359,8 +350,6 @@ export async function dashboardPage() {
 
       </div>
 
-      <!-- HISTÓRICO -->
-
       <div class="grid gap-4">
 
         ${composicoes.reverse().map(item => {
@@ -378,136 +367,147 @@ export async function dashboardPage() {
 
           return `
 
-            <div class="card">
+            <div class="card overflow-hidden">
 
-              <div class="flex justify-between items-start mb-5">
+              ${
+                item.fotoCapa
+                  ? `
+                    <img
+                      src="${item.fotoCapa}"
+                      class="w-full h-52 object-cover"
+                    />
+                  `
+                  : ''
+              }
 
-                <div>
+              <div class="p-5">
 
-                  <h3 class="text-xl font-bold">
+                <div class="flex justify-between items-start mb-5">
 
-                    ${item.nome}
+                  <div>
 
-                  </h3>
+                    <h3 class="text-xl font-bold">
 
-                  <p class="text-slate-400 text-sm mt-1">
+                      ${item.nome}
 
-                    ${item.tipoFaca || 'Faca'}
+                    </h3>
 
-                  </p>
+                    <p class="text-slate-400 text-sm mt-1">
 
-                </div>
+                      ${item.tipoFaca || 'Faca'}
 
-                <div class="text-right">
+                    </p>
 
-                  <p class="text-slate-400 text-sm">
-                    Valor Final
-                  </p>
+                  </div>
 
-                  <h2 class="text-2xl font-bold text-orange-400">
+                  <div class="text-right">
 
-                    R$ ${item.valorFinal.toFixed(2)}
+                    <p class="text-slate-400 text-sm">
+                      Valor Final
+                    </p>
 
-                  </h2>
+                    <h2 class="text-2xl font-bold text-orange-400">
 
-                </div>
+                      R$ ${item.valorFinal.toFixed(2)}
 
-              </div>
+                    </h2>
 
-              <!-- FICHA -->
-
-              <div class="grid gap-2 mb-5 text-sm">
-
-                <div class="flex justify-between">
-
-                  <span class="text-slate-400">
-                    Aço
-                  </span>
-
-                  <span>
-                    ${item.tipoAco || '-'}
-                  </span>
+                  </div>
 
                 </div>
 
-                <div class="flex justify-between">
+                <div class="grid gap-2 mb-5 text-sm">
 
-                  <span class="text-slate-400">
-                    HRC
-                  </span>
+                  <div class="flex justify-between">
 
-                  <span>
-                    ${item.hrc || '-'}
-                  </span>
+                    <span class="text-slate-400">
+                      Aço
+                    </span>
+
+                    <span>
+                      ${item.tipoAco || '-'}
+                    </span>
+
+                  </div>
+
+                  <div class="flex justify-between">
+
+                    <span class="text-slate-400">
+                      HRC
+                    </span>
+
+                    <span>
+                      ${item.hrc || '-'}
+                    </span>
+
+                  </div>
+
+                  <div class="flex justify-between">
+
+                    <span class="text-slate-400">
+                      Cabo
+                    </span>
+
+                    <span>
+                      ${item.tipoCabo || '-'}
+                    </span>
+
+                  </div>
+
+                  <div class="flex justify-between">
+
+                    <span class="text-slate-400">
+                      Custo
+                    </span>
+
+                    <span>
+
+                      R$ ${item.custoTotal.toFixed(2)}
+
+                    </span>
+
+                  </div>
+
+                  <div class="flex justify-between">
+
+                    <span class="text-slate-400">
+                      Lucro
+                    </span>
+
+                    <span class="text-green-400 font-bold">
+
+                      R$ ${lucro.toFixed(2)}
+
+                    </span>
+
+                  </div>
+
+                  <div class="flex justify-between">
+
+                    <span class="text-slate-400">
+                      Margem
+                    </span>
+
+                    <span class="font-bold">
+
+                      ${margem}%
+
+                    </span>
+
+                  </div>
 
                 </div>
 
-                <div class="flex justify-between">
+                <div class="flex justify-end">
 
-                  <span class="text-slate-400">
-                    Cabo
-                  </span>
-
-                  <span>
-                    ${item.tipoCabo || '-'}
-                  </span>
-
-                </div>
-
-                <div class="flex justify-between">
-
-                  <span class="text-slate-400">
-                    Custo
-                  </span>
-
-                  <span>
-
-                    R$ ${item.custoTotal.toFixed(2)}
-
-                  </span>
+                  <button
+                    class="primary-button export-btn"
+                    data-id="${item.id}"
+                  >
+                    Exportar PDF
+                  </button>
 
                 </div>
-
-                <div class="flex justify-between">
-
-                  <span class="text-slate-400">
-                    Lucro
-                  </span>
-
-                  <span class="text-green-400 font-bold">
-
-                    R$ ${lucro.toFixed(2)}
-
-                  </span>
-
-                </div>
-
-                <div class="flex justify-between">
-
-                  <span class="text-slate-400">
-                    Margem
-                  </span>
-
-                  <span class="font-bold">
-
-                    ${margem}%
-
-                  </span>
-
-                </div>
-
-              </div>
-
-              <!-- ACTIONS -->
-
-              <div class="flex justify-end">
-
-                <button
-                  class="primary-button export-btn"
-                  data-id="${item.id}"
-                >
-                  Exportar PDF
-                </button>
 
               </div>
 
