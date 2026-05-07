@@ -2,7 +2,7 @@ export const db = new Dexie(
   'CutelariaOS'
 );
 
-db.version(5).stores({
+db.version(6).stores({
 
   clientes:
     `
@@ -21,12 +21,34 @@ db.version(5).stores({
       ++id,
       clienteId,
       composicaoId,
+
       titulo,
+
       status,
+
       valor,
       entrada,
       restante,
+
+      prioridade,
+
       entregaPrevista,
+
+      progresso,
+
+      observacoes,
+
+      createdAt
+    `,
+
+  timeline:
+    `
+      ++id,
+      pedidoId,
+      etapa,
+      descricao,
+      foto,
+      concluido,
       createdAt
     `,
 
