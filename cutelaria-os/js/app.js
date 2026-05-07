@@ -15,16 +15,20 @@ import {
 } from './pages/financeiro.js';
 
 import {
+  clientesPage
+} from './pages/clientes.js';
+
+import {
+  timelinePage
+} from './pages/timeline.js';
+
+import {
   configuracoesPage
 } from './pages/configuracoes.js';
 
 import {
   orcamentoPage
 } from './pages/orcamento.js';
-
-import {
-  clientesPage
-} from './pages/clientes.js';
 
 const app =
   document.getElementById('app');
@@ -60,6 +64,9 @@ async function renderRoute() {
 
     '#producao':
       producaoPage,
+
+    '#timeline':
+      timelinePage,
 
     '#financeiro':
       financeiroPage,
@@ -122,8 +129,8 @@ function renderNavbar(active) {
     </a>
 
     <a
-      href="#producao"
-      class="${active === '#producao' ? 'active' : ''}"
+      href="#timeline"
+      class="${active === '#timeline' ? 'active' : ''}"
     >
       Produção
     </a>
