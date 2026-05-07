@@ -4,6 +4,11 @@ export async function exportarBackup() {
 
   const backup = {
 
+    versao: 1,
+
+    data:
+      new Date().toISOString(),
+
     materiais:
       await db.materiais.toArray(),
 
@@ -17,12 +22,14 @@ export async function exportarBackup() {
       await db.composicaoItens.toArray(),
 
     etapas:
-      await db.etapas.toArray()
+      await db.etapas.toArray(),
+
+    fotos:
+      await db.fotos.toArray()
 
   };
 
   const blob = new Blob(
-
     [
       JSON.stringify(
         backup,
@@ -30,27 +37,27 @@ export async function exportarBackup() {
         2
       )
     ],
-
     {
-      type: 'application/json'
+      type:
+        'application/json'
     }
-
   );
 
   const url =
     URL.createObjectURL(blob);
 
-  const link =
+  const a =
     document.createElement('a');
 
-  link.href = url;
+  a.href = url;
 
-  link.download =
-    `cutelaria-os-backup.json`;
+  a.download =
+    `cutelaria-os-backup-${Date.now()}.json`;
 
-  link.click();
+  a.click();
 
   URL.revokeObjectURL(url);
+
 }
 
 export async function importarBackup(file) {
@@ -61,7 +68,15 @@ export async function importarBackup(file) {
   const backup =
     JSON.parse(texto);
 
-  // LIMPAR TABELAS
+  if (!backup.versao) {
+
+    throw new Error(
+      'Backup inválido'
+    );
+
+  }
+
+  // LIMPA BANCO
 
   await db.materiais.clear();
 
@@ -73,7 +88,9 @@ export async function importarBackup(file) {
 
   await db.etapas.clear();
 
-  // RESTAURAR
+  await db.fotos.clear();
+
+  // RESTAURA
 
   if (backup.materiais?.length) {
 
@@ -83,7 +100,9 @@ export async function importarBackup(file) {
 
   }
 
-  if (backup.equipamentos?.length) {
+  if (
+    backup.equipamentos?.length
+  ) {
 
     await db.equipamentos.bulkAdd(
       backup.equipamentos
@@ -91,7 +110,9 @@ export async function importarBackup(file) {
 
   }
 
-  if (backup.composicoes?.length) {
+  if (
+    backup.composicoes?.length
+  ) {
 
     await db.composicoes.bulkAdd(
       backup.composicoes
@@ -99,7 +120,9 @@ export async function importarBackup(file) {
 
   }
 
-  if (backup.composicaoItens?.length) {
+  if (
+    backup.composicaoItens?.length
+  ) {
 
     await db.composicaoItens.bulkAdd(
       backup.composicaoItens
@@ -115,5 +138,12 @@ export async function importarBackup(file) {
 
   }
 
-  location.reload();
+  if (backup.fotos?.length) {
+
+    await db.fotos.bulkAdd(
+      backup.fotos
+    );
+
+  }
+
 }
