@@ -1,5 +1,13 @@
 import { db } from '../database/db.js';
 
+import {
+
+  exportarBackup,
+
+  importarBackup
+
+} from '../services/backup.service.js';
+
 export async function configuracoesPage() {
 
   const equipamentos =
@@ -8,7 +16,7 @@ export async function configuracoesPage() {
   return `
     <section>
 
-      <!-- FORM -->
+      <!-- EQUIPAMENTOS -->
 
       <div class="card">
 
@@ -63,7 +71,7 @@ export async function configuracoesPage() {
 
       <!-- LISTA -->
 
-      <div class="mt-6">
+      <div class="mt-6 grid gap-4">
 
         ${equipamentos.map(item => `
           <div class="card">
@@ -99,6 +107,40 @@ export async function configuracoesPage() {
 
           </div>
         `).join('')}
+
+      </div>
+
+      <!-- BACKUP -->
+
+      <div class="card mt-6">
+
+        <h2 class="text-2xl font-bold mb-5">
+          Backup & Restore
+        </h2>
+
+        <div class="grid gap-4">
+
+          <button
+            id="backupBtn"
+            class="primary-button"
+          >
+            Exportar Backup
+          </button>
+
+          <label class="primary-button text-center cursor-pointer">
+
+            Importar Backup
+
+            <input
+              hidden
+              type="file"
+              id="restoreInput"
+              accept=".json"
+            />
+
+          </label>
+
+        </div>
 
       </div>
 
@@ -148,6 +190,35 @@ document.addEventListener('submit', async (e) => {
     });
 
     location.reload();
+  }
+
+});
+
+window.addEventListener('click', async (e) => {
+
+  // EXPORT
+
+  if (e.target.id === 'backupBtn') {
+
+    exportarBackup();
+
+  }
+
+});
+
+window.addEventListener('change', async (e) => {
+
+  // IMPORT
+
+  if (e.target.id === 'restoreInput') {
+
+    const file =
+      e.target.files[0];
+
+    if (!file) return;
+
+    importarBackup(file);
+
   }
 
 });
