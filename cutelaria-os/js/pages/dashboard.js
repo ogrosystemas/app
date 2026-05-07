@@ -4,6 +4,15 @@ import {
   gerarPDF
 } from '../services/pdf.service.js';
 
+import {
+  showLoading,
+  hideLoading
+} from '../modules/loading.js';
+
+import {
+  showToast
+} from '../modules/toast.js';
+
 export async function dashboardPage() {
 
   const composicoes =
@@ -116,8 +125,6 @@ export async function dashboardPage() {
   return `
     <section class="dashboard-grid">
 
-      <!-- GRID PRINCIPAL -->
-
       <div class="grid grid-cols-2 gap-4">
 
         <div class="card">
@@ -170,23 +177,15 @@ export async function dashboardPage() {
 
       </div>
 
-      <!-- CHART -->
-
       <div class="card">
 
-        <div class="flex justify-between items-center mb-4">
-
-          <h3 class="font-bold text-lg">
-            Evolução Financeira
-          </h3>
-
-        </div>
+        <h3 class="font-bold text-lg mb-4">
+          Evolução Financeira
+        </h3>
 
         <canvas id="financeChart"></canvas>
 
       </div>
-
-      <!-- INSIGHTS -->
 
       <div class="card">
 
@@ -232,31 +231,15 @@ export async function dashboardPage() {
 
           </div>
 
-          <div class="flex justify-between">
-
-            <span class="text-slate-400">
-              Custo Operacional
-            </span>
-
-            <span class="font-bold">
-              R$ ${custoTotal.toFixed(2)}
-            </span>
-
-          </div>
-
         </div>
 
       </div>
-
-      <!-- HISTÓRICO -->
 
       <div class="grid gap-4">
 
         ${composicoes.reverse().map(item => `
 
           <div class="card">
-
-            <!-- HEADER -->
 
             <div class="flex justify-between items-start mb-5">
 
@@ -291,8 +274,6 @@ export async function dashboardPage() {
 
             </div>
 
-            <!-- DETALHES -->
-
             <div class="grid gap-2 mb-5">
 
               <div class="flex justify-between">
@@ -326,30 +307,12 @@ export async function dashboardPage() {
                 </span>
 
                 <span class="font-bold">
-
                   R$ ${item.custoTotal.toFixed(2)}
-
-                </span>
-
-              </div>
-
-              <div class="flex justify-between">
-
-                <span class="text-slate-400">
-                  Margem
-                </span>
-
-                <span>
-
-                  ${item.margemLucro}%
-
                 </span>
 
               </div>
 
             </div>
-
-            <!-- ACTIONS -->
 
             <div class="flex justify-end">
 
@@ -375,11 +338,14 @@ export async function dashboardPage() {
 function renderCharts(composicoes) {
 
   const canvas =
-    document.getElementById('financeChart');
+    document.getElementById(
+      'financeChart'
+    );
 
   if (!canvas) return;
 
-  const ctx = canvas.getContext('2d');
+  const ctx =
+    canvas.getContext('2d');
 
   const labels =
     composicoes.map((_, index) => {
@@ -387,10 +353,14 @@ function renderCharts(composicoes) {
     });
 
   const faturamento =
-    composicoes.map(item => item.valorFinal);
+    composicoes.map(
+      item => item.valorFinal
+    );
 
   const custos =
-    composicoes.map(item => item.custoTotal);
+    composicoes.map(
+      item => item.custoTotal
+    );
 
   new Chart(ctx, {
 
@@ -406,7 +376,6 @@ function renderCharts(composicoes) {
           label: 'Faturamento',
           data: faturamento,
           borderColor: '#f97316',
-          backgroundColor: 'rgba(249,115,22,0.1)',
           tension: 0.4
         },
 
@@ -414,7 +383,6 @@ function renderCharts(composicoes) {
           label: 'Custos',
           data: custos,
           borderColor: '#22c55e',
-          backgroundColor: 'rgba(34,197,94,0.1)',
           tension: 0.4
         }
 
@@ -424,39 +392,7 @@ function renderCharts(composicoes) {
 
     options: {
 
-      responsive: true,
-
-      plugins: {
-
-        legend: {
-
-          labels: {
-            color: '#cbd5e1'
-          }
-
-        }
-
-      },
-
-      scales: {
-
-        x: {
-
-          ticks: {
-            color: '#94a3b8'
-          }
-
-        },
-
-        y: {
-
-          ticks: {
-            color: '#94a3b8'
-          }
-
-        }
-
-      }
+      responsive: true
 
     }
 
@@ -467,8 +403,12 @@ function renderCharts(composicoes) {
 window.addEventListener('click', async (e) => {
 
   if (
-    e.target.classList.contains('export-btn')
+    e.target.classList.contains(
+      'export-btn'
+    )
   ) {
+
+    showLoading();
 
     const composicaoId =
       Number(
@@ -492,11 +432,17 @@ window.addEventListener('click', async (e) => {
         .equals(composicaoId)
         .toArray();
 
-    gerarPDF({
+    await gerarPDF({
       composicao,
       itens,
       etapas
     });
+
+    hideLoading();
+
+    showToast(
+      'PDF gerado com sucesso!'
+    );
 
   }
 
