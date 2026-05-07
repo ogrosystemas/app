@@ -1,55 +1,63 @@
-export const db = new Dexie('cutelariaOS');
+export const db = new Dexie(
+  'CutelariaOS'
+);
 
-db.version(4).stores({
+db.version(1).stores({
 
-  materiais: `
-    ++id,
-    nome,
-    categoria,
-    unidade,
-    valor,
-    estoque
-  `,
+  materiais:
+    '++id,nome,categoria,valor,unidade',
 
-  equipamentos: `
-    ++id,
-    nome,
-    valorCompra,
-    vidaUtil,
-    custoHora
-  `,
+  equipamentos:
+    '++id,nome,valorCompra,vidaUtil,horasMes,custoHora',
 
-  composicoes: `
-    ++id,
-    nome,
-    categoria,
-    custoMateriais,
-    custoEtapas,
-    custoTotal,
-    margemLucro,
-    valorFinal,
-    createdAt
-  `,
+  composicoes:
+    `
+      ++id,
+      nome,
+      categoria,
 
-  composicaoItens: `
-    ++id,
-    composicaoId,
-    materialId,
-    nome,
-    quantidade,
-    valorUnitario,
-    subtotal
-  `,
+      tipoFaca,
+      tipoAco,
+      hrc,
+      espessura,
+      comprimento,
+      peso,
+      acabamento,
+      desbaste,
+      tipoCabo,
+      possuiBainha,
+      observacoes,
 
-  etapas: `
-    ++id,
-    composicaoId,
-    nome,
-    horas,
-    valorHora,
-    custoEnergia,
-    custoAbrasivos,
-    custoTotal
-  `
+      custoMateriais,
+      custoEtapas,
+      custoTotal,
+      margemLucro,
+      valorFinal,
+      createdAt
+    `,
+
+  composicaoItens:
+    `
+      ++id,
+      composicaoId,
+      materialId,
+      nome,
+      quantidade,
+      valorUnitario,
+      subtotal
+    `,
+
+  etapas:
+    `
+      ++id,
+      composicaoId,
+      nome,
+      horas,
+      valorHora,
+      custoEquipamentos,
+      custoEnergia,
+      custoAbrasivos,
+      custoTotal
+    `
 
 });
