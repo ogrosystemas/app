@@ -1,0 +1,218 @@
+{
+  "materiais": [
+    {
+      "nome": "Aço 1070 Carbono",
+      "tipo": "aco-carbono",
+      "quantidade": 5,
+      "unidade": "kg",
+      "preco": 150.00,
+      "dataCompra": "2026-01-15",
+      "fornecedor": "Aços Especiais Ltda"
+    },
+    {
+      "nome": "Aço Damasco Padrão",
+      "tipo": "aco-damasco",
+      "quantidade": 2,
+      "unidade": "kg",
+      "preco": 800.00,
+      "dataCompra": "2026-02-20",
+      "fornecedor": "Damasco Importados"
+    },
+    {
+      "nome": "Madeira de Guajuvira",
+      "tipo": "cabo-madeira",
+      "quantidade": 3,
+      "unidade": "m",
+      "preco": 120.00,
+      "dataCompra": "2026-01-10",
+      "fornecedor": "Madeiras Nobres"
+    },
+    {
+      "nome": "Micarta Marrom",
+      "tipo": "cabo-micarta",
+      "quantidade": 10,
+      "unidade": "un",
+      "preco": 250.00,
+      "dataCompra": "2026-03-01",
+      "fornecedor": "Compósitos BR"
+    }
+  ],
+  "insumos": [
+    {
+      "nome": "Lixa 80",
+      "tipo": "lixa",
+      "quantidade": 50,
+      "unidade": "un",
+      "preco": 75.00,
+      "dataCompra": "2026-01-05",
+      "fornecedor": "Abrasivos Sul"
+    },
+    {
+      "nome": "Lixa 120",
+      "tipo": "lixa",
+      "quantidade": 50,
+      "unidade": "un",
+      "preco": 80.00,
+      "dataCompra": "2026-01-05",
+      "fornecedor": "Abrasivos Sul"
+    },
+    {
+      "nome": "Lixa 220",
+      "tipo": "lixa",
+      "quantidade": 50,
+      "unidade": "un",
+      "preco": 85.00,
+      "dataCompra": "2026-01-05",
+      "fornecedor": "Abrasivos Sul"
+    },
+    {
+      "nome": "Lixa 400",
+      "tipo": "lixa",
+      "quantidade": 30,
+      "unidade": "un",
+      "preco": 90.00,
+      "dataCompra": "2026-01-05",
+      "fornecedor": "Abrasivos Sul"
+    },
+    {
+      "nome": "Lixa 1000",
+      "tipo": "lixa",
+      "quantidade": 20,
+      "unidade": "un",
+      "preco": 100.00,
+      "dataCompra": "2026-01-05",
+      "fornecedor": "Abrasivos Sul"
+    },
+    {
+      "nome": "Carvão Vegetal",
+      "tipo": "carvao",
+      "quantidade": 50,
+      "unidade": "kg",
+      "preco": 200.00,
+      "dataCompra": "2026-02-01",
+      "fornecedor": "Carvão Mineiro"
+    },
+    {
+      "nome": "Gás Propano 5kg",
+      "tipo": "gas-propan",
+      "quantidade": 1,
+      "unidade": "un",
+      "preco": 180.00,
+      "dataCompra": "2026-03-10",
+      "fornecedor": "Gás Brasil"
+    },
+    {
+      "nome": "Cola Epóxi",
+      "tipo": "cola",
+      "quantidade": 5,
+      "unidade": "un",
+      "preco": 150.00,
+      "dataCompra": "2026-01-20",
+      "fornecedor": "Químicas Pro"
+    },
+    {
+      "nome": "Óleo de Têmpera",
+      "tipo": "oleo",
+      "quantidade": 2,
+      "unidade": "l",
+      "preco": 120.00,
+      "dataCompra": "2026-02-15",
+      "fornecedor": "Metais Químicos"
+    },
+    {
+      "nome": "Disco de Corte 4.5"",
+      "tipo": "disco-corte",
+      "quantidade": 20,
+      "unidade": "un",
+      "preco": 100.00,
+      "dataCompra": "2026-01-08",
+      "fornecedor": "Abrasivos Sul"
+    },
+    {
+      "nome": "Disco de Desbaste 4.5"",
+      "tipo": "disco-desbaste",
+      "quantidade": 15,
+      "unidade": "un",
+      "preco": 90.00,
+      "dataCompra": "2026-01-08",
+      "fornecedor": "Abrasivos Sul"
+    },
+    {
+      "nome": "Juta para Cabo",
+      "tipo": "juta",
+      "quantidade": 10,
+      "unidade": "m",
+      "preco": 50.00,
+      "dataCompra": "2026-03-05",
+      "fornecedor": "Artesanatos BR"
+    },
+    {
+      "nome": "Pinos de Latão 6mm",
+      "tipo": "pino-passante",
+      "quantidade": 50,
+      "unidade": "un",
+      "preco": 75.00,
+      "dataCompra": "2026-02-25",
+      "fornecedor": "Ferragens Metal"
+    }
+  ],
+  "equipamentos": [
+    {
+      "nome": "Esmerilhadeira Angular 4.5"",
+      "tipo": "esmerilhadeira",
+      "preco": 350.00,
+      "vidaUtil": 2000,
+      "dataAquisicao": "2025-06-15",
+      "notas": "Bosch GWS 7-115"
+    },
+    {
+      "nome": "Lixadeira de Cinta",
+      "tipo": "lixadeira",
+      "preco": 800.00,
+      "vidaUtil": 3000,
+      "dataAquisicao": "2025-08-20",
+      "notas": "Lixadeira industrial"
+    },
+    {
+      "nome": "Esmeril de Bancada",
+      "tipo": "esmeril",
+      "preco": 450.00,
+      "vidaUtil": 5000,
+      "dataAquisicao": "2025-05-10",
+      "notas": "Motor 1/2 HP"
+    },
+    {
+      "nome": "Forja a Gás",
+      "tipo": "forja",
+      "preco": 2500.00,
+      "vidaUtil": 8000,
+      "dataAquisicao": "2025-04-01",
+      "notas": "Forja de dois queimadores"
+    },
+    {
+      "nome": "Furadeira de Bancada",
+      "tipo": "furadeira",
+      "preco": 600.00,
+      "vidaUtil": 3000,
+      "dataAquisicao": "2025-09-12",
+      "notas": "Furadeira de coluna"
+    },
+    {
+      "nome": "Morsa de Bancada 5"",
+      "tipo": "morsa",
+      "preco": 280.00,
+      "vidaUtil": 10000,
+      "dataAquisicao": "2025-07-01",
+      "notas": "Morsa giratória"
+    }
+  ],
+  "configuracoes": [
+    {
+      "horaTrabalho": 60.00,
+      "precoKwh": 0.85,
+      "moeda": "BRL",
+      "perdaPadrao": 12,
+      "margemPadrao": 55
+    }
+  ]
+}

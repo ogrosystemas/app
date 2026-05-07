@@ -1,0 +1,41 @@
+.card {
+  background: var(--bg-card);
+
+  border: 1px solid var(--border);
+
+  border-radius: var(--radius);
+
+  padding: 18px;
+
+  backdrop-filter: blur(20px);
+
+  margin-bottom: 18px;
+}
+
+.bottom-navbar {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  max-width: 480px;
+
+  display: flex;
+  justify-content: space-around;
+
+  background: rgba(2, 6, 23, 0.9);
+
+  backdrop-filter: blur(20px);
+
+  border-top: 1px solid var(--border);
+
+  padding: 12px 0;
+}
+
+.nav-item {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.nav-item.active {
+  color: var(--accent);
+}

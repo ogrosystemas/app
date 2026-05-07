@@ -1,0 +1,27 @@
+.app-container {
+  width: 100%;
+  max-width: 480px;
+  margin: auto;
+  min-height: 100vh;
+  position: relative;
+  padding-bottom: 90px;
+}
+
+.topbar {
+  padding: 24px 20px;
+}
+
+.logo-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.logo-subtitle {
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-size: 0.9rem;
+}
+
+.view-container {
+  padding: 0 20px 120px;
+}

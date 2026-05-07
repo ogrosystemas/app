@@ -1,0 +1,314 @@
+/* ============================================
+   CUTELARIA CUSTO - PAGES.CSS
+   Estilos específicos por página
+   ============================================ */
+
+/* ---------- DASHBOARD ---------- */
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+}
+
+.dashboard-section {
+    margin-bottom: var(--space-lg);
+}
+
+.dashboard-section h2 {
+    font-size: var(--text-base);
+    font-weight: 600;
+    margin-bottom: var(--space-md);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+/* Chart container */
+.chart-container {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md);
+    border: 1px solid var(--border);
+    margin-bottom: var(--space-md);
+}
+
+/* ---------- LISTA DE CARDS (Materiais, Insumos, Equip, Histórico) ---------- */
+.lista-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.item-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md);
+    border: 1px solid var(--border);
+    position: relative;
+    animation: slideIn 0.3s ease;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.item-card:active {
+    background: var(--bg-hover);
+    transform: scale(0.99);
+}
+
+.item-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--space-sm);
+}
+
+.item-card-info {
+    display: flex;
+    gap: var(--space-md);
+    margin-top: var(--space-sm);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    flex-wrap: wrap;
+}
+
+.item-card-actions {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+}
+
+.item-card-actions .btn {
+    flex: 1;
+    padding: 10px;
+    font-size: var(--text-sm);
+}
+
+/* ---------- FACA CARD (histórico) ---------- */
+.faca-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.faca-card:active {
+    background: var(--bg-hover);
+}
+
+.faca-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--space-sm);
+}
+
+.faca-card-title {
+    font-size: var(--text-base);
+    font-weight: 600;
+}
+
+.faca-card-date {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+
+.faca-card-cliente {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-sm);
+}
+
+.faca-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--border);
+}
+
+.faca-card-custo {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+
+.faca-card-venda {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    color: var(--success);
+}
+
+/* ---------- RESUMO DE CÁLCULO (Nova Faca) ---------- */
+.resumo-calc {
+    background: var(--bg-secondary);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md);
+}
+
+.resumo-linha {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: var(--text-sm);
+}
+
+.resumo-linha:last-of-type {
+    border-bottom: none;
+}
+
+.resumo-linha.destaque {
+    font-size: var(--text-base);
+    padding: var(--space-sm) 0;
+    margin-top: var(--space-sm);
+    border-top: 2px solid var(--border);
+    border-bottom: none;
+}
+
+.resumo-linha.lucro {
+    color: var(--success);
+}
+
+.resumo-linha.lucro .valor {
+    font-size: var(--text-xl);
+    font-weight: 700;
+}
+
+/* ---------- DETALHES DA FACA (Modal) ---------- */
+.detalhe-grupo {
+    margin-bottom: var(--space-lg);
+}
+
+.detalhe-grupo h4 {
+    font-size: var(--text-xs);
+    color: var(--accent);
+    margin-bottom: var(--space-sm);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+.detalhe-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: var(--text-sm);
+}
+
+.detalhe-item:last-child {
+    border-bottom: none;
+}
+
+.detalhe-total {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: var(--space-md);
+    margin-top: var(--space-lg);
+    border: 1px solid var(--border);
+}
+
+.detalhe-total-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: var(--text-sm);
+}
+
+.detalhe-total-row.grande {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    color: var(--success);
+    margin-top: var(--space-sm);
+    padding-top: var(--space-sm);
+    border-top: 2px solid var(--accent);
+}
+
+/* ---------- CONFIGURAÇÕES ---------- */
+.config-section {
+    margin-bottom: var(--space-xl);
+}
+
+.config-section h3 {
+    font-size: var(--text-base);
+    font-weight: 600;
+    margin-bottom: var(--space-md);
+    color: var(--text-primary);
+}
+
+.zona-perigo {
+    background: rgba(255, 71, 87, 0.05);
+    border: 1px solid rgba(255, 71, 87, 0.2);
+    border-radius: var(--radius);
+    padding: var(--space-md);
+}
+
+.zona-perigo h3 {
+    color: var(--danger);
+}
+
+/* ---------- PAGE ACTIONS ---------- */
+.page-actions {
+    display: flex;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+}
+
+.page-actions .btn {
+    flex: 1;
+}
+
+/* ---------- SPLASH SCREEN ---------- */
+#splash-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    transition: opacity 0.5s ease;
+}
+
+#splash-screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.splash-content {
+    text-align: center;
+    animation: fadeInUp 0.6s ease;
+}
+
+.splash-icon {
+    font-size: 80px;
+    margin-bottom: var(--space-md);
+    animation: pulse 2s infinite;
+}
+
+.splash-content h1 {
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: var(--space-xs);
+}
+
+.splash-content p {
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-xl);
+}
+
+.splash-loader {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  />
+
+  <title>Cutelaria OS</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0f172a" />
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Dexie -->
+  <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
+
+  <!-- ChartJS -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="./css/main.css" />
+  <link rel="stylesheet" href="./css/layout.css" />
+  <link rel="stylesheet" href="./css/components.css" />
+  <link rel="stylesheet" href="./css/pages.css" />
+  <link rel="stylesheet" href="./css/animations.css" />
+</head>
+
+<body class="bg-slate-950 text-slate-100">
+
+  <!-- APP -->
+  <div id="app" class="app-container">
+
+    <!-- HEADER -->
+    <header class="topbar">
+      <div>
+        <h1 class="logo-title">Cutelaria OS</h1>
+        <p class="logo-subtitle">Sistema Inteligente de Custos</p>
+      </div>
+    </header>
+
+    <!-- MAIN -->
+    <main id="view" class="view-container"></main>
+
+    <!-- NAVBAR -->
+    <nav id="navbar"></nav>
+
+  </div>
+
+  <script type="module" src="./js/app.js"></script>
+
+</body>
+</html>
