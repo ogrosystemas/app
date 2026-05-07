@@ -1,58 +1,239 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
+
   <meta charset="UTF-8" />
+
   <meta
     name="viewport"
-    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    content="width=device-width, initial-scale=1.0"
   />
 
   <title>Cutelaria OS</title>
 
   <!-- PWA -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#0f172a" />
 
-  <!-- Tailwind -->
+  <link
+    rel="manifest"
+    href="./manifest.json"
+  />
+
+  <meta
+    name="theme-color"
+    content="#f97316"
+  />
+
+  <meta
+    name="apple-mobile-web-app-capable"
+    content="yes"
+  />
+
+  <meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="black-translucent"
+  />
+
+  <meta
+    name="apple-mobile-web-app-title"
+    content="Cutelaria OS"
+  />
+
+  <link
+    rel="apple-touch-icon"
+    href="./assets/icons/icon-192.png"
+  />
+
+  <!-- SEO -->
+
+  <meta
+    name="description"
+    content="Sistema profissional de cálculo de custos para cuteleiros."
+  />
+
+  <meta
+    name="keywords"
+    content="cutelaria, facas, cuteleiro, custos, orçamento, pwa"
+  />
+
+  <!-- TAILWIND -->
+
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Dexie -->
-  <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
+  <!-- CHART.JS -->
 
-  <!-- ChartJS -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+  <!-- DEXIE -->
+
+  <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+
+  <!-- JSPDF -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- FONT -->
+
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  />
+
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  />
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
   <!-- CSS -->
-  <link rel="stylesheet" href="./css/main.css" />
-  <link rel="stylesheet" href="./css/layout.css" />
-  <link rel="stylesheet" href="./css/components.css" />
-  <link rel="stylesheet" href="./css/pages.css" />
-  <link rel="stylesheet" href="./css/animations.css" />
+
+  <link
+    rel="stylesheet"
+    href="./css/main.css"
+  />
+
+  <link
+    rel="stylesheet"
+    href="./css/layout.css"
+  />
+
+  <link
+    rel="stylesheet"
+    href="./css/components.css"
+  />
+
+  <link
+    rel="stylesheet"
+    href="./css/pages.css"
+  />
+
+  <link
+    rel="stylesheet"
+    href="./css/animations.css"
+  />
+
 </head>
 
-<body class="bg-slate-950 text-slate-100">
+<body>
 
-  <!-- APP -->
-  <div id="app" class="app-container">
+  <!-- SPLASH -->
 
-    <!-- HEADER -->
-    <header class="topbar">
-      <div>
-        <h1 class="logo-title">Cutelaria OS</h1>
-        <p class="logo-subtitle">Sistema Inteligente de Custos</p>
+  <div id="splashScreen">
+
+    <div class="splash-logo">
+
+      <div class="logo-icon">
+        ⚔️
       </div>
-    </header>
 
-    <!-- MAIN -->
-    <main id="view" class="view-container"></main>
+      <h1>
+        Cutelaria OS
+      </h1>
 
-    <!-- NAVBAR -->
-    <nav id="navbar"></nav>
+      <p>
+        Sistema profissional para cuteleiros
+      </p>
+
+    </div>
 
   </div>
 
-  <script type="module" src="./js/app.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- APP -->
+
+  <main id="app"></main>
+
+  <!-- NAVBAR -->
+
+  <nav id="bottomNav"></nav>
+
+  <!-- APP -->
+
+  <script
+    type="module"
+    src="./js/app.js"
+  ></script>
+
+  <!-- PWA -->
+
+  <script>
+
+    // SERVICE WORKER
+
+    if ('serviceWorker' in navigator) {
+
+      window.addEventListener('load', () => {
+
+        navigator.serviceWorker
+          .register('./sw.js')
+
+          .then(() => {
+
+            console.log(
+              'Service Worker registrado.'
+            );
+
+          })
+
+          .catch((error) => {
+
+            console.error(
+              'Erro Service Worker:',
+              error
+            );
+
+          });
+
+      });
+
+    }
+
+    // SPLASH SCREEN
+
+    window.addEventListener('load', () => {
+
+      setTimeout(() => {
+
+        const splash =
+          document.getElementById(
+            'splashScreen'
+          );
+
+        if (splash) {
+
+          splash.classList.add('hide');
+
+        }
+
+      }, 1800);
+
+    });
+
+    // PWA INSTALL
+
+    let deferredPrompt;
+
+    window.addEventListener(
+      'beforeinstallprompt',
+      (e) => {
+
+        e.preventDefault();
+
+        deferredPrompt = e;
+
+        console.log(
+          'PWA pronto para instalação.'
+        );
+
+      }
+    );
+
+  </script>
 
 </body>
+
 </html>
