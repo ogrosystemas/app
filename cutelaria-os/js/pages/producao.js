@@ -1,724 +1,395 @@
 import { db } from '../database/db.js';
 
 import {
-  calcularComposicao
-} from '../services/calculator.service.js';
-
-import {
-  calcularEtapas
-} from '../services/etapas.service.js';
-
-import {
-  compressImage
-} from '../services/image.service.js';
-
-import {
-  showToast
-} from '../modules/toast.js';
-
-let itensTemporarios = [];
-
-let etapasTemporarias = [];
+  gerarPDF
+} from '../services/pdf.js';
 
 export async function producaoPage() {
 
-  const materiais =
-    await db.materiais.toArray();
-
-  const equipamentos =
-    await db.equipamentos.toArray();
+  const composicoes =
+    await db.composicoes
+      .orderBy('createdAt')
+      .reverse()
+      .toArray();
 
   return `
-    <section>
 
-      <div class="card">
+    <section class="pb-32">
 
-        <h2 class="text-2xl font-bold mb-6">
-          Nova Produção
-        </h2>
+      <!-- HEADER -->
 
-        <form id="producaoForm">
+      <div class="mb-8">
 
-          <!-- FOTO -->
+        <div class="
+          flex
+          justify-between
+          items-center
+          mb-4
+        ">
 
-          <div class="mt-2 mb-8">
+          <div>
 
-            <h3 class="font-bold text-lg mb-4">
-              Foto da Faca
-            </h3>
+            <h1 class="
+              text-3xl
+              font-black
+            ">
 
-            <input
-              class="input"
-              type="file"
-              id="fotoCapa"
-              accept="image/*"
-            />
+              Produções
 
-            <img
-              id="previewFoto"
-              class="mt-4 rounded-xl hidden w-full h-64 object-cover"
-            />
+            </h1>
 
-          </div>
+            <p class="
+              text-slate-400
+              mt-2
+            ">
 
-          <!-- IDENTIFICAÇÃO -->
+              Gestão de facas e custos
 
-          <div class="grid gap-3">
-
-            <input
-              class="input"
-              type="text"
-              id="nome"
-              placeholder="Nome da faca"
-              required
-            />
-
-            <select
-              class="select"
-              id="tipoFaca"
-            >
-
-              <option value="Chef">
-                Chef
-              </option>
-
-              <option value="Bushcraft">
-                Bushcraft
-              </option>
-
-              <option value="Hunter">
-                Hunter
-              </option>
-
-              <option value="Skinner">
-                Skinner
-              </option>
-
-              <option value="Utilitária">
-                Utilitária
-              </option>
-
-              <option value="Personalizada">
-                Personalizada
-              </option>
-
-            </select>
-
-          </div>
-
-          <!-- FICHA TÉCNICA -->
-
-          <div class="mt-8">
-
-            <h3 class="font-bold text-lg mb-4">
-              Ficha Técnica
-            </h3>
-
-            <div class="grid gap-3">
-
-              <input
-                class="input"
-                type="text"
-                id="tipoAco"
-                placeholder="Tipo de aço"
-              />
-
-              <input
-                class="input"
-                type="number"
-                step="0.1"
-                id="hrc"
-                placeholder="HRC"
-              />
-
-              <input
-                class="input"
-                type="number"
-                step="0.1"
-                id="espessura"
-                placeholder="Espessura (mm)"
-              />
-
-              <input
-                class="input"
-                type="number"
-                step="0.1"
-                id="comprimento"
-                placeholder="Comprimento (cm)"
-              />
-
-              <input
-                class="input"
-                type="number"
-                step="0.1"
-                id="peso"
-                placeholder="Peso (g)"
-              />
-
-              <input
-                class="input"
-                type="text"
-                id="acabamento"
-                placeholder="Acabamento"
-              />
-
-              <input
-                class="input"
-                type="text"
-                id="desbaste"
-                placeholder="Tipo de desbaste"
-              />
-
-              <input
-                class="input"
-                type="text"
-                id="tipoCabo"
-                placeholder="Tipo de cabo"
-              />
-
-              <label class="flex items-center gap-3">
-
-                <input
-                  type="checkbox"
-                  id="possuiBainha"
-                />
-
-                <span>
-                  Possui bainha
-                </span>
-
-              </label>
-
-              <textarea
-                class="input"
-                id="observacoes"
-                placeholder="Observações técnicas"
-              ></textarea>
-
-            </div>
-
-          </div>
-
-          <!-- MATERIAIS -->
-
-          <div class="mt-8">
-
-            <h3 class="font-bold text-lg mb-4">
-              Materiais
-            </h3>
-
-            <select
-              class="select"
-              id="materialId"
-            >
-
-              ${materiais.map(material => `
-                <option value="${material.id}">
-                  ${material.nome}
-                </option>
-              `).join('')}
-
-            </select>
-
-            <input
-              class="input"
-              type="number"
-              step="0.01"
-              id="quantidade"
-              placeholder="Quantidade"
-            />
-
-            <button
-              type="button"
-              id="addItemBtn"
-              class="primary-button mt-2"
-            >
-              Adicionar Material
-            </button>
-
-          </div>
-
-          <!-- EQUIPAMENTOS -->
-
-          <div class="mt-8">
-
-            <h3 class="font-bold text-lg mb-4">
-              Equipamentos
-            </h3>
-
-            <div class="grid gap-2">
-
-              ${equipamentos.map(item => `
-
-                <label class="flex items-center gap-3">
-
-                  <input
-                    type="checkbox"
-                    class="equipamento-check"
-                    value="${item.id}"
-                  />
-
-                  <span>
-
-                    ${item.nome}
-                    —
-                    R$ ${item.custoHora.toFixed(2)}/h
-
-                  </span>
-
-                </label>
-
-              `).join('')}
-
-            </div>
-
-          </div>
-
-          <!-- ETAPAS -->
-
-          <div class="mt-8">
-
-            <h3 class="font-bold text-lg mb-4">
-              Etapas
-            </h3>
-
-            <input
-              class="input"
-              type="text"
-              id="etapaNome"
-              placeholder="Nome da etapa"
-            />
-
-            <input
-              class="input"
-              type="number"
-              step="0.01"
-              id="etapaHoras"
-              placeholder="Horas"
-            />
-
-            <input
-              class="input"
-              type="number"
-              step="0.01"
-              id="etapaValorHora"
-              placeholder="Valor hora"
-            />
-
-            <input
-              class="input"
-              type="number"
-              step="0.01"
-              id="etapaEnergia"
-              placeholder="Energia"
-            />
-
-            <input
-              class="input"
-              type="number"
-              step="0.01"
-              id="etapaAbrasivos"
-              placeholder="Abrasivos"
-            />
-
-            <button
-              type="button"
-              id="addEtapaBtn"
-              class="primary-button mt-2"
-            >
-              Adicionar Etapa
-            </button>
-
-          </div>
-
-          <!-- MARGEM -->
-
-          <div class="mt-8">
-
-            <input
-              class="input"
-              type="number"
-              step="0.01"
-              id="margem"
-              placeholder="Margem de lucro (%)"
-            />
+            </p>
 
           </div>
 
           <button
-            class="primary-button mt-5"
-            type="submit"
+            id="novaComposicao"
+            class="primary-button"
+            style="
+              width:auto;
+              padding-inline:20px;
+            "
           >
-            Salvar Produção
+
+            Nova
+
           </button>
 
-        </form>
+        </div>
+
+      </div>
+
+      <!-- LISTA -->
+
+      <div class="grid gap-5">
+
+        ${
+          composicoes.length
+
+            ? composicoes.map(item => `
+
+              <div class="card">
+
+                <div class="
+                  flex
+                  justify-between
+                  items-start
+                  mb-5
+                ">
+
+                  <div>
+
+                    <h2 class="
+                      text-2xl
+                      font-bold
+                    ">
+
+                      ${item.nome}
+
+                    </h2>
+
+                    <p class="
+                      text-slate-400
+                      mt-2
+                    ">
+
+                      ${
+                        item.tipoFaca ||
+                        'Faca personalizada'
+                      }
+
+                    </p>
+
+                  </div>
+
+                  <div class="
+                    text-right
+                  ">
+
+                    <div class="
+                      text-orange-400
+                      text-2xl
+                      font-black
+                    ">
+
+                      R$ ${(item.valorFinal || 0).toFixed(2)}
+
+                    </div>
+
+                    <div class="
+                      text-slate-400
+                      text-sm
+                      mt-1
+                    ">
+
+                      venda final
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+                <!-- GRID -->
+
+                <div class="
+                  grid
+                  grid-cols-2
+                  gap-4
+                  mb-5
+                ">
+
+                  <div class="
+                    bg-slate-900/60
+                    border
+                    border-slate-700
+                    rounded-2xl
+                    p-4
+                  ">
+
+                    <div class="
+                      text-slate-400
+                      text-sm
+                      mb-2
+                    ">
+
+                      Custo
+
+                    </div>
+
+                    <div class="
+                      text-xl
+                      font-black
+                      text-red-400
+                    ">
+
+                      R$ ${(item.custoTotal || 0).toFixed(2)}
+
+                    </div>
+
+                  </div>
+
+                  <div class="
+                    bg-slate-900/60
+                    border
+                    border-slate-700
+                    rounded-2xl
+                    p-4
+                  ">
+
+                    <div class="
+                      text-slate-400
+                      text-sm
+                      mb-2
+                    ">
+
+                      Margem
+
+                    </div>
+
+                    <div class="
+                      text-xl
+                      font-black
+                      text-green-400
+                    ">
+
+                      ${item.margemLucro || 0}%
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+                <!-- DETALHES -->
+
+                <div class="
+                  grid
+                  gap-2
+                  mb-6
+                  text-sm
+                ">
+
+                  <div class="
+                    flex
+                    justify-between
+                  ">
+
+                    <span class="
+                      text-slate-400
+                    ">
+                      Tipo aço
+                    </span>
+
+                    <span>
+
+                      ${item.tipoAco || '-'}
+
+                    </span>
+
+                  </div>
+
+                  <div class="
+                    flex
+                    justify-between
+                  ">
+
+                    <span class="
+                      text-slate-400
+                    ">
+                      Acabamento
+                    </span>
+
+                    <span>
+
+                      ${item.acabamento || '-'}
+
+                    </span>
+
+                  </div>
+
+                  <div class="
+                    flex
+                    justify-between
+                  ">
+
+                    <span class="
+                      text-slate-400
+                    ">
+                      Cabo
+                    </span>
+
+                    <span>
+
+                      ${item.tipoCabo || '-'}
+
+                    </span>
+
+                  </div>
+
+                </div>
+
+                <!-- AÇÕES -->
+
+                <div class="
+                  grid
+                  grid-cols-2
+                  gap-3
+                ">
+
+                  <button
+                    class="
+                      primary-button
+                      detalhes-btn
+                    "
+                    data-id="${item.id}"
+                  >
+
+                    Detalhes
+
+                  </button>
+
+                  <button
+                    class="
+                      primary-button
+                      pdf-btn
+                    "
+                    data-id="${item.id}"
+                  >
+
+                    PDF
+
+                  </button>
+
+                </div>
+
+              </div>
+
+            `).join('')
+
+            : `
+
+              <div class="card text-center">
+
+                <div class="
+                  text-3xl
+                  mb-4
+                ">
+
+                  ⚒️
+
+                </div>
+
+                <h2 class="
+                  text-2xl
+                  font-bold
+                  mb-2
+                ">
+
+                  Nenhuma produção
+
+                </h2>
+
+                <p class="
+                  text-slate-400
+                ">
+
+                  Crie sua primeira faca personalizada
+
+                </p>
+
+              </div>
+
+            `
+        }
 
       </div>
 
     </section>
+
   `;
+
 }
 
+// PDF
+
 window.addEventListener(
-  'change',
+  'click',
   async (e) => {
 
+    // EXPORTAR PDF
+
     if (
-      e.target.id ===
-      'fotoCapa'
+      e.target.classList.contains(
+        'pdf-btn'
+      )
     ) {
 
-      const file =
-        e.target.files[0];
+      const id =
+        e.target.dataset.id;
 
-      if (!file) return;
-
-      const preview =
-        document.getElementById(
-          'previewFoto'
-        );
-
-      preview.src =
-        URL.createObjectURL(file);
-
-      preview.classList.remove(
-        'hidden'
-      );
+      await gerarPDF(id);
 
     }
 
-  }
-);
-
-window.addEventListener('click', async (e) => {
-
-  // MATERIAL
-
-  if (e.target.id === 'addItemBtn') {
-
-    const materialId =
-      Number(
-        document.getElementById(
-          'materialId'
-        ).value
-      );
-
-    const quantidade =
-      parseFloat(
-        document.getElementById(
-          'quantidade'
-        ).value
-      );
-
-    const material =
-      await db.materiais.get(
-        materialId
-      );
-
-    itensTemporarios.push({
-
-      materialId,
-
-      nome: material.nome,
-
-      quantidade,
-
-      valorUnitario:
-        material.valor,
-
-      subtotal:
-        material.valor *
-        quantidade
-
-    });
-
-    showToast(
-      'Material adicionado!'
-    );
-
-  }
-
-  // ETAPA
-
-  if (e.target.id === 'addEtapaBtn') {
-
-    const equipamentos =
-      await db.equipamentos.toArray();
-
-    const etapa = {
-
-      nome:
-        document.getElementById(
-          'etapaNome'
-        ).value,
-
-      horas:
-        parseFloat(
-          document.getElementById(
-            'etapaHoras'
-          ).value
-        ),
-
-      valorHora:
-        parseFloat(
-          document.getElementById(
-            'etapaValorHora'
-          ).value
-        ),
-
-      custoEnergia:
-        parseFloat(
-          document.getElementById(
-            'etapaEnergia'
-          ).value
-        ) || 0,
-
-      custoAbrasivos:
-        parseFloat(
-          document.getElementById(
-            'etapaAbrasivos'
-          ).value
-        ) || 0
-
-    };
-
-    const equipamentosSelecionados =
-      Array.from(
-        document.querySelectorAll(
-          '.equipamento-check:checked'
-        )
-      ).map(check => {
-
-        return equipamentos.find(
-          item =>
-            item.id ===
-            Number(check.value)
-        );
-
-      });
-
-    const [calculada] =
-      calcularEtapas(
-        [etapa],
-        equipamentosSelecionados
-      );
-
-    etapasTemporarias.push(
-      calculada
-    );
-
-    showToast(
-      'Etapa adicionada!'
-    );
-
-  }
-
-});
-
-document.addEventListener(
-  'submit',
-  async (e) => {
+    // DETALHES
 
     if (
-      e.target.id ===
-      'producaoForm'
+      e.target.classList.contains(
+        'detalhes-btn'
+      )
     ) {
 
-      e.preventDefault();
-
-      const margemLucro =
-        parseFloat(
-          document.getElementById(
-            'margem'
-          ).value
-        );
-
-      const calculo =
-        calcularComposicao({
-
-          itens:
-            itensTemporarios,
-
-          etapas:
-            etapasTemporarias,
-
-          margemLucro
-
-        });
-
-      let fotoBase64 = '';
-
-      const fotoInput =
-        document.getElementById(
-          'fotoCapa'
-        );
-
-      if (
-        fotoInput.files.length
-      ) {
-
-        fotoBase64 =
-          await compressImage(
-            fotoInput.files[0]
-          );
-
-      }
-
-      const composicaoId =
-        await db.composicoes.add({
-
-          nome:
-            document.getElementById(
-              'nome'
-            ).value,
-
-          categoria: 'faca',
-
-          tipoFaca:
-            document.getElementById(
-              'tipoFaca'
-            ).value,
-
-          tipoAco:
-            document.getElementById(
-              'tipoAco'
-            ).value,
-
-          hrc:
-            parseFloat(
-              document.getElementById(
-                'hrc'
-              ).value
-            ) || 0,
-
-          espessura:
-            parseFloat(
-              document.getElementById(
-                'espessura'
-              ).value
-            ) || 0,
-
-          comprimento:
-            parseFloat(
-              document.getElementById(
-                'comprimento'
-              ).value
-            ) || 0,
-
-          peso:
-            parseFloat(
-              document.getElementById(
-                'peso'
-              ).value
-            ) || 0,
-
-          acabamento:
-            document.getElementById(
-              'acabamento'
-            ).value,
-
-          desbaste:
-            document.getElementById(
-              'desbaste'
-            ).value,
-
-          tipoCabo:
-            document.getElementById(
-              'tipoCabo'
-            ).value,
-
-          possuiBainha:
-            document.getElementById(
-              'possuiBainha'
-            ).checked,
-
-          observacoes:
-            document.getElementById(
-              'observacoes'
-            ).value,
-
-          fotoCapa:
-            fotoBase64,
-
-          custoMateriais:
-            calculo.custoMateriais,
-
-          custoEtapas:
-            calculo.custoEtapas,
-
-          custoTotal:
-            calculo.custoTotal,
-
-          margemLucro,
-
-          valorFinal:
-            calculo.valorFinal,
-
-          createdAt:
-            new Date().toISOString()
-
-        });
-
-      for (const item of itensTemporarios) {
-
-  await db.composicaoItens.add({
-
-    composicaoId,
-
-    ...item
-
-  });
-
-  // BAIXA ESTOQUE
-
-  const material =
-    await db.materiais.get(
-      item.materialId
-    );
-
-  if (material) {
-
-    await db.materiais.update(
-      material.id,
-      {
-
-        estoqueAtual:
-          material.estoqueAtual -
-          item.quantidade
-
-      }
-    );
-
-  }
-
-}
-
-      for (const etapa of etapasTemporarias) {
-
-        await db.etapas.add({
-
-          composicaoId,
-
-          ...etapa
-
-        });
-
-      }
-
-      itensTemporarios = [];
-
-      etapasTemporarias = [];
-
-      showToast(
-        'Produção salva com sucesso!'
+      alert(
+        'Detalhes avançados em desenvolvimento.'
       );
-
-      setTimeout(() => {
-
-        location.reload();
-
-      }, 800);
 
     }
 
