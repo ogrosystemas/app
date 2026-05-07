@@ -662,15 +662,37 @@ document.addEventListener(
 
       for (const item of itensTemporarios) {
 
-        await db.composicaoItens.add({
+  await db.composicaoItens.add({
 
-          composicaoId,
+    composicaoId,
 
-          ...item
+    ...item
 
-        });
+  });
+
+  // BAIXA ESTOQUE
+
+  const material =
+    await db.materiais.get(
+      item.materialId
+    );
+
+  if (material) {
+
+    await db.materiais.update(
+      material.id,
+      {
+
+        estoqueAtual:
+          material.estoqueAtual -
+          item.quantidade
 
       }
+    );
+
+  }
+
+}
 
       for (const etapa of etapasTemporarias) {
 
