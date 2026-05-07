@@ -18,54 +18,93 @@ export async function dashboardPage() {
   const composicoes =
     await db.composicoes.toArray();
 
-  const materiais =
-    await db.composicaoItens.toArray();
+  const financeiro =
+    await db.financeiro.toArray();
 
-  const etapas =
-    await db.etapas.toArray();
-
-  // KPIs
+  // PRODUÇÃO
 
   const totalProducoes =
     composicoes.length;
 
-  const faturamentoTotal =
+  const faturamentoProducoes =
     composicoes.reduce(
       (total, item) =>
         total + item.valorFinal,
       0
     );
 
-  const custoTotal =
+  const custoProducoes =
     composicoes.reduce(
       (total, item) =>
         total + item.custoTotal,
       0
     );
 
-  const lucroTotal =
-    faturamentoTotal - custoTotal;
+  const lucroProducoes =
+    faturamentoProducoes -
+    custoProducoes;
 
-  const margemMedia =
-    faturamentoTotal > 0
+  // FINANCEIRO
+
+  const receitasExtras =
+    financeiro
+      .filter(
+        item =>
+          item.tipo ===
+          'receita'
+      )
+      .reduce(
+        (total, item) =>
+          total + item.valor,
+        0
+      );
+
+  const despesasExtras =
+    financeiro
+      .filter(
+        item =>
+          item.tipo ===
+          'despesa'
+      )
+      .reduce(
+        (total, item) =>
+          total + item.valor,
+        0
+      );
+
+  // DRE
+
+  const receitaTotal =
+    faturamentoProducoes +
+    receitasExtras;
+
+  const despesasTotais =
+    custoProducoes +
+    despesasExtras;
+
+  const lucroLiquido =
+    receitaTotal -
+    despesasTotais;
+
+  const margemLiquida =
+    receitaTotal > 0
       ? (
-          (lucroTotal /
-            faturamentoTotal) *
+          (lucroLiquido /
+            receitaTotal) *
           100
         ).toFixed(1)
       : 0;
 
-  const ticketMedio =
-    totalProducoes > 0
-      ? faturamentoTotal /
-        totalProducoes
-      : 0;
+  // META
 
-  const lucroMedio =
-    totalProducoes > 0
-      ? lucroTotal /
-        totalProducoes
-      : 0;
+  const metaMensal = 10000;
+
+  const percentualMeta =
+    (
+      (receitaTotal /
+        metaMensal) *
+      100
+    ).toFixed(0);
 
   // MAIS LUCRATIVA
 
@@ -92,118 +131,67 @@ export async function dashboardPage() {
 
   });
 
-  // MATERIAL MAIS USADO
-
-  const materiaisAgrupados = {};
-
-  materiais.forEach(item => {
-
-    if (!materiaisAgrupados[item.nome]) {
-
-      materiaisAgrupados[item.nome] = 0;
-
-    }
-
-    materiaisAgrupados[item.nome] +=
-      item.quantidade;
-
-  });
-
-  let materialMaisUsado = '-';
-
-  let materialMaiorQtd = 0;
-
-  for (const nome in materiaisAgrupados) {
-
-    if (
-      materiaisAgrupados[nome] >
-      materialMaiorQtd
-    ) {
-
-      materialMaiorQtd =
-        materiaisAgrupados[nome];
-
-      materialMaisUsado = nome;
-
-    }
-
-  }
-
-  // ETAPA MAIS CARA
-
-  const etapasAgrupadas = {};
-
-  etapas.forEach(etapa => {
-
-    if (!etapasAgrupadas[etapa.nome]) {
-
-      etapasAgrupadas[etapa.nome] = 0;
-
-    }
-
-    etapasAgrupadas[etapa.nome] +=
-      etapa.custoTotal;
-
-  });
-
-  let etapaMaisCara = '-';
-
-  let maiorCustoEtapa = 0;
-
-  for (const nome in etapasAgrupadas) {
-
-    if (
-      etapasAgrupadas[nome] >
-      maiorCustoEtapa
-    ) {
-
-      maiorCustoEtapa =
-        etapasAgrupadas[nome];
-
-      etapaMaisCara = nome;
-
-    }
-
-  }
-
   setTimeout(() => {
 
-    renderCharts(composicoes);
+    renderFinanceChart(
+      composicoes,
+      financeiro
+    );
 
   }, 100);
 
   return `
-    <section class="dashboard-grid">
+    <section class="pb-32">
 
-      <div class="grid grid-cols-2 gap-4">
+      <!-- HERO KPI -->
 
-        <div class="card">
+      <div class="card mb-5">
 
-          <div class="metric-label">
-            Faturamento
+        <div class="flex justify-between items-center">
+
+          <div>
+
+            <div class="text-slate-400 text-sm">
+              Receita total
+            </div>
+
+            <div class="text-4xl font-black text-orange-400 mt-2">
+
+              R$ ${receitaTotal.toFixed(2)}
+
+            </div>
+
           </div>
 
-          <div class="metric-value text-orange-400">
+          <div class="text-right">
 
-            R$ ${faturamentoTotal.toFixed(2)}
+            <div class="text-slate-400 text-sm">
+              Lucro líquido
+            </div>
+
+            <div class="
+              text-2xl
+              font-bold
+              ${
+                lucroLiquido >= 0
+                  ? 'text-green-400'
+                  : 'text-red-400'
+              }
+            ">
+
+              R$ ${lucroLiquido.toFixed(2)}
+
+            </div>
 
           </div>
 
         </div>
 
-        <div class="card">
+      </div>
 
-          <div class="metric-label">
-            Lucro Total
-          </div>
+      <!-- KPIS -->
 
-          <div class="metric-value text-green-400">
-
-            R$ ${lucroTotal.toFixed(2)}
-
-          </div>
-
-        </div>
+      <div class="grid grid-cols-2 gap-4 mb-5">
 
         <div class="card">
 
@@ -222,12 +210,40 @@ export async function dashboardPage() {
         <div class="card">
 
           <div class="metric-label">
-            Ticket Médio
+            Margem líquida
+          </div>
+
+          <div class="metric-value text-green-400">
+
+            ${margemLiquida}%
+
+          </div>
+
+        </div>
+
+        <div class="card">
+
+          <div class="metric-label">
+            Custos totais
+          </div>
+
+          <div class="metric-value text-red-400">
+
+            R$ ${despesasTotais.toFixed(2)}
+
+          </div>
+
+        </div>
+
+        <div class="card">
+
+          <div class="metric-label">
+            Receita produção
           </div>
 
           <div class="metric-value">
 
-            R$ ${ticketMedio.toFixed(2)}
+            R$ ${faturamentoProducoes.toFixed(2)}
 
           </div>
 
@@ -235,38 +251,57 @@ export async function dashboardPage() {
 
       </div>
 
-      ${
-        margemMedia < 25
-          ? `
-            <div class="card border border-red-500/30">
+      <!-- META -->
 
-              <h3 class="text-red-400 font-bold mb-2">
-                ⚠️ Alerta Financeiro
-              </h3>
+      <div class="card mb-5">
 
-              <p class="text-slate-300 text-sm">
+        <div class="flex justify-between mb-3">
 
-                Sua margem média está abaixo do ideal.
+          <span class="font-bold">
+            Meta mensal
+          </span>
 
-              </p>
+          <span class="text-orange-400 font-bold">
 
-            </div>
-          `
-          : ''
-      }
+            ${percentualMeta}%
 
-      <div class="card">
+          </span>
+
+        </div>
+
+        <div class="w-full h-4 bg-slate-700 rounded-full overflow-hidden">
+
+          <div
+            class="h-full bg-orange-500"
+            style="width:${Math.min(percentualMeta,100)}%"
+          ></div>
+
+        </div>
+
+        <div class="text-slate-400 text-sm mt-3">
+
+          Meta atual:
+          R$ ${metaMensal.toFixed(2)}
+
+        </div>
+
+      </div>
+
+      <!-- CHART -->
+
+      <div class="card mb-5">
 
         <div class="flex justify-between items-center mb-5">
 
           <h3 class="font-bold text-lg">
-            Evolução Financeira
+
+            Fluxo Financeiro
+
           </h3>
 
-          <div class="text-sm text-slate-400">
+          <div class="text-slate-400 text-sm">
 
-            Margem média:
-            ${margemMedia}%
+            DRE simplificada
 
           </div>
 
@@ -276,7 +311,9 @@ export async function dashboardPage() {
 
       </div>
 
-      <div class="card">
+      <!-- INSIGHTS -->
+
+      <div class="card mb-5">
 
         <h3 class="font-bold text-lg mb-5">
 
@@ -289,52 +326,10 @@ export async function dashboardPage() {
           <div class="flex justify-between">
 
             <span class="text-slate-400">
-              Lucro Médio
+              Melhor produção
             </span>
 
-            <span class="font-bold text-green-400">
-
-              R$ ${lucroMedio.toFixed(2)}
-
-            </span>
-
-          </div>
-
-          <div class="flex justify-between">
-
-            <span class="text-slate-400">
-              Material mais usado
-            </span>
-
-            <span class="font-bold">
-
-              ${materialMaisUsado}
-
-            </span>
-
-          </div>
-
-          <div class="flex justify-between">
-
-            <span class="text-slate-400">
-              Etapa mais cara
-            </span>
-
-            <span class="font-bold text-orange-400">
-
-              ${etapaMaisCara}
-
-            </span>
-
-          </div>
-
-          <div class="flex justify-between">
-
-            <span class="text-slate-400">
-              Faca mais lucrativa
-            </span>
-
-            <span class="font-bold text-green-400">
+            <span class="text-green-400 font-bold">
 
               ${
                 facaMaisLucrativa
@@ -346,9 +341,53 @@ export async function dashboardPage() {
 
           </div>
 
+          <div class="flex justify-between">
+
+            <span class="text-slate-400">
+              Receita extra
+            </span>
+
+            <span>
+
+              R$ ${receitasExtras.toFixed(2)}
+
+            </span>
+
+          </div>
+
+          <div class="flex justify-between">
+
+            <span class="text-slate-400">
+              Despesas extras
+            </span>
+
+            <span class="text-red-400">
+
+              R$ ${despesasExtras.toFixed(2)}
+
+            </span>
+
+          </div>
+
+          <div class="flex justify-between">
+
+            <span class="text-slate-400">
+              Lucro operacional
+            </span>
+
+            <span class="text-green-400 font-bold">
+
+              R$ ${lucroProducoes.toFixed(2)}
+
+            </span>
+
+          </div>
+
         </div>
 
       </div>
+
+      <!-- PRODUÇÕES -->
 
       <div class="grid gap-4">
 
@@ -402,21 +441,23 @@ export async function dashboardPage() {
 
                   <div class="text-right">
 
-                    <p class="text-slate-400 text-sm">
-                      Valor Final
-                    </p>
+                    <div class="text-slate-400 text-sm">
 
-                    <h2 class="text-2xl font-bold text-orange-400">
+                      Valor final
+
+                    </div>
+
+                    <div class="text-2xl font-black text-orange-400">
 
                       R$ ${item.valorFinal.toFixed(2)}
 
-                    </h2>
+                    </div>
 
                   </div>
 
                 </div>
 
-                <div class="grid gap-2 mb-5 text-sm">
+                <div class="grid gap-2 text-sm mb-5">
 
                   <div class="flex justify-between">
 
@@ -433,37 +474,11 @@ export async function dashboardPage() {
                   <div class="flex justify-between">
 
                     <span class="text-slate-400">
-                      HRC
-                    </span>
-
-                    <span>
-                      ${item.hrc || '-'}
-                    </span>
-
-                  </div>
-
-                  <div class="flex justify-between">
-
-                    <span class="text-slate-400">
                       Cabo
                     </span>
 
                     <span>
                       ${item.tipoCabo || '-'}
-                    </span>
-
-                  </div>
-
-                  <div class="flex justify-between">
-
-                    <span class="text-slate-400">
-                      Custo
-                    </span>
-
-                    <span>
-
-                      R$ ${item.custoTotal.toFixed(2)}
-
                     </span>
 
                   </div>
@@ -488,7 +503,7 @@ export async function dashboardPage() {
                       Margem
                     </span>
 
-                    <span class="font-bold">
+                    <span>
 
                       ${margem}%
 
@@ -498,13 +513,20 @@ export async function dashboardPage() {
 
                 </div>
 
-                <div class="flex justify-end">
+                <div class="flex gap-3">
+
+                  <a
+                    href="#orcamento/${item.id}"
+                    class="primary-button flex-1 text-center"
+                  >
+                    Visualizar
+                  </a>
 
                   <button
                     class="primary-button export-btn"
                     data-id="${item.id}"
                   >
-                    Exportar PDF
+                    PDF
                   </button>
 
                 </div>
@@ -523,7 +545,10 @@ export async function dashboardPage() {
   `;
 }
 
-function renderCharts(composicoes) {
+function renderFinanceChart(
+  composicoes,
+  financeiro
+) {
 
   const canvas =
     document.getElementById(
@@ -537,7 +562,8 @@ function renderCharts(composicoes) {
 
   const labels =
     composicoes.map(
-      (_, index) => `#${index + 1}`
+      (_, index) =>
+        `#${index + 1}`
     );
 
   const faturamento =
@@ -634,52 +660,55 @@ function renderCharts(composicoes) {
 
 }
 
-window.addEventListener('click', async (e) => {
+window.addEventListener(
+  'click',
+  async (e) => {
 
-  if (
-    e.target.classList.contains(
-      'export-btn'
-    )
-  ) {
+    if (
+      e.target.classList.contains(
+        'export-btn'
+      )
+    ) {
 
-    showLoading();
+      showLoading();
 
-    const composicaoId =
-      Number(
-        e.target.dataset.id
+      const composicaoId =
+        Number(
+          e.target.dataset.id
+        );
+
+      const composicao =
+        await db.composicoes.get(
+          composicaoId
+        );
+
+      const itens =
+        await db.composicaoItens
+          .where('composicaoId')
+          .equals(composicaoId)
+          .toArray();
+
+      const etapas =
+        await db.etapas
+          .where('composicaoId')
+          .equals(composicaoId)
+          .toArray();
+
+      await gerarPDF({
+
+        composicao,
+        itens,
+        etapas
+
+      });
+
+      hideLoading();
+
+      showToast(
+        'PDF gerado!'
       );
 
-    const composicao =
-      await db.composicoes.get(
-        composicaoId
-      );
-
-    const itens =
-      await db.composicaoItens
-        .where('composicaoId')
-        .equals(composicaoId)
-        .toArray();
-
-    const etapas =
-      await db.etapas
-        .where('composicaoId')
-        .equals(composicaoId)
-        .toArray();
-
-    await gerarPDF({
-
-      composicao,
-      itens,
-      etapas
-
-    });
-
-    hideLoading();
-
-    showToast(
-      'PDF gerado com sucesso!'
-    );
+    }
 
   }
-
-});
+);
