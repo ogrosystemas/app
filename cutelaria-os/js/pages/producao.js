@@ -347,6 +347,41 @@ export async function producaoPage() {
 
 window.addEventListener('click', async (e) => {
 
+  if (e.target.id === 'addEtapaBtn') {
+
+  const etapa = {
+    nome:
+      document.getElementById('etapaNome').value,
+
+    horas:
+      parseFloat(
+        document.getElementById('etapaHoras').value
+      ),
+
+    valorHora:
+      parseFloat(
+        document.getElementById('etapaValorHora').value
+      ),
+
+    custoEnergia:
+      parseFloat(
+        document.getElementById('etapaEnergia').value
+      ) || 0,
+
+    custoAbrasivos:
+      parseFloat(
+        document.getElementById('etapaAbrasivos').value
+      ) || 0
+  };
+
+  const [calculada] =
+    calcularEtapas([etapa]);
+
+  etapasTemporarias.push(calculada);
+
+  location.reload();
+}
+
   if (e.target.id === 'addItemBtn') {
 
     const materialId =
