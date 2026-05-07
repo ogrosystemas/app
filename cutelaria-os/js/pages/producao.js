@@ -8,6 +8,15 @@ import {
   calcularEtapas
 } from '../services/etapas.service.js';
 
+import {
+  showToast
+} from '../modules/toast.js';
+
+import {
+  showLoading,
+  hideLoading
+} from '../modules/loading.js';
+
 let itensTemporarios = [];
 let etapasTemporarias = [];
 
