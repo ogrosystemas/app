@@ -16,6 +16,9 @@ export async function producaoPage() {
   const materiais =
     await db.materiais.toArray();
 
+  const equipamentos =
+    await db.equipamentos.toArray();
+
   const composicoes =
     await db.composicoes.reverse().toArray();
 
@@ -31,6 +34,8 @@ export async function producaoPage() {
         </h2>
 
         <form id="producaoForm">
+
+          <!-- NOME -->
 
           <input
             class="input"
@@ -116,6 +121,40 @@ export async function producaoPage() {
 
               </div>
             `).join('')}
+
+          </div>
+
+          <!-- EQUIPAMENTOS -->
+
+          <div class="mt-8 mb-5">
+
+            <h3 class="font-bold mb-3">
+              Equipamentos Utilizados
+            </h3>
+
+            <div class="grid gap-3">
+
+              ${equipamentos.map(item => `
+                <label class="flex items-center gap-3">
+
+                  <input
+                    type="checkbox"
+                    class="equipamento-check"
+                    value="${item.id}"
+                  />
+
+                  <span class="text-sm">
+
+                    ${item.nome}
+                    —
+                    R$ ${item.custoHora.toFixed(2)}/h
+
+                  </span>
+
+                </label>
+              `).join('')}
+
+            </div>
 
           </div>
 
@@ -215,7 +254,7 @@ export async function producaoPage() {
           <!-- LUCRO -->
 
           <input
-            class="input"
+            class="input mt-6"
             type="number"
             step="0.01"
             id="margem"
@@ -319,6 +358,7 @@ window.addEventListener('click', async (e) => {
   if (e.target.id === 'addEtapaBtn') {
 
     const etapa = {
+
       nome:
         document.getElementById('etapaNome').value,
 
@@ -343,8 +383,24 @@ window.addEventListener('click', async (e) => {
         ) || 0
     };
 
+    const equipamentosSelecionados =
+      Array.from(
+        document.querySelectorAll(
+          '.equipamento-check:checked'
+        )
+      ).map(check => {
+
+        return equipamentos.find(
+          item => item.id === Number(check.value)
+        );
+
+      });
+
     const [calculada] =
-      calcularEtapas([etapa]);
+      calcularEtapas(
+        [etapa],
+        equipamentosSelecionados
+      );
 
     etapasTemporarias.push(calculada);
 
@@ -372,11 +428,17 @@ window.addEventListener('click', async (e) => {
       material.valor * quantidade;
 
     itensTemporarios.push({
+
       materialId,
+
       nome: material.nome,
+
       quantidade,
+
       valorUnitario: material.valor,
+
       subtotal
+
     });
 
     location.reload();
@@ -397,9 +459,13 @@ document.addEventListener('submit', async (e) => {
 
     const calculo =
       calcularComposicao({
+
         itens: itensTemporarios,
+
         etapas: etapasTemporarias,
+
         margemLucro
+
       });
 
     const composicaoId =
@@ -433,8 +499,11 @@ document.addEventListener('submit', async (e) => {
     for (const item of itensTemporarios) {
 
       await db.composicaoItens.add({
+
         composicaoId,
+
         ...item
+
       });
 
     }
@@ -444,11 +513,16 @@ document.addEventListener('submit', async (e) => {
     for (const etapa of etapasTemporarias) {
 
       await db.etapas.add({
+
         composicaoId,
+
         ...etapa
+
       });
 
     }
+
+    // RESET
 
     itensTemporarios = [];
     etapasTemporarias = [];
