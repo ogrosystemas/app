@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="pt-BR">
 
 <head>
@@ -8,31 +7,26 @@
 
   <meta
     name="viewport"
-    content="
-      width=device-width,
-      initial-scale=1.0,
-      viewport-fit=cover
-    "
+    content="width=device-width, initial-scale=1.0"
   />
 
   <title>Cutelaria OS</title>
 
-  <meta
-    name="theme-color"
-    content="#020617"
-  />
+  <!-- PWA -->
+
+  <meta name="theme-color" content="#020617" />
 
   <link
     rel="manifest"
-    href="./manifest.json"
+    href="manifest.json"
   />
 
   <link
-    rel="icon"
-    href="./assets/icons/icon-192.png"
+    rel="apple-touch-icon"
+    href="assets/icons/icon-192.png"
   />
 
-  <!-- GOOGLE FONTS -->
+  <!-- FONT -->
 
   <link
     rel="preconnect"
@@ -46,11 +40,7 @@
   />
 
   <link
-    href="
-      https://fonts.googleapis.com/css2?
-      family=Inter:wght@300;400;500;600;700;800;900&
-      display=swap
-    "
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
     rel="stylesheet"
   />
 
@@ -58,26 +48,54 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
 
+  <script>
+
+    tailwind.config = {
+
+      theme: {
+
+        extend: {
+
+          colors: {
+
+            primary: '#f97316'
+
+          },
+
+          boxShadow: {
+
+            glow: '0 0 40px rgba(249,115,22,.25)'
+
+          }
+
+        }
+
+      }
+
+    }
+
+  </script>
+
   <!-- CHART -->
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- PDF -->
+  <!-- DEXIE -->
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"></script>
 
-  <!-- LUCIDE -->
-
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- CSS GLOBAL -->
 
   <style>
 
     * {
-
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+    }
 
+    html {
+      scroll-behavior: smooth;
     }
 
     body {
@@ -85,11 +103,9 @@
       font-family: 'Inter', sans-serif;
 
       background:
-        radial-gradient(
-          circle at top,
-          rgba(30,41,59,.55),
-          transparent 40%
-        ),
+        radial-gradient(circle at top,
+          rgba(30,41,59,.6),
+          transparent 40%),
         #020617;
 
       color: #f8fafc;
@@ -115,8 +131,6 @@
 
     }
 
-    /* CARDS */
-
     .card {
 
       background:
@@ -124,7 +138,7 @@
 
       border:
         1px solid
-        rgba(51,65,85,.45);
+        rgba(51,65,85,.5);
 
       backdrop-filter: blur(14px);
 
@@ -133,11 +147,9 @@
       padding: 22px;
 
       box-shadow:
-        0 10px 40px rgba(0,0,0,.22);
+        0 10px 40px rgba(0,0,0,.25);
 
     }
-
-    /* BOTÕES */
 
     .primary-button {
 
@@ -167,7 +179,7 @@
       transition: .25s;
 
       box-shadow:
-        0 10px 30px rgba(249,115,22,.18);
+        0 10px 30px rgba(249,115,22,.2);
 
     }
 
@@ -176,13 +188,12 @@
       transform:
         translateY(-2px);
 
+      box-shadow:
+        0 14px 40px rgba(249,115,22,.35);
+
     }
 
-    /* INPUTS */
-
-    input,
-    textarea,
-    select {
+    .input {
 
       width: 100%;
 
@@ -190,10 +201,10 @@
 
       border:
         1px solid
-        rgba(51,65,85,.6);
+        rgba(51,65,85,.7);
 
       background:
-        rgba(15,23,42,.92);
+        rgba(15,23,42,.75);
 
       color: #f8fafc;
 
@@ -207,13 +218,9 @@
 
       transition: .2s;
 
-      font-size: 15px;
-
     }
 
-    input:focus,
-    textarea:focus,
-    select:focus {
+    .input:focus {
 
       border-color:
         rgba(249,115,22,.7);
@@ -223,20 +230,29 @@
 
     }
 
-    select option {
-
-      background: #0f172a;
-      color: #f8fafc;
-
-    }
-
-    ::placeholder {
+    .metric-label {
 
       color: #94a3b8;
 
+      font-size: 13px;
+
+      margin-bottom: 10px;
+
+      text-transform: uppercase;
+
+      letter-spacing: .08em;
+
     }
 
-    /* NAVBAR */
+    .metric-value {
+
+      font-size: 34px;
+
+      font-weight: 900;
+
+      line-height: 1;
+
+    }
 
     #bottomNav {
 
@@ -255,14 +271,14 @@
       display: grid;
 
       grid-template-columns:
-        repeat(6,1fr);
+        repeat(6, 1fr);
 
       gap: 8px;
 
       background:
         rgba(15,23,42,.88);
 
-      backdrop-filter: blur(18px);
+      backdrop-filter: blur(20px);
 
       border:
         1px solid rgba(51,65,85,.5);
@@ -274,7 +290,7 @@
       z-index: 9999;
 
       box-shadow:
-        0 10px 40px rgba(0,0,0,.3);
+        0 10px 40px rgba(0,0,0,.35);
 
     }
 
@@ -284,27 +300,19 @@
 
       color: #94a3b8;
 
-      display: flex;
+      text-align: center;
 
-      flex-direction: column;
-
-      align-items: center;
-
-      justify-content: center;
-
-      gap: 6px;
-
-      font-size: 11px;
-
-      font-weight: 600;
+      font-size: 12px;
 
       padding:
         12px
         6px;
 
-      border-radius: 18px;
+      border-radius: 16px;
 
       transition: .2s;
+
+      font-weight: 600;
 
     }
 
@@ -320,29 +328,47 @@
       color: white;
 
       box-shadow:
-        0 10px 30px rgba(249,115,22,.22);
+        0 10px 30px rgba(249,115,22,.2);
 
     }
 
-    /* ICONES */
+    .page-transition {
 
-    #bottomNav svg {
+      opacity: 0;
 
-      width: 20px;
-      height: 20px;
+      transform: translateY(10px);
 
-      stroke-width: 2.2;
+      transition: .2s;
 
     }
 
-    /* MOBILE */
+    canvas {
+
+      max-width: 100% !important;
+
+    }
 
     @media (max-width: 640px) {
+
+      #app {
+
+        padding:
+          18px
+          14px
+          140px;
+
+      }
+
+      .metric-value {
+
+        font-size: 28px;
+
+      }
 
       #bottomNav {
 
         grid-template-columns:
-          repeat(3,1fr);
+          repeat(3, 1fr);
 
       }
 
@@ -354,7 +380,9 @@
 
 <body>
 
-  <div id="app"></div>
+  <main id="app"></main>
+
+  <nav id="bottomNav"></nav>
 
   <script
     type="module"
@@ -364,4 +392,5 @@
 </body>
 
 </html>
+```
 
