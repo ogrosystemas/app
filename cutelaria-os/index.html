@@ -1,3 +1,8 @@
+# 📄 index.html (COMPILADO E CORRIGIDO)
+
+SUBSTITUA SEU `index.html` INTEIRO POR ESTE:
+
+```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 
@@ -14,63 +19,17 @@
 
   <!-- PWA -->
 
+  <meta name="theme-color" content="#020617" />
+
   <link
     rel="manifest"
-    href="./manifest.json"
-  />
-
-  <meta
-    name="theme-color"
-    content="#f97316"
-  />
-
-  <meta
-    name="apple-mobile-web-app-capable"
-    content="yes"
-  />
-
-  <meta
-    name="apple-mobile-web-app-status-bar-style"
-    content="black-translucent"
-  />
-
-  <meta
-    name="apple-mobile-web-app-title"
-    content="Cutelaria OS"
+    href="manifest.json"
   />
 
   <link
     rel="apple-touch-icon"
-    href="./assets/icons/icon-192.png"
+    href="assets/icons/icon-192.png"
   />
-
-  <!-- SEO -->
-
-  <meta
-    name="description"
-    content="Sistema profissional de cálculo de custos para cuteleiros."
-  />
-
-  <meta
-    name="keywords"
-    content="cutelaria, facas, cuteleiro, custos, orçamento, pwa"
-  />
-
-  <!-- TAILWIND -->
-
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- CHART.JS -->
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <!-- DEXIE -->
-
-  <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
-
-  <!-- JSPDF -->
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <!-- FONT -->
 
@@ -86,154 +45,357 @@
   />
 
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
     rel="stylesheet"
   />
 
-  <!-- CSS -->
+  <!-- TAILWIND -->
 
-  <link
-    rel="stylesheet"
-    href="./css/main.css"
-  />
+  <script src="https://cdn.tailwindcss.com"></script>
 
-  <link
-    rel="stylesheet"
-    href="./css/layout.css"
-  />
+  <script>
 
-  <link
-    rel="stylesheet"
-    href="./css/components.css"
-  />
+    tailwind.config = {
 
-  <link
-    rel="stylesheet"
-    href="./css/pages.css"
-  />
+      theme: {
 
-  <link
-    rel="stylesheet"
-    href="./css/animations.css"
-  />
+        extend: {
+
+          colors: {
+
+            primary: '#f97316'
+
+          },
+
+          boxShadow: {
+
+            glow: '0 0 40px rgba(249,115,22,.25)'
+
+          }
+
+        }
+
+      }
+
+    }
+
+  </script>
+
+  <!-- CHART -->
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- DEXIE -->
+
+  <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"></script>
+
+  <!-- CSS GLOBAL -->
+
+  <style>
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+
+      font-family: 'Inter', sans-serif;
+
+      background:
+        radial-gradient(circle at top,
+          rgba(30,41,59,.6),
+          transparent 40%),
+        #020617;
+
+      color: #f8fafc;
+
+      min-height: 100vh;
+
+      overflow-x: hidden;
+
+    }
+
+    #app {
+
+      width: 100%;
+
+      max-width: 760px;
+
+      margin: auto;
+
+      padding:
+        24px
+        18px
+        140px;
+
+    }
+
+    .card {
+
+      background:
+        rgba(15,23,42,.72);
+
+      border:
+        1px solid
+        rgba(51,65,85,.5);
+
+      backdrop-filter: blur(14px);
+
+      border-radius: 28px;
+
+      padding: 22px;
+
+      box-shadow:
+        0 10px 40px rgba(0,0,0,.25);
+
+    }
+
+    .primary-button {
+
+      width: 100%;
+
+      border: none;
+
+      cursor: pointer;
+
+      border-radius: 18px;
+
+      padding:
+        14px
+        18px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #f97316,
+          #ea580c
+        );
+
+      color: white;
+
+      font-weight: 700;
+
+      transition: .25s;
+
+      box-shadow:
+        0 10px 30px rgba(249,115,22,.2);
+
+    }
+
+    .primary-button:hover {
+
+      transform:
+        translateY(-2px);
+
+      box-shadow:
+        0 14px 40px rgba(249,115,22,.35);
+
+    }
+
+    .input {
+
+      width: 100%;
+
+      border-radius: 18px;
+
+      border:
+        1px solid
+        rgba(51,65,85,.7);
+
+      background:
+        rgba(15,23,42,.75);
+
+      color: #f8fafc;
+
+      padding:
+        14px
+        16px;
+
+      margin-bottom: 14px;
+
+      outline: none;
+
+      transition: .2s;
+
+    }
+
+    .input:focus {
+
+      border-color:
+        rgba(249,115,22,.7);
+
+      box-shadow:
+        0 0 0 4px rgba(249,115,22,.12);
+
+    }
+
+    .metric-label {
+
+      color: #94a3b8;
+
+      font-size: 13px;
+
+      margin-bottom: 10px;
+
+      text-transform: uppercase;
+
+      letter-spacing: .08em;
+
+    }
+
+    .metric-value {
+
+      font-size: 34px;
+
+      font-weight: 900;
+
+      line-height: 1;
+
+    }
+
+    #bottomNav {
+
+      position: fixed;
+
+      left: 50%;
+
+      bottom: 18px;
+
+      transform: translateX(-50%);
+
+      width: calc(100% - 24px);
+
+      max-width: 760px;
+
+      display: grid;
+
+      grid-template-columns:
+        repeat(6, 1fr);
+
+      gap: 8px;
+
+      background:
+        rgba(15,23,42,.88);
+
+      backdrop-filter: blur(20px);
+
+      border:
+        1px solid rgba(51,65,85,.5);
+
+      border-radius: 28px;
+
+      padding: 12px;
+
+      z-index: 9999;
+
+      box-shadow:
+        0 10px 40px rgba(0,0,0,.35);
+
+    }
+
+    #bottomNav a {
+
+      text-decoration: none;
+
+      color: #94a3b8;
+
+      text-align: center;
+
+      font-size: 12px;
+
+      padding:
+        12px
+        6px;
+
+      border-radius: 16px;
+
+      transition: .2s;
+
+      font-weight: 600;
+
+    }
+
+    #bottomNav a.active {
+
+      background:
+        linear-gradient(
+          135deg,
+          #f97316,
+          #ea580c
+        );
+
+      color: white;
+
+      box-shadow:
+        0 10px 30px rgba(249,115,22,.2);
+
+    }
+
+    .page-transition {
+
+      opacity: 0;
+
+      transform: translateY(10px);
+
+      transition: .2s;
+
+    }
+
+    canvas {
+
+      max-width: 100% !important;
+
+    }
+
+    @media (max-width: 640px) {
+
+      #app {
+
+        padding:
+          18px
+          14px
+          140px;
+
+      }
+
+      .metric-value {
+
+        font-size: 28px;
+
+      }
+
+      #bottomNav {
+
+        grid-template-columns:
+          repeat(3, 1fr);
+
+      }
+
+    }
+
+  </style>
 
 </head>
 
 <body>
 
-  <!-- SPLASH -->
-
-  <div id="splashScreen">
-
-    <div class="splash-logo">
-
-      <div class="logo-icon">
-        ⚔️
-      </div>
-
-      <h1>
-        Cutelaria OS
-      </h1>
-
-      <p>
-        Sistema profissional para cuteleiros
-      </p>
-
-    </div>
-
-  </div>
-
-  <!-- APP -->
-
   <main id="app"></main>
 
-  <!-- NAVBAR -->
-
   <nav id="bottomNav"></nav>
-
-  <!-- APP -->
 
   <script
     type="module"
     src="./js/app.js"
   ></script>
 
-  <!-- PWA -->
-
-  <script>
-
-    // SERVICE WORKER
-
-    if ('serviceWorker' in navigator) {
-
-      window.addEventListener('load', () => {
-
-        navigator.serviceWorker
-          .register('./sw.js')
-
-          .then(() => {
-
-            console.log(
-              'Service Worker registrado.'
-            );
-
-          })
-
-          .catch((error) => {
-
-            console.error(
-              'Erro Service Worker:',
-              error
-            );
-
-          });
-
-      });
-
-    }
-
-    // SPLASH SCREEN
-
-    window.addEventListener('load', () => {
-
-      setTimeout(() => {
-
-        const splash =
-          document.getElementById(
-            'splashScreen'
-          );
-
-        if (splash) {
-
-          splash.classList.add('hide');
-
-        }
-
-      }, 1800);
-
-    });
-
-    // PWA INSTALL
-
-    let deferredPrompt;
-
-    window.addEventListener(
-      'beforeinstallprompt',
-      (e) => {
-
-        e.preventDefault();
-
-        deferredPrompt = e;
-
-        console.log(
-          'PWA pronto para instalação.'
-        );
-
-      }
-    );
-
-  </script>
-
 </body>
 
 </html>
+```
+
