@@ -1,4 +1,4 @@
-export const db = Dexie(
+export const db = new Dexie(
   'CutelariaOS'
 );
 
