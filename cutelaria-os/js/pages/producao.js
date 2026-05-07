@@ -118,6 +118,99 @@ export async function producaoPage() {
 
           </div>
 
+            <!-- ETAPAS -->
+
+<div class="mt-8 mb-5">
+
+  <h3 class="font-bold mb-3">
+    Etapas de Produção
+  </h3>
+
+  <input
+    class="input"
+    type="text"
+    id="etapaNome"
+    placeholder="Nome da etapa"
+  />
+
+  <input
+    class="input"
+    type="number"
+    step="0.01"
+    id="etapaHoras"
+    placeholder="Horas da etapa"
+  />
+
+  <input
+    class="input"
+    type="number"
+    step="0.01"
+    id="etapaValorHora"
+    placeholder="Valor hora"
+  />
+
+  <input
+    class="input"
+    type="number"
+    step="0.01"
+    id="etapaEnergia"
+    placeholder="Custo energia"
+  />
+
+  <input
+    class="input"
+    type="number"
+    step="0.01"
+    id="etapaAbrasivos"
+    placeholder="Custo abrasivos"
+  />
+
+  <button
+    type="button"
+    id="addEtapaBtn"
+    class="primary-button mt-2"
+  >
+    Adicionar Etapa
+  </button>
+
+</div>
+
+<!-- LISTA ETAPAS -->
+
+<div>
+
+  ${etapasTemporarias.map(etapa => `
+    <div class="card">
+
+      <div class="flex justify-between">
+
+        <div>
+
+          <h4 class="font-bold">
+            ${etapa.nome}
+          </h4>
+
+          <p class="text-sm text-slate-400">
+            ${etapa.horas}h
+          </p>
+
+        </div>
+
+        <div class="text-right">
+
+          <p class="text-orange-400 font-bold">
+            R$ ${etapa.custoTotal.toFixed(2)}
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+  `).join('')}
+
+</div>
+
           <!-- CUSTOS -->
 
           <input
