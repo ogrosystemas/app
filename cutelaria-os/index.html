@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="pt-BR">
 
 <head>
@@ -7,26 +8,31 @@
 
   <meta
     name="viewport"
-    content="width=device-width, initial-scale=1.0"
+    content="
+      width=device-width,
+      initial-scale=1.0,
+      viewport-fit=cover
+    "
   />
 
   <title>Cutelaria OS</title>
 
-  <!-- PWA -->
-
-  <meta name="theme-color" content="#020617" />
+  <meta
+    name="theme-color"
+    content="#020617"
+  />
 
   <link
     rel="manifest"
-    href="manifest.json"
+    href="./manifest.json"
   />
 
   <link
-    rel="apple-touch-icon"
-    href="assets/icons/icon-192.png"
+    rel="icon"
+    href="./assets/icons/icon-192.png"
   />
 
-  <!-- FONT -->
+  <!-- GOOGLE FONTS -->
 
   <link
     rel="preconnect"
@@ -40,7 +46,11 @@
   />
 
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    href="
+      https://fonts.googleapis.com/css2?
+      family=Inter:wght@300;400;500;600;700;800;900&
+      display=swap
+    "
     rel="stylesheet"
   />
 
@@ -48,409 +58,309 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <script>
+  <!-- CHART -->
 
-    tailwind.config = {
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-      theme: {
+  <!-- PDF -->
 
-        extend: {
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-          colors: {
+  <!-- LUCIDE -->
 
-            primary: '#f97316'
+  <script src="https://unpkg.com/lucide@latest"></script>
 
-          },
+  <style>
 
-          boxShadow: {
+    * {
 
-            glow: '0 0 40px rgba(249,115,22,.25)'
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
 
-          }
+    }
 
-        }
+    body {
+
+      font-family: 'Inter', sans-serif;
+
+      background:
+        radial-gradient(
+          circle at top,
+          rgba(30,41,59,.55),
+          transparent 40%
+        ),
+        #020617;
+
+      color: #f8fafc;
+
+      min-height: 100vh;
+
+      overflow-x: hidden;
+
+    }
+
+    #app {
+
+      width: 100%;
+
+      max-width: 760px;
+
+      margin: auto;
+
+      padding:
+        24px
+        18px
+        140px;
+
+    }
+
+    /* CARDS */
+
+    .card {
+
+      background:
+        rgba(15,23,42,.72);
+
+      border:
+        1px solid
+        rgba(51,65,85,.45);
+
+      backdrop-filter: blur(14px);
+
+      border-radius: 28px;
+
+      padding: 22px;
+
+      box-shadow:
+        0 10px 40px rgba(0,0,0,.22);
+
+    }
+
+    /* BOTÕES */
+
+    .primary-button {
+
+      width: 100%;
+
+      border: none;
+
+      cursor: pointer;
+
+      border-radius: 18px;
+
+      padding:
+        14px
+        18px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #f97316,
+          #ea580c
+        );
+
+      color: white;
+
+      font-weight: 700;
+
+      transition: .25s;
+
+      box-shadow:
+        0 10px 30px rgba(249,115,22,.18);
+
+    }
+
+    .primary-button:hover {
+
+      transform:
+        translateY(-2px);
+
+    }
+
+    /* INPUTS */
+
+    input,
+    textarea,
+    select {
+
+      width: 100%;
+
+      border-radius: 18px;
+
+      border:
+        1px solid
+        rgba(51,65,85,.6);
+
+      background:
+        rgba(15,23,42,.92);
+
+      color: #f8fafc;
+
+      padding:
+        14px
+        16px;
+
+      margin-bottom: 14px;
+
+      outline: none;
+
+      transition: .2s;
+
+      font-size: 15px;
+
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+
+      border-color:
+        rgba(249,115,22,.7);
+
+      box-shadow:
+        0 0 0 4px rgba(249,115,22,.12);
+
+    }
+
+    select option {
+
+      background: #0f172a;
+      color: #f8fafc;
+
+    }
+
+    ::placeholder {
+
+      color: #94a3b8;
+
+    }
+
+    /* NAVBAR */
+
+    #bottomNav {
+
+      position: fixed;
+
+      left: 50%;
+
+      bottom: 18px;
+
+      transform: translateX(-50%);
+
+      width: calc(100% - 24px);
+
+      max-width: 760px;
+
+      display: grid;
+
+      grid-template-columns:
+        repeat(6,1fr);
+
+      gap: 8px;
+
+      background:
+        rgba(15,23,42,.88);
+
+      backdrop-filter: blur(18px);
+
+      border:
+        1px solid rgba(51,65,85,.5);
+
+      border-radius: 28px;
+
+      padding: 12px;
+
+      z-index: 9999;
+
+      box-shadow:
+        0 10px 40px rgba(0,0,0,.3);
+
+    }
+
+    #bottomNav a {
+
+      text-decoration: none;
+
+      color: #94a3b8;
+
+      display: flex;
+
+      flex-direction: column;
+
+      align-items: center;
+
+      justify-content: center;
+
+      gap: 6px;
+
+      font-size: 11px;
+
+      font-weight: 600;
+
+      padding:
+        12px
+        6px;
+
+      border-radius: 18px;
+
+      transition: .2s;
+
+    }
+
+    #bottomNav a.active {
+
+      background:
+        linear-gradient(
+          135deg,
+          #f97316,
+          #ea580c
+        );
+
+      color: white;
+
+      box-shadow:
+        0 10px 30px rgba(249,115,22,.22);
+
+    }
+
+    /* ICONES */
+
+    #bottomNav svg {
+
+      width: 20px;
+      height: 20px;
+
+      stroke-width: 2.2;
+
+    }
+
+    /* MOBILE */
+
+    @media (max-width: 640px) {
+
+      #bottomNav {
+
+        grid-template-columns:
+          repeat(3,1fr);
 
       }
 
     }
 
-  </script>
-
-  <!-- CHART -->
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <!-- DEXIE -->
-
-  <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"></script>
-
-  <!-- CSS GLOBAL -->
-
-<style>
-
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-
-  html {
-    scroll-behavior: smooth;
-  }
-
-  body {
-
-    font-family: 'Inter', sans-serif;
-
-    background:
-      radial-gradient(
-        circle at top,
-        rgba(30,41,59,.6),
-        transparent 40%
-      ),
-      #020617;
-
-    color: #f8fafc;
-
-    min-height: 100vh;
-
-    overflow-x: hidden;
-
-  }
-
-  #app {
-
-    width: 100%;
-
-    max-width: 760px;
-
-    margin: auto;
-
-    padding:
-      24px
-      18px
-      140px;
-
-  }
-
-  .card {
-
-    background:
-      rgba(15,23,42,.72);
-
-    border:
-      1px solid
-      rgba(51,65,85,.5);
-
-    backdrop-filter: blur(14px);
-
-    border-radius: 28px;
-
-    padding: 22px;
-
-    box-shadow:
-      0 10px 40px rgba(0,0,0,.25);
-
-  }
-
-  .primary-button {
-
-    width: 100%;
-
-    border: none;
-
-    cursor: pointer;
-
-    border-radius: 18px;
-
-    padding:
-      14px
-      18px;
-
-    background:
-      linear-gradient(
-        135deg,
-        #f97316,
-        #ea580c
-      );
-
-    color: white;
-
-    font-weight: 700;
-
-    transition: .25s;
-
-    box-shadow:
-      0 10px 30px rgba(249,115,22,.2);
-
-  }
-
-  .primary-button:hover {
-
-    transform:
-      translateY(-2px);
-
-    box-shadow:
-      0 14px 40px rgba(249,115,22,.35);
-
-  }
-
-  /* INPUTS */
-
-  .input,
-  input,
-  textarea,
-  select {
-
-    width: 100%;
-
-    border-radius: 18px;
-
-    border:
-      1px solid
-      rgba(51,65,85,.7);
-
-    background:
-      rgba(15,23,42,.92);
-
-    color: #f8fafc;
-
-    padding:
-      14px
-      16px;
-
-    margin-bottom: 14px;
-
-    outline: none;
-
-    transition: .2s;
-
-    font-size: 15px;
-
-    appearance: none;
-
-  }
-
-  .input:focus,
-  input:focus,
-  textarea:focus,
-  select:focus {
-
-    border-color:
-      rgba(249,115,22,.7);
-
-    box-shadow:
-      0 0 0 4px rgba(249,115,22,.12);
-
-  }
-
-  /* DROPDOWN OPTIONS */
-
-  select option {
-
-    background: #0f172a;
-
-    color: #f8fafc;
-
-    padding: 12px;
-
-  }
-
-  /* PLACEHOLDER */
-
-  ::placeholder {
-
-    color: #94a3b8;
-
-    opacity: 1;
-
-  }
-
-  /* LABELS */
-
-  label {
-
-    display: block;
-
-    margin-bottom: 8px;
-
-    color: #cbd5e1;
-
-    font-size: 14px;
-
-    font-weight: 600;
-
-  }
-
-  .metric-label {
-
-    color: #94a3b8;
-
-    font-size: 13px;
-
-    margin-bottom: 10px;
-
-    text-transform: uppercase;
-
-    letter-spacing: .08em;
-
-  }
-
-  .metric-value {
-
-    font-size: 34px;
-
-    font-weight: 900;
-
-    line-height: 1;
-
-  }
-
-  #bottomNav {
-
-    position: fixed;
-
-    left: 50%;
-
-    bottom: 18px;
-
-    transform: translateX(-50%);
-
-    width: calc(100% - 24px);
-
-    max-width: 760px;
-
-    display: grid;
-
-    grid-template-columns:
-      repeat(6, 1fr);
-
-    gap: 8px;
-
-    background:
-      rgba(15,23,42,.88);
-
-    backdrop-filter: blur(20px);
-
-    border:
-      1px solid rgba(51,65,85,.5);
-
-    border-radius: 28px;
-
-    padding: 12px;
-
-    z-index: 9999;
-
-    box-shadow:
-      0 10px 40px rgba(0,0,0,.35);
-
-  }
-
-  #bottomNav a {
-
-    text-decoration: none;
-
-    color: #94a3b8;
-
-    text-align: center;
-
-    font-size: 12px;
-
-    padding:
-      12px
-      6px;
-
-    border-radius: 16px;
-
-    transition: .2s;
-
-    font-weight: 600;
-
-  }
-
-  #bottomNav a.active {
-
-    background:
-      linear-gradient(
-        135deg,
-        #f97316,
-        #ea580c
-      );
-
-    color: white;
-
-    box-shadow:
-      0 10px 30px rgba(249,115,22,.2);
-
-  }
-
-  .page-transition {
-
-    opacity: 0;
-
-    transform: translateY(10px);
-
-    transition: .2s;
-
-  }
-
-  canvas {
-
-    max-width: 100% !important;
-
-  }
-
-  @media (max-width: 640px) {
-
-    #app {
-
-      padding:
-        18px
-        14px
-        140px;
-
-    }
-
-    .metric-value {
-
-      font-size: 28px;
-
-    }
-
-    #bottomNav {
-
-      grid-template-columns:
-        repeat(3, 1fr);
-
-    }
-
-  }
-
-</style>
+  </style>
 
 </head>
 
 <body>
 
-  <main id="app"></main>
-
-  <nav id="bottomNav"></nav>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-<script src="https://unpkg.com/lucide@latest"></script>
+  <div id="app"></div>
 
   <script
     type="module"
     src="./js/app.js"
   ></script>
 
-
-
 </body>
 
 </html>
-```
-
