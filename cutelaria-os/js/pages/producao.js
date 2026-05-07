@@ -353,7 +353,8 @@ document.addEventListener('submit', async (e) => {
 
     }
 
-    itensTemporarios = [];
+    let itensTemporarios = [];
+    let etapasTemporarias = [];
 
     location.reload();
   }
