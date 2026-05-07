@@ -1,187 +1,162 @@
 import { db } from '../database/db.js';
 
-import {
-  gerarPDF
-} from '../services/pdf.service.js';
-
-import {
-  showLoading,
-  hideLoading
-} from '../modules/loading.js';
-
-import {
-  showToast
-} from '../modules/toast.js';
-
 export async function dashboardPage() {
 
   const composicoes =
     await db.composicoes.toArray();
 
+  const materiais =
+    await db.materiais.toArray();
+
   const financeiro =
     await db.financeiro.toArray();
 
-  // PRODUÇÃO
+  const pedidos =
+    await db.pedidos.toArray();
 
-  const totalProducoes =
+  // KPIS
+
+  const producoes =
     composicoes.length;
 
-  const faturamentoProducoes =
+  const receita =
     composicoes.reduce(
       (total, item) =>
-        total + item.valorFinal,
+        total + (item.valorFinal || 0),
       0
     );
 
-  const custoProducoes =
+  const custos =
     composicoes.reduce(
       (total, item) =>
-        total + item.custoTotal,
+        total + (item.custoTotal || 0),
       0
     );
 
-  const lucroProducoes =
-    faturamentoProducoes -
-    custoProducoes;
+  const lucro =
+    receita - custos;
 
-  // FINANCEIRO
-
-  const receitasExtras =
-    financeiro
-      .filter(
-        item =>
-          item.tipo ===
-          'receita'
-      )
-      .reduce(
-        (total, item) =>
-          total + item.valor,
-        0
-      );
-
-  const despesasExtras =
-    financeiro
-      .filter(
-        item =>
-          item.tipo ===
-          'despesa'
-      )
-      .reduce(
-        (total, item) =>
-          total + item.valor,
-        0
-      );
-
-  // DRE
-
-  const receitaTotal =
-    faturamentoProducoes +
-    receitasExtras;
-
-  const despesasTotais =
-    custoProducoes +
-    despesasExtras;
-
-  const lucroLiquido =
-    receitaTotal -
-    despesasTotais;
-
-  const margemLiquida =
-    receitaTotal > 0
-      ? (
-          (lucroLiquido /
-            receitaTotal) *
-          100
-        ).toFixed(1)
+  const margem =
+    receita > 0
+      ? ((lucro / receita) * 100)
       : 0;
 
-  // META
+  const ticketMedio =
+    producoes > 0
+      ? receita / producoes
+      : 0;
 
-  const metaMensal = 10000;
+  const estoque =
+    materiais.reduce(
+      (total, item) => {
 
-  const percentualMeta =
-    (
-      (receitaTotal /
-        metaMensal) *
-      100
-    ).toFixed(0);
+        return total +
+          (
+            (item.valor || 0) *
+            (item.estoqueAtual || 0)
+          );
 
-  // MAIS LUCRATIVA
-
-  let facaMaisLucrativa = null;
-
-  composicoes.forEach(item => {
-
-    const lucro =
-      item.valorFinal -
-      item.custoTotal;
-
-    if (
-      !facaMaisLucrativa ||
-      lucro >
-        facaMaisLucrativa.lucro
-    ) {
-
-      facaMaisLucrativa = {
-        nome: item.nome,
-        lucro
-      };
-
-    }
-
-  });
-
-  setTimeout(() => {
-
-    renderFinanceChart(
-      composicoes,
-      financeiro
+      },
+      0
     );
 
-  }, 100);
+  // RANKING
+
+  const ranking =
+    [...composicoes]
+      .sort(
+        (a, b) =>
+          (b.valorFinal || 0) -
+          (a.valorFinal || 0)
+      )
+      .slice(0, 5);
+
+  // PEDIDOS EM PRODUÇÃO
+
+  const producaoAtiva =
+    pedidos.filter(
+      item =>
+        item.status !== 'entrega'
+    );
+
+  // DESPESAS
+
+  const despesas =
+    financeiro
+      .filter(
+        item =>
+          item.tipo === 'despesa'
+      )
+      .reduce(
+        (total, item) =>
+          total + item.valor,
+        0
+      );
+
+  // RECEITAS
+
+  const receitas =
+    financeiro
+      .filter(
+        item =>
+          item.tipo === 'receita'
+      )
+      .reduce(
+        (total, item) =>
+          total + item.valor,
+        0
+      );
 
   return `
+
     <section class="pb-32">
 
-      <!-- HERO KPI -->
+      <!-- HERO -->
 
-      <div class="card mb-5">
+      <div class="mb-8">
 
-        <div class="flex justify-between items-center">
+        <div class="
+          flex
+          justify-between
+          items-start
+        ">
 
           <div>
 
-            <div class="text-slate-400 text-sm">
-              Receita total
-            </div>
+            <h1 class="
+              text-4xl
+              font-black
+              tracking-tight
+            ">
 
-            <div class="text-4xl font-black text-orange-400 mt-2">
+              Cutelaria OS
 
-              R$ ${receitaTotal.toFixed(2)}
+            </h1>
 
-            </div>
+            <p class="
+              text-slate-400
+              mt-2
+            ">
+
+              Central operacional da oficina
+
+            </p>
 
           </div>
 
-          <div class="text-right">
+          <div class="
+            bg-orange-500/10
+            border
+            border-orange-500/20
+            text-orange-400
+            px-4
+            py-2
+            rounded-2xl
+            text-sm
+            font-bold
+          ">
 
-            <div class="text-slate-400 text-sm">
-              Lucro líquido
-            </div>
-
-            <div class="
-              text-2xl
-              font-bold
-              ${
-                lucroLiquido >= 0
-                  ? 'text-green-400'
-                  : 'text-red-400'
-              }
-            ">
-
-              R$ ${lucroLiquido.toFixed(2)}
-
-            </div>
+            ERP INDUSTRIAL
 
           </div>
 
@@ -191,17 +166,62 @@ export async function dashboardPage() {
 
       <!-- KPIS -->
 
-      <div class="grid grid-cols-2 gap-4 mb-5">
+      <div class="
+        grid
+        grid-cols-2
+        gap-4
+        mb-5
+      ">
 
         <div class="card">
 
           <div class="metric-label">
+
+            Receita total
+
+          </div>
+
+          <div class="
+            metric-value
+            text-green-400
+          ">
+
+            R$ ${receita.toFixed(2)}
+
+          </div>
+
+        </div>
+
+        <div class="card">
+
+          <div class="metric-label">
+
+            Lucro líquido
+
+          </div>
+
+          <div class="
+            metric-value
+            text-orange-400
+          ">
+
+            R$ ${lucro.toFixed(2)}
+
+          </div>
+
+        </div>
+
+        <div class="card">
+
+          <div class="metric-label">
+
             Produções
+
           </div>
 
           <div class="metric-value">
 
-            ${totalProducoes}
+            ${producoes}
 
           </div>
 
@@ -210,40 +230,66 @@ export async function dashboardPage() {
         <div class="card">
 
           <div class="metric-label">
+
+            Ticket médio
+
+          </div>
+
+          <div class="
+            metric-value
+            text-cyan-400
+          ">
+
+            R$ ${ticketMedio.toFixed(2)}
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- KPIS 2 -->
+
+      <div class="
+        grid
+        grid-cols-2
+        gap-4
+        mb-5
+      ">
+
+        <div class="card">
+
+          <div class="metric-label">
+
+            Valor em estoque
+
+          </div>
+
+          <div class="
+            metric-value
+            text-yellow-400
+          ">
+
+            R$ ${estoque.toFixed(2)}
+
+          </div>
+
+        </div>
+
+        <div class="card">
+
+          <div class="metric-label">
+
             Margem líquida
-          </div>
-
-          <div class="metric-value text-green-400">
-
-            ${margemLiquida}%
 
           </div>
 
-        </div>
+          <div class="
+            metric-value
+            text-emerald-400
+          ">
 
-        <div class="card">
-
-          <div class="metric-label">
-            Custos totais
-          </div>
-
-          <div class="metric-value text-red-400">
-
-            R$ ${despesasTotais.toFixed(2)}
-
-          </div>
-
-        </div>
-
-        <div class="card">
-
-          <div class="metric-label">
-            Receita produção
-          </div>
-
-          <div class="metric-value">
-
-            R$ ${faturamentoProducoes.toFixed(2)}
+            ${margem.toFixed(1)}%
 
           </div>
 
@@ -251,464 +297,324 @@ export async function dashboardPage() {
 
       </div>
 
-      <!-- META -->
+      <!-- PRODUÇÃO -->
 
       <div class="card mb-5">
 
-        <div class="flex justify-between mb-3">
+        <div class="
+          flex
+          justify-between
+          items-center
+          mb-5
+        ">
 
-          <span class="font-bold">
-            Meta mensal
-          </span>
+          <h2 class="
+            text-2xl
+            font-bold
+          ">
 
-          <span class="text-orange-400 font-bold">
+            Produção ativa
 
-            ${percentualMeta}%
+          </h2>
 
-          </span>
+          <div class="
+            text-orange-400
+            font-bold
+          ">
 
-        </div>
-
-        <div class="w-full h-4 bg-slate-700 rounded-full overflow-hidden">
-
-          <div
-            class="h-full bg-orange-500"
-            style="width:${Math.min(percentualMeta,100)}%"
-          ></div>
-
-        </div>
-
-        <div class="text-slate-400 text-sm mt-3">
-
-          Meta atual:
-          R$ ${metaMensal.toFixed(2)}
-
-        </div>
-
-      </div>
-
-      <!-- CHART -->
-
-      <div class="card mb-5">
-
-        <div class="flex justify-between items-center mb-5">
-
-          <h3 class="font-bold text-lg">
-
-            Fluxo Financeiro
-
-          </h3>
-
-          <div class="text-slate-400 text-sm">
-
-            DRE simplificada
+            ${producaoAtiva.length}
 
           </div>
 
         </div>
-
-        <canvas id="financeChart"></canvas>
-
-      </div>
-
-      <!-- INSIGHTS -->
-
-      <div class="card mb-5">
-
-        <h3 class="font-bold text-lg mb-5">
-
-          Insights Operacionais
-
-        </h3>
 
         <div class="grid gap-4">
 
-          <div class="flex justify-between">
+          ${
+            producaoAtiva.length
 
-            <span class="text-slate-400">
-              Melhor produção
-            </span>
+              ? producaoAtiva.map(item => `
 
-            <span class="text-green-400 font-bold">
+                <div class="
+                  bg-slate-900/60
+                  border
+                  border-slate-700
+                  rounded-2xl
+                  p-4
+                ">
 
-              ${
-                facaMaisLucrativa
-                  ? facaMaisLucrativa.nome
-                  : '-'
-              }
+                  <div class="
+                    flex
+                    justify-between
+                    items-center
+                    mb-3
+                  ">
 
-            </span>
+                    <div>
 
-          </div>
+                      <h3 class="
+                        text-lg
+                        font-bold
+                      ">
 
-          <div class="flex justify-between">
+                        ${item.titulo}
 
-            <span class="text-slate-400">
-              Receita extra
-            </span>
+                      </h3>
 
-            <span>
+                      <p class="
+                        text-slate-400
+                        text-sm
+                      ">
 
-              R$ ${receitasExtras.toFixed(2)}
+                        Status:
+                        ${item.status}
 
-            </span>
+                      </p>
 
-          </div>
+                    </div>
 
-          <div class="flex justify-between">
+                    <div class="
+                      text-orange-400
+                      font-black
+                    ">
 
-            <span class="text-slate-400">
-              Despesas extras
-            </span>
+                      R$ ${item.valor.toFixed(2)}
 
-            <span class="text-red-400">
+                    </div>
 
-              R$ ${despesasExtras.toFixed(2)}
+                  </div>
 
-            </span>
+                  <div class="
+                    h-3
+                    bg-slate-800
+                    rounded-full
+                    overflow-hidden
+                  ">
 
-          </div>
+                    <div
+                      class="
+                        h-full
+                        bg-orange-500
+                      "
+                      style="
+                        width:
+                        ${item.progresso || 0}%
+                      "
+                    ></div>
 
-          <div class="flex justify-between">
+                  </div>
 
-            <span class="text-slate-400">
-              Lucro operacional
-            </span>
+                </div>
 
-            <span class="text-green-400 font-bold">
+              `).join('')
 
-              R$ ${lucroProducoes.toFixed(2)}
+              : `
 
-            </span>
+                <div class="
+                  text-slate-500
+                  text-center
+                  py-8
+                ">
 
-          </div>
+                  Nenhuma produção ativa
+
+                </div>
+
+              `
+          }
 
         </div>
 
       </div>
 
-      <!-- PRODUÇÕES -->
+      <!-- RANKING -->
 
-      <div class="grid gap-4">
+      <div class="card mb-5">
 
-        ${composicoes.reverse().map(item => {
+        <div class="
+          flex
+          justify-between
+          items-center
+          mb-5
+        ">
 
-          const lucro =
-            item.valorFinal -
-            item.custoTotal;
+          <h2 class="
+            text-2xl
+            font-bold
+          ">
 
-          const margem =
-            (
-              (lucro /
-                item.valorFinal) *
-              100
-            ).toFixed(1);
+            Ranking Premium
 
-          return `
+          </h2>
 
-            <div class="card overflow-hidden">
+          <div class="
+            text-slate-400
+            text-sm
+          ">
 
-              ${
-                item.fotoCapa
-                  ? `
-                    <img
-                      src="${item.fotoCapa}"
-                      class="w-full h-52 object-cover"
-                    />
-                  `
-                  : ''
-              }
+            Mais lucrativas
 
-              <div class="p-5">
+          </div>
 
-                <div class="flex justify-between items-start mb-5">
+        </div>
 
-                  <div>
+        <div class="grid gap-4">
 
-                    <h3 class="text-xl font-bold">
+          ${
+            ranking.length
 
-                      ${item.nome}
+              ? ranking.map(
+                (item, index) => `
 
-                    </h3>
+                  <div class="
+                    flex
+                    justify-between
+                    items-center
+                    bg-slate-900/60
+                    border
+                    border-slate-700
+                    rounded-2xl
+                    p-4
+                  ">
 
-                    <p class="text-slate-400 text-sm mt-1">
+                    <div class="
+                      flex
+                      items-center
+                      gap-4
+                    ">
 
-                      ${item.tipoFaca || 'Faca'}
+                      <div class="
+                        w-10
+                        h-10
+                        rounded-full
+                        bg-orange-500/20
+                        flex
+                        items-center
+                        justify-center
+                        text-orange-400
+                        font-black
+                      ">
 
-                    </p>
+                        ${index + 1}
 
-                  </div>
+                      </div>
 
-                  <div class="text-right">
+                      <div>
 
-                    <div class="text-slate-400 text-sm">
+                        <div class="
+                          font-bold
+                        ">
 
-                      Valor final
+                          ${item.nome}
+
+                        </div>
+
+                        <div class="
+                          text-slate-400
+                          text-sm
+                        ">
+
+                          ${item.tipoAco || '-'}
+
+                        </div>
+
+                      </div>
 
                     </div>
 
-                    <div class="text-2xl font-black text-orange-400">
+                    <div class="
+                      text-orange-400
+                      font-black
+                    ">
 
-                      R$ ${item.valorFinal.toFixed(2)}
+                      R$ ${(item.valorFinal || 0).toFixed(2)}
 
                     </div>
 
                   </div>
 
-                </div>
+                `
+              ).join('')
 
-                <div class="grid gap-2 text-sm mb-5">
+              : `
 
-                  <div class="flex justify-between">
+                <div class="
+                  text-slate-500
+                  text-center
+                  py-8
+                ">
 
-                    <span class="text-slate-400">
-                      Aço
-                    </span>
-
-                    <span>
-                      ${item.tipoAco || '-'}
-                    </span>
-
-                  </div>
-
-                  <div class="flex justify-between">
-
-                    <span class="text-slate-400">
-                      Cabo
-                    </span>
-
-                    <span>
-                      ${item.tipoCabo || '-'}
-                    </span>
-
-                  </div>
-
-                  <div class="flex justify-between">
-
-                    <span class="text-slate-400">
-                      Lucro
-                    </span>
-
-                    <span class="text-green-400 font-bold">
-
-                      R$ ${lucro.toFixed(2)}
-
-                    </span>
-
-                  </div>
-
-                  <div class="flex justify-between">
-
-                    <span class="text-slate-400">
-                      Margem
-                    </span>
-
-                    <span>
-
-                      ${margem}%
-
-                    </span>
-
-                  </div>
+                  Sem produções ainda
 
                 </div>
 
-                <div class="flex gap-3">
+              `
+          }
 
-                  <a
-                    href="#orcamento/${item.id}"
-                    class="primary-button flex-1 text-center"
-                  >
-                    Visualizar
-                  </a>
+        </div>
 
-                  <button
-                    class="primary-button export-btn"
-                    data-id="${item.id}"
-                  >
-                    PDF
-                  </button>
+      </div>
 
-                </div>
+      <!-- FINANCEIRO -->
 
-              </div>
+      <div class="
+        grid
+        grid-cols-2
+        gap-4
+      ">
 
-            </div>
+        <div class="card">
 
-          `;
+          <div class="
+            text-slate-400
+            text-sm
+            mb-3
+          ">
 
-        }).join('')}
+            Receitas extras
+
+          </div>
+
+          <div class="
+            text-3xl
+            font-black
+            text-green-400
+          ">
+
+            R$ ${receitas.toFixed(2)}
+
+          </div>
+
+        </div>
+
+        <div class="card">
+
+          <div class="
+            text-slate-400
+            text-sm
+            mb-3
+          ">
+
+            Despesas extras
+
+          </div>
+
+          <div class="
+            text-3xl
+            font-black
+            text-red-400
+          ">
+
+            R$ ${despesas.toFixed(2)}
+
+          </div>
+
+        </div>
 
       </div>
 
     </section>
+
   `;
-}
-
-function renderFinanceChart(
-  composicoes,
-  financeiro
-) {
-
-  const canvas =
-    document.getElementById(
-      'financeChart'
-    );
-
-  if (!canvas) return;
-
-  const ctx =
-    canvas.getContext('2d');
-
-  const labels =
-    composicoes.map(
-      (_, index) =>
-        `#${index + 1}`
-    );
-
-  const faturamento =
-    composicoes.map(
-      item => item.valorFinal
-    );
-
-  const custos =
-    composicoes.map(
-      item => item.custoTotal
-    );
-
-  const lucro =
-    composicoes.map(
-      item =>
-        item.valorFinal -
-        item.custoTotal
-    );
-
-  new Chart(ctx, {
-
-    type: 'line',
-
-    data: {
-
-      labels,
-
-      datasets: [
-
-        {
-          label: 'Faturamento',
-          data: faturamento,
-          borderColor: '#f97316',
-          tension: 0.4
-        },
-
-        {
-          label: 'Custos',
-          data: custos,
-          borderColor: '#ef4444',
-          tension: 0.4
-        },
-
-        {
-          label: 'Lucro',
-          data: lucro,
-          borderColor: '#22c55e',
-          tension: 0.4
-        }
-
-      ]
-
-    },
-
-    options: {
-
-      responsive: true,
-
-      plugins: {
-
-        legend: {
-
-          labels: {
-            color: '#cbd5e1'
-          }
-
-        }
-
-      },
-
-      scales: {
-
-        x: {
-
-          ticks: {
-            color: '#94a3b8'
-          }
-
-        },
-
-        y: {
-
-          ticks: {
-            color: '#94a3b8'
-          }
-
-        }
-
-      }
-
-    }
-
-  });
 
 }
-
-window.addEventListener(
-  'click',
-  async (e) => {
-
-    if (
-      e.target.classList.contains(
-        'export-btn'
-      )
-    ) {
-
-      showLoading();
-
-      const composicaoId =
-        Number(
-          e.target.dataset.id
-        );
-
-      const composicao =
-        await db.composicoes.get(
-          composicaoId
-        );
-
-      const itens =
-        await db.composicaoItens
-          .where('composicaoId')
-          .equals(composicaoId)
-          .toArray();
-
-      const etapas =
-        await db.etapas
-          .where('composicaoId')
-          .equals(composicaoId)
-          .toArray();
-
-      await gerarPDF({
-
-        composicao,
-        itens,
-        etapas
-
-      });
-
-      hideLoading();
-
-      showToast(
-        'PDF gerado!'
-      );
-
-    }
-
-  }
-);
