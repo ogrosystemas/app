@@ -2,10 +2,21 @@ export const db = new Dexie(
   'CutelariaOS'
 );
 
-db.version(3).stores({
+db.version(4).stores({
 
   materiais:
-    '++id,nome,categoria,valor,unidade',
+    `
+      ++id,
+      nome,
+      categoria,
+      valor,
+      unidade,
+
+      estoqueAtual,
+      estoqueMinimo,
+
+      createdAt
+    `,
 
   equipamentos:
     '++id,nome,valorCompra,vidaUtil,horasMes,custoHora',
