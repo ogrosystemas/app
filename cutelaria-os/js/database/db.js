@@ -2,7 +2,33 @@ export const db = new Dexie(
   'CutelariaOS'
 );
 
-db.version(4).stores({
+db.version(5).stores({
+
+  clientes:
+    `
+      ++id,
+      nome,
+      telefone,
+      email,
+      instagram,
+      cidade,
+      observacoes,
+      createdAt
+    `,
+
+  pedidos:
+    `
+      ++id,
+      clienteId,
+      composicaoId,
+      titulo,
+      status,
+      valor,
+      entrada,
+      restante,
+      entregaPrevista,
+      createdAt
+    `,
 
   materiais:
     `
@@ -11,15 +37,20 @@ db.version(4).stores({
       categoria,
       valor,
       unidade,
-
       estoqueAtual,
       estoqueMinimo,
-
       createdAt
     `,
 
   equipamentos:
-    '++id,nome,valorCompra,vidaUtil,horasMes,custoHora',
+    `
+      ++id,
+      nome,
+      valorCompra,
+      vidaUtil,
+      horasMes,
+      custoHora
+    `,
 
   composicoes:
     `
