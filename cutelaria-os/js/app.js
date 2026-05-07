@@ -11,6 +11,10 @@ import {
 } from './pages/producao.js';
 
 import {
+  financeiroPage
+} from './pages/financeiro.js';
+
+import {
   configuracoesPage
 } from './pages/configuracoes.js';
 
@@ -19,8 +23,8 @@ import {
 } from './pages/orcamento.js';
 
 import {
-  financeiroPage
-} from './pages/financeiro.js';
+  clientesPage
+} from './pages/clientes.js';
 
 const app =
   document.getElementById('app');
@@ -29,8 +33,6 @@ async function renderRoute() {
 
   const hash =
     window.location.hash || '#dashboard';
-
-  // ORÇAMENTO
 
   if (
     hash.startsWith(
@@ -61,6 +63,9 @@ async function renderRoute() {
 
     '#financeiro':
       financeiroPage,
+
+    '#clientes':
+      clientesPage,
 
     '#configuracoes':
       configuracoesPage
@@ -128,6 +133,13 @@ function renderNavbar(active) {
       class="${active === '#financeiro' ? 'active' : ''}"
     >
       Financeiro
+    </a>
+
+    <a
+      href="#clientes"
+      class="${active === '#clientes' ? 'active' : ''}"
+    >
+      Clientes
     </a>
 
     <a
