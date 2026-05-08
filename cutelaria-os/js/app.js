@@ -1,172 +1,58 @@
-import {
-  dashboardPage
-} from './pages/dashboard.js';
+import { initRouter } from './modules/router.js';
 
-import {
-  materiaisPage
-} from './pages/materiais.js';
+async function startApp() {
 
-import {
-  producaoPage
-} from './pages/producao.js';
+  try {
 
-import {
-  financeiroPage
-} from './pages/financeiro.js';
+    await initRouter();
 
-import {
-  clientesPage
-} from './pages/clientes.js';
+  } catch (error) {
 
-import {
-  timelinePage
-} from './pages/timeline.js';
+    console.error(
+      'Erro ao iniciar app:',
+      error
+    );
 
-import {
-  configuracoesPage
-} from './pages/configuracoes.js';
+    const app = document.getElementById('app');
 
-import {
-  orcamentoPage
-} from './pages/orcamento.js';
+    if (app) {
 
+      app.innerHTML = `
 
-const app =
-  document.getElementById('app');
+        <div style="
+          padding:40px;
+          color:white;
+          font-family:Inter,sans-serif;
+        ">
 
-async function renderRoute() {
+          <h1 style="
+            font-size:32px;
+            margin-bottom:16px;
+          ">
+            Cutelaria OS
+          </h1>
 
-  const hash =
-    window.location.hash || '#dashboard';
+          <p style="color:#94a3b8">
+            Erro ao carregar sistema.
+          </p>
 
-  if (
-    hash.startsWith(
-      '#orcamento/'
-    )
-  ) {
+          <pre style="
+            margin-top:20px;
+            color:#f97316;
+            white-space:pre-wrap;
+          ">${error}</pre>
 
-    const id =
-      hash.split('/')[1];
+        </div>
 
-    app.innerHTML =
-      await orcamentoPage(id);
+      `;
 
-    return;
+    }
 
   }
 
-  const routes = {
-
-    '#dashboard':
-      dashboardPage,
-
-    '#materiais':
-      materiaisPage,
-
-    '#producao':
-      producaoPage,
-
-    '#timeline':
-      timelinePage,
-
-    '#financeiro':
-      financeiroPage,
-
-    '#clientes':
-      clientesPage,
-
-    '#configuracoes':
-      configuracoesPage
-
-  };
-
-  const page =
-    routes[hash];
-
-  if (!page) return;
-
-  app.classList.add(
-    'page-transition'
-  );
-
-  const content =
-    await page();
-
-  setTimeout(() => {
-
-    app.innerHTML = content;
-
-    app.classList.remove(
-      'page-transition'
-    );
-
-  }, 120);
-
-  renderNavbar(hash);
-
-}
-
-function renderNavbar(active) {
-
-  const nav =
-    document.getElementById(
-      'bottomNav'
-    );
-
-  nav.innerHTML = `
-
-    <a
-      href="#dashboard"
-      class="${active === '#dashboard' ? 'active' : ''}"
-    >
-      Dashboard
-    </a>
-
-    <a
-      href="#materiais"
-      class="${active === '#materiais' ? 'active' : ''}"
-    >
-      Materiais
-    </a>
-
-    <a
-      href="#timeline"
-      class="${active === '#timeline' ? 'active' : ''}"
-    >
-      Produção
-    </a>
-
-    <a
-      href="#financeiro"
-      class="${active === '#financeiro' ? 'active' : ''}"
-    >
-      Financeiro
-    </a>
-
-    <a
-      href="#clientes"
-      class="${active === '#clientes' ? 'active' : ''}"
-    >
-      Clientes
-    </a>
-
-    <a
-      href="#configuracoes"
-      class="${active === '#configuracoes' ? 'active' : ''}"
-    >
-      Config
-    </a>
-
-  `;
-
 }
 
 window.addEventListener(
-  'hashchange',
-  renderRoute
-);
-
-window.addEventListener(
-  'load',
-  renderRoute
+  'DOMContentLoaded',
+  startApp
 );
