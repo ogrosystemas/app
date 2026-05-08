@@ -1,9 +1,12 @@
-const CACHE_NAME = 'cutelaria-os-v2';
+const CACHE_NAME =
+  'cutelaria-os-v10';
 
 const urlsToCache = [
 
   './',
   './index.html',
+
+  './manifest.json',
 
   './css/main.css',
   './css/layout.css',
@@ -11,15 +14,15 @@ const urlsToCache = [
   './css/pages.css',
   './css/animations.css',
 
-  './js/app.js',
-
-  './manifest.json'
+  './js/app.js'
 
 ];
 
 self.addEventListener(
   'install',
   (event) => {
+
+    self.skipWaiting();
 
     event.waitUntil(
 
@@ -28,28 +31,6 @@ self.addEventListener(
 
           return cache.addAll(
             urlsToCache
-          );
-
-        })
-
-    );
-
-  }
-);
-
-self.addEventListener(
-  'fetch',
-  (event) => {
-
-    event.respondWith(
-
-      caches.match(event.request)
-        .then((response) => {
-
-          return (
-            response
-            ||
-            fetch(event.request)
           );
 
         })
@@ -82,6 +63,33 @@ self.addEventListener(
 
             })
 
+          );
+
+        })
+        .then(() => {
+
+          return self.clients.claim();
+
+        })
+
+    );
+
+  }
+);
+
+self.addEventListener(
+  'fetch',
+  (event) => {
+
+    event.respondWith(
+
+      caches.match(event.request)
+        .then((response) => {
+
+          return (
+            response
+            ||
+            fetch(event.request)
           );
 
         })
