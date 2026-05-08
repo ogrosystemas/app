@@ -1,10 +1,10 @@
 import { db } from '../database/db.js';
 
 // =========================
-// EXPORT BACKUP
+// EXPORTAR BACKUP
 // =========================
 
-export async function exportBackup() {
+export async function exportarBackup() {
 
   try {
 
@@ -65,7 +65,7 @@ export async function exportBackup() {
         blob
       );
 
-    const a =
+    const link =
       document.createElement(
         'a'
       );
@@ -75,12 +75,20 @@ export async function exportBackup() {
         .toISOString()
         .split('T')[0];
 
-    a.href = url;
+    link.href = url;
 
-    a.download =
+    link.download =
       `cutelaria-backup-${date}.json`;
 
-    a.click();
+    document.body.appendChild(
+      link
+    );
+
+    link.click();
+
+    document.body.removeChild(
+      link
+    );
 
     URL.revokeObjectURL(
       url
@@ -91,6 +99,7 @@ export async function exportBackup() {
   } catch (error) {
 
     console.error(
+      'Erro ao exportar backup:',
       error
     );
 
@@ -105,10 +114,10 @@ export async function exportBackup() {
 }
 
 // =========================
-// IMPORT BACKUP
+// IMPORTAR BACKUP
 // =========================
 
-export async function importBackup(
+export async function importarBackup(
   file
 ) {
 
@@ -140,7 +149,7 @@ export async function importBackup(
 
     await db.settings.clear();
 
-    // RESTORE
+    // RESTAURA
 
     if (data.materiais?.length) {
 
@@ -225,6 +234,7 @@ export async function importBackup(
   } catch (error) {
 
     console.error(
+      'Erro ao importar backup:',
       error
     );
 
