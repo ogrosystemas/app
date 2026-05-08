@@ -1,3 +1,5 @@
+import { renderNavbar } from '../modules/navbar.js';
+
 const routes = {
 
   dashboard: '../pages/dashboard.js',
@@ -49,15 +51,33 @@ async function renderRoute() {
 
       </main>
 
+      ${renderNavbar(hash)}
+
     `;
 
-    // RECRIAR ÍCONES
+    requestAnimationFrame(() => {
 
-    if (window.lucide) {
+      const page =
+        document.querySelector('.page-transition');
 
-      lucide.createIcons();
+      if (page) {
 
-    }
+        page.style.opacity = '1';
+
+        page.style.transform =
+          'translateY(0px)';
+
+      }
+
+      // LUCIDE
+
+      if (window.lucide) {
+
+        lucide.createIcons();
+
+      }
+
+    });
 
   } catch (error) {
 
