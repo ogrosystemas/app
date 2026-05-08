@@ -18,6 +18,8 @@ const routes = {
 
   config: '../pages/configuracoes.js'
 
+  calculadora: '../pages/calculadora.js',
+
 };
 
 async function renderRoute() {
