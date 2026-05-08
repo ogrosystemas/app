@@ -4,7 +4,15 @@ export async function onboardingPage() {
 
   return `
 
-    <section class="pb-32">
+    <section class="
+      min-h-screen
+      flex
+      flex-col
+      items-center
+      justify-center
+
+      pb-24
+    ">
 
       <!-- HERO -->
 
@@ -16,45 +24,49 @@ export async function onboardingPage() {
         <div class="
           w-24
           h-24
-          rounded-[28px]
           mx-auto
           mb-6
 
-          flex
-          items-center
-          justify-center
+          rounded-[32px]
 
           bg-gradient-to-br
           from-orange-500
           to-orange-700
 
+          flex
+          items-center
+          justify-center
+
           shadow-2xl
         ">
 
           <i
-            data-lucide="anvil"
+            data-lucide="trophy"
             class="w-12 h-12 text-white"
           ></i>
 
         </div>
 
         <h1 class="
-          text-4xl
+          text-5xl
           font-black
           mb-4
         ">
 
           Bem-vindo ao
+
           <span class="text-orange-400">
+
             Cutelaria OS
+
           </span>
 
         </h1>
 
         <p class="
           text-slate-400
-          text-lg
-          leading-relaxed
+          text-xl
+          max-w-2xl
         ">
 
           Configure sua oficina
@@ -65,9 +77,14 @@ export async function onboardingPage() {
 
       </div>
 
-      <!-- CARD -->
+      <!-- FORM -->
 
-      <div class="card">
+      <div class="
+        card
+        w-full
+        max-w-3xl
+        mb-8
+      ">
 
         <div class="
           grid
@@ -85,12 +102,9 @@ export async function onboardingPage() {
             </label>
 
             <input
-              id="oficinaNome"
+              id="onboardingWorkshop"
               type="text"
-              placeholder="
-                Ex:
-                Barcelos Knives
-              "
+              placeholder="Ex.: Barcelos Knives"
             />
 
           </div>
@@ -106,12 +120,9 @@ export async function onboardingPage() {
             </label>
 
             <input
-              id="cuteleiroNome"
+              id="onboardingOwner"
               type="text"
-              placeholder="
-                Ex:
-                Tiburcio Barcelos
-              "
+              placeholder="Ex.: Tiburcio Barcelos"
             />
 
           </div>
@@ -127,14 +138,14 @@ export async function onboardingPage() {
             </label>
 
             <input
-              id="margemPadrao"
+              id="onboardingMargin"
               type="number"
               value="100"
             />
 
           </div>
 
-          <!-- CUSTO HORA -->
+          <!-- HORA -->
 
           <div>
 
@@ -145,7 +156,7 @@ export async function onboardingPage() {
             </label>
 
             <input
-              id="custoHora"
+              id="onboardingHourCost"
               type="number"
               value="50"
             />
@@ -163,14 +174,14 @@ export async function onboardingPage() {
             </label>
 
             <input
-              id="metaMensal"
+              id="onboardingGoal"
               type="number"
               value="10000"
             />
 
           </div>
 
-          <!-- TIPO -->
+          <!-- PERFIL -->
 
           <div>
 
@@ -180,21 +191,23 @@ export async function onboardingPage() {
 
             </label>
 
-            <select id="perfilOficina">
+            <select
+              id="onboardingProfile"
+            >
 
-              <option value="artesanal">
+              <option value="Artesanal">
 
                 Artesanal
 
               </option>
 
-              <option value="premium">
+              <option value="Premium">
 
                 Premium
 
               </option>
 
-              <option value="industrial">
+              <option value="Industrial">
 
                 Industrial
 
@@ -207,11 +220,8 @@ export async function onboardingPage() {
           <!-- BOTAO -->
 
           <button
-            id="saveOnboarding"
-            class="
-              primary-button
-              mt-4
-            "
+            id="finishOnboardingButton"
+            class="primary-button mt-4"
           >
 
             Finalizar configuração
@@ -222,121 +232,26 @@ export async function onboardingPage() {
 
       </div>
 
-      <!-- BENEFICIOS -->
+      <!-- FEATURES -->
 
       <div class="
         grid
         gap-5
-        mt-8
+        w-full
+        max-w-3xl
       ">
 
-        <div class="card">
+        ${featureCard(
+          'wallet',
+          'Precificação inteligente',
+          'Descubra o custo real das suas facas e aumente sua margem com precisão.'
+        )}
 
-          <div class="
-            flex
-            items-start
-            gap-4
-          ">
-
-            <div class="
-              w-14
-              h-14
-              rounded-2xl
-
-              flex
-              items-center
-              justify-center
-
-              bg-orange-500/20
-              text-orange-400
-            ">
-
-              <i data-lucide="wallet"></i>
-
-            </div>
-
-            <div>
-
-              <h2 class="
-                text-xl
-                font-bold
-                mb-2
-              ">
-
-                Precificação inteligente
-
-              </h2>
-
-              <p class="
-                text-slate-400
-                leading-relaxed
-              ">
-
-                Descubra o custo real
-                das suas facas e aumente
-                sua margem com precisão.
-
-              </p>
-
-            </div>
-
-          </div>
-
-        </div>
-
-        <div class="card">
-
-          <div class="
-            flex
-            items-start
-            gap-4
-          ">
-
-            <div class="
-              w-14
-              h-14
-              rounded-2xl
-
-              flex
-              items-center
-              justify-center
-
-              bg-orange-500/20
-              text-orange-400
-            ">
-
-              <i data-lucide="bar-chart-3"></i>
-
-            </div>
-
-            <div>
-
-              <h2 class="
-                text-xl
-                font-bold
-                mb-2
-              ">
-
-                Dashboard industrial
-
-              </h2>
-
-              <p class="
-                text-slate-400
-                leading-relaxed
-              ">
-
-                Controle produção,
-                lucro, materiais e
-                crescimento da oficina.
-
-              </p>
-
-            </div>
-
-          </div>
-
-        </div>
+        ${featureCard(
+          'chart-column',
+          'Dashboard industrial',
+          'Controle produção, lucro, materiais e crescimento da oficina.'
+        )}
 
       </div>
 
@@ -346,92 +261,208 @@ export async function onboardingPage() {
 
 }
 
-// SALVAR
+// ======================
+// FEATURE CARD
+// ======================
+
+function featureCard(
+  icon,
+  title,
+  description
+) {
+
+  return `
+
+    <div class="
+      card
+      flex
+      items-start
+      gap-5
+    ">
+
+      <div class="
+        w-14
+        h-14
+
+        rounded-2xl
+
+        bg-orange-500/10
+
+        flex
+        items-center
+        justify-center
+      ">
+
+        <i
+          data-lucide="${icon}"
+          class="
+            w-6
+            h-6
+            text-orange-400
+          "
+        ></i>
+
+      </div>
+
+      <div>
+
+        <h3 class="
+          text-2xl
+          font-bold
+          mb-2
+        ">
+
+          ${title}
+
+        </h3>
+
+        <p class="
+          text-slate-400
+          leading-relaxed
+        ">
+
+          ${description}
+
+        </p>
+
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+// ======================
+// SAVE CONFIG
+// ======================
 
 window.addEventListener(
   'click',
-  async (e) => {
+  async (event) => {
 
     if (
-      e.target.id ===
-      'saveOnboarding'
+      event.target.id !==
+      'finishOnboardingButton'
     ) {
 
-      const settings = {
+      return;
 
-        oficinaNome:
+    }
 
+    try {
+
+      const oficinaNome =
+
+        document.getElementById(
+          'onboardingWorkshop'
+        ).value.trim();
+
+      const cuteleiroNome =
+
+        document.getElementById(
+          'onboardingOwner'
+        ).value.trim();
+
+      const margemPadrao =
+
+        Number(
           document.getElementById(
-            'oficinaNome'
-          ).value,
+            'onboardingMargin'
+          ).value
+        );
 
-        cuteleiroNome:
+      const custoHora =
 
+        Number(
           document.getElementById(
-            'cuteleiroNome'
-          ).value,
+            'onboardingHourCost'
+          ).value
+        );
 
-        margemPadrao:
+      const metaMensal =
 
-          Number(
-            document.getElementById(
-              'margemPadrao'
-            ).value
-          ),
-
-        custoHora:
-
-          Number(
-            document.getElementById(
-              'custoHora'
-            ).value
-          ),
-
-        metaMensal:
-
-          Number(
-            document.getElementById(
-              'metaMensal'
-            ).value
-          ),
-
-        perfilOficina:
-
+        Number(
           document.getElementById(
-            'perfilOficina'
-          ).value,
+            'onboardingGoal'
+          ).value
+        );
 
-        onboardingCompleto: true,
+      const perfilOficina =
+
+        document.getElementById(
+          'onboardingProfile'
+        ).value;
+
+      // VALIDACAO
+
+      if (
+        !oficinaNome
+        ||
+        !cuteleiroNome
+      ) {
+
+        alert(
+          'Preencha todos os campos.'
+        );
+
+        return;
+
+      }
+
+      // LIMPA SETTINGS ANTIGO
+
+      await db.settings.clear();
+
+      // SALVA CONFIG
+
+      await db.settings.add({
+
+        oficinaNome,
+
+        cuteleiroNome,
+
+        margemPadrao,
+
+        custoHora,
+
+        metaMensal,
+
+        perfilOficina,
 
         createdAt:
           new Date().toISOString()
 
-      };
+      });
 
-      try {
+      console.log(
+        'Onboarding salvo'
+      );
 
-        await db.settings.clear();
+      // REDIRECIONA
 
-        await db.settings.add(
-          settings
+      window.location.hash =
+        '#dashboard';
+
+      // FORÇA RENDER
+
+      setTimeout(() => {
+
+        window.dispatchEvent(
+          new HashChangeEvent(
+            'hashchange'
+          )
         );
 
-        alert(
-          'Configuração salva com sucesso.'
-        );
+      }, 100);
 
-        window.location.hash =
-          '#dashboard';
+    } catch (error) {
 
-      } catch (error) {
+      console.error(error);
 
-        console.error(error);
-
-        alert(
-          'Erro ao salvar configurações.'
-        );
-
-      }
+      alert(
+        'Erro ao salvar configuração.'
+      );
 
     }
 
