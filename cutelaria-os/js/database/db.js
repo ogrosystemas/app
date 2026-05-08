@@ -2,7 +2,7 @@ export const db = new Dexie(
   'cutelariaOS'
 );
 
-db.version(1).stores({
+db.version(3).stores({
 
   materiais:
     '++id,nome,categoria,valor',
@@ -20,3 +20,5 @@ db.version(1).stores({
     '++id,oficinaNome'
 
 });
+
+db.open();
