@@ -4,38 +4,56 @@ import { db } from '../database/db.js';
 // EXPORTAR BACKUP
 // =========================
 
-export async function exportarBackup() {
+async function exportarBackupInterno() {
 
   try {
 
     const backupData = {
 
       materiais:
-        await db.materiais.toArray(),
+        db.materiais
+          ? await db.materiais.toArray()
+          : [],
 
       composicoes:
-        await db.composicoes.toArray(),
+        db.composicoes
+          ? await db.composicoes.toArray()
+          : [],
 
       clientes:
-        await db.clientes.toArray(),
+        db.clientes
+          ? await db.clientes.toArray()
+          : [],
 
       financeiro:
-        await db.financeiro.toArray(),
+        db.financeiro
+          ? await db.financeiro.toArray()
+          : [],
 
       producao:
-        await db.producao.toArray(),
+        db.producao
+          ? await db.producao.toArray()
+          : [],
 
       pedidos:
-        await db.pedidos.toArray(),
+        db.pedidos
+          ? await db.pedidos.toArray()
+          : [],
 
       estoque:
-        await db.estoque.toArray(),
+        db.estoque
+          ? await db.estoque.toArray()
+          : [],
 
       equipamentos:
-        await db.equipamentos.toArray(),
+        db.equipamentos
+          ? await db.equipamentos.toArray()
+          : [],
 
       settings:
-        await db.settings.toArray(),
+        db.settings
+          ? await db.settings.toArray()
+          : [],
 
       exportedAt:
         new Date().toISOString()
@@ -53,10 +71,8 @@ export async function exportarBackup() {
       new Blob(
         [json],
         {
-
           type:
             'application/json'
-
         }
       );
 
@@ -65,7 +81,7 @@ export async function exportarBackup() {
         blob
       );
 
-    const link =
+    const a =
       document.createElement(
         'a'
       );
@@ -75,19 +91,19 @@ export async function exportarBackup() {
         .toISOString()
         .split('T')[0];
 
-    link.href = url;
+    a.href = url;
 
-    link.download =
+    a.download =
       `cutelaria-backup-${date}.json`;
 
     document.body.appendChild(
-      link
+      a
     );
 
-    link.click();
+    a.click();
 
     document.body.removeChild(
-      link
+      a
     );
 
     URL.revokeObjectURL(
@@ -99,7 +115,7 @@ export async function exportarBackup() {
   } catch (error) {
 
     console.error(
-      'Erro ao exportar backup:',
+      'Erro exportando backup:',
       error
     );
 
@@ -117,7 +133,7 @@ export async function exportarBackup() {
 // IMPORTAR BACKUP
 // =========================
 
-export async function importarBackup(
+async function importarBackupInterno(
   file
 ) {
 
@@ -129,29 +145,41 @@ export async function importarBackup(
     const data =
       JSON.parse(text);
 
-    // LIMPA TABELAS
+    // LIMPA
 
-    await db.materiais.clear();
+    if (db.materiais)
+      await db.materiais.clear();
 
-    await db.composicoes.clear();
+    if (db.composicoes)
+      await db.composicoes.clear();
 
-    await db.clientes.clear();
+    if (db.clientes)
+      await db.clientes.clear();
 
-    await db.financeiro.clear();
+    if (db.financeiro)
+      await db.financeiro.clear();
 
-    await db.producao.clear();
+    if (db.producao)
+      await db.producao.clear();
 
-    await db.pedidos.clear();
+    if (db.pedidos)
+      await db.pedidos.clear();
 
-    await db.estoque.clear();
+    if (db.estoque)
+      await db.estoque.clear();
 
-    await db.equipamentos.clear();
+    if (db.equipamentos)
+      await db.equipamentos.clear();
 
-    await db.settings.clear();
+    if (db.settings)
+      await db.settings.clear();
 
     // RESTAURA
 
-    if (data.materiais?.length) {
+    if (
+      db.materiais &&
+      data.materiais?.length
+    ) {
 
       await db.materiais.bulkAdd(
         data.materiais
@@ -159,7 +187,10 @@ export async function importarBackup(
 
     }
 
-    if (data.composicoes?.length) {
+    if (
+      db.composicoes &&
+      data.composicoes?.length
+    ) {
 
       await db.composicoes.bulkAdd(
         data.composicoes
@@ -167,7 +198,10 @@ export async function importarBackup(
 
     }
 
-    if (data.clientes?.length) {
+    if (
+      db.clientes &&
+      data.clientes?.length
+    ) {
 
       await db.clientes.bulkAdd(
         data.clientes
@@ -175,7 +209,10 @@ export async function importarBackup(
 
     }
 
-    if (data.financeiro?.length) {
+    if (
+      db.financeiro &&
+      data.financeiro?.length
+    ) {
 
       await db.financeiro.bulkAdd(
         data.financeiro
@@ -183,7 +220,10 @@ export async function importarBackup(
 
     }
 
-    if (data.producao?.length) {
+    if (
+      db.producao &&
+      data.producao?.length
+    ) {
 
       await db.producao.bulkAdd(
         data.producao
@@ -191,7 +231,10 @@ export async function importarBackup(
 
     }
 
-    if (data.pedidos?.length) {
+    if (
+      db.pedidos &&
+      data.pedidos?.length
+    ) {
 
       await db.pedidos.bulkAdd(
         data.pedidos
@@ -199,7 +242,10 @@ export async function importarBackup(
 
     }
 
-    if (data.estoque?.length) {
+    if (
+      db.estoque &&
+      data.estoque?.length
+    ) {
 
       await db.estoque.bulkAdd(
         data.estoque
@@ -207,7 +253,10 @@ export async function importarBackup(
 
     }
 
-    if (data.equipamentos?.length) {
+    if (
+      db.equipamentos &&
+      data.equipamentos?.length
+    ) {
 
       await db.equipamentos.bulkAdd(
         data.equipamentos
@@ -215,7 +264,10 @@ export async function importarBackup(
 
     }
 
-    if (data.settings?.length) {
+    if (
+      db.settings &&
+      data.settings?.length
+    ) {
 
       await db.settings.bulkAdd(
         data.settings
@@ -234,7 +286,7 @@ export async function importarBackup(
   } catch (error) {
 
     console.error(
-      'Erro ao importar backup:',
+      'Erro importando backup:',
       error
     );
 
@@ -247,3 +299,15 @@ export async function importarBackup(
   }
 
 }
+
+// =========================
+// EXPORTS
+// =========================
+
+export {
+
+  exportarBackupInterno as exportarBackup,
+
+  importarBackupInterno as importarBackup
+
+};
