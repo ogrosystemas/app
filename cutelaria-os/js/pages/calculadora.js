@@ -1,17 +1,5 @@
 import {
 
-  generatePremiumPDF
-
-} from '../services/pdf.service.js';
-
-import {
-
-  pdfPreviewCard
-
-} from '../components/pdf-preview.js';
-
-import {
-
   calculateKnifeCost
 
 } from '../services/cost-engine.js';
@@ -27,6 +15,22 @@ import {
   applyKnifeTemplate
 
 } from '../services/template.service.js';
+
+import {
+
+  generatePremiumPDF
+
+} from '../services/pdf.service.js';
+
+import {
+
+  pdfPreviewCard
+
+} from '../components/pdf-preview.js';
+
+// =========================
+// PAGE
+// =========================
 
 export async function calculadoraPage() {
 
@@ -454,6 +458,9 @@ window.addEventListener(
 
       });
 
+    window.lastKnifeResult =
+      result;
+
     document.getElementById(
       'calculatorResult'
     ).innerHTML = `
@@ -521,11 +528,105 @@ window.addEventListener(
             result.margin + '%'
           )}
 
+          <button
+            id="generatePdfButton"
+            class="primary-button mt-6"
+          >
+
+            Gerar PDF Premium
+
+          </button>
+
         </div>
 
       </div>
 
+      ${pdfPreviewCard(
+
+        currency(
+          result.suggestedPrice
+        )
+
+      )}
+
     `;
+
+  }
+);
+
+// =========================
+// PDF
+// =========================
+
+window.addEventListener(
+  'click',
+  async (event) => {
+
+    if (
+      event.target.id !==
+      'generatePdfButton'
+    ) {
+
+      return;
+
+    }
+
+    const result =
+      window.lastKnifeResult;
+
+    if (!result) {
+
+      alert(
+        'Calcule primeiro.'
+      );
+
+      return;
+
+    }
+
+    const selectedTemplate =
+
+      document.getElementById(
+        'knifeTemplateSelect'
+      );
+
+    const templateName =
+
+      selectedTemplate.options[
+        selectedTemplate.selectedIndex
+      ]?.text || 'Faca Artesanal';
+
+    const workshopName =
+
+      localStorage.getItem(
+        'cutelaria_workshop_name'
+      ) || 'Cutelaria Premium';
+
+    generatePremiumPDF({
+
+      templateName,
+
+      steelType:
+        'Aço Premium',
+
+      handleMaterial:
+        'Material Premium',
+
+      totalCost:
+        result.totalCost,
+
+      suggestedPrice:
+        result.suggestedPrice,
+
+      profit:
+        result.netProfit,
+
+      margin:
+        result.margin,
+
+      workshopName
+
+    });
 
   }
 );
