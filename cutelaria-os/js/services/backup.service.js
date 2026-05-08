@@ -1,14 +1,14 @@
 import { db } from '../database/db.js';
 
 // =========================
-// EXPORTAR BACKUP
+// EXPORTAR
 // =========================
 
-async function exportarBackupInterno() {
+export async function exportarBackup() {
 
   try {
 
-    const backupData = {
+    const backup = {
 
       materiais:
         db.materiais
@@ -62,7 +62,7 @@ async function exportarBackupInterno() {
 
     const json =
       JSON.stringify(
-        backupData,
+        backup,
         null,
         2
       );
@@ -86,15 +86,10 @@ async function exportarBackupInterno() {
         'a'
       );
 
-    const date =
-      new Date()
-        .toISOString()
-        .split('T')[0];
-
     a.href = url;
 
     a.download =
-      `cutelaria-backup-${date}.json`;
+      `cutelaria-backup.json`;
 
     document.body.appendChild(
       a
@@ -110,30 +105,23 @@ async function exportarBackupInterno() {
       url
     );
 
-    return true;
-
   } catch (error) {
 
-    console.error(
-      'Erro exportando backup:',
-      error
-    );
+    console.error(error);
 
     alert(
       'Erro ao exportar backup.'
     );
-
-    return false;
 
   }
 
 }
 
 // =========================
-// IMPORTAR BACKUP
+// IMPORTAR
 // =========================
 
-async function importarBackupInterno(
+export async function importarBackup(
   file
 ) {
 
@@ -145,41 +133,12 @@ async function importarBackupInterno(
     const data =
       JSON.parse(text);
 
-    // LIMPA
-
-    if (db.materiais)
-      await db.materiais.clear();
-
-    if (db.composicoes)
-      await db.composicoes.clear();
-
-    if (db.clientes)
-      await db.clientes.clear();
-
-    if (db.financeiro)
-      await db.financeiro.clear();
-
-    if (db.producao)
-      await db.producao.clear();
-
-    if (db.pedidos)
-      await db.pedidos.clear();
-
-    if (db.estoque)
-      await db.estoque.clear();
-
-    if (db.equipamentos)
-      await db.equipamentos.clear();
-
-    if (db.settings)
-      await db.settings.clear();
-
-    // RESTAURA
-
     if (
       db.materiais &&
-      data.materiais?.length
+      data.materiais
     ) {
+
+      await db.materiais.clear();
 
       await db.materiais.bulkAdd(
         data.materiais
@@ -189,8 +148,10 @@ async function importarBackupInterno(
 
     if (
       db.composicoes &&
-      data.composicoes?.length
+      data.composicoes
     ) {
+
+      await db.composicoes.clear();
 
       await db.composicoes.bulkAdd(
         data.composicoes
@@ -200,8 +161,10 @@ async function importarBackupInterno(
 
     if (
       db.clientes &&
-      data.clientes?.length
+      data.clientes
     ) {
+
+      await db.clientes.clear();
 
       await db.clientes.bulkAdd(
         data.clientes
@@ -211,8 +174,10 @@ async function importarBackupInterno(
 
     if (
       db.financeiro &&
-      data.financeiro?.length
+      data.financeiro
     ) {
+
+      await db.financeiro.clear();
 
       await db.financeiro.bulkAdd(
         data.financeiro
@@ -222,8 +187,10 @@ async function importarBackupInterno(
 
     if (
       db.producao &&
-      data.producao?.length
+      data.producao
     ) {
+
+      await db.producao.clear();
 
       await db.producao.bulkAdd(
         data.producao
@@ -233,8 +200,10 @@ async function importarBackupInterno(
 
     if (
       db.pedidos &&
-      data.pedidos?.length
+      data.pedidos
     ) {
+
+      await db.pedidos.clear();
 
       await db.pedidos.bulkAdd(
         data.pedidos
@@ -244,8 +213,10 @@ async function importarBackupInterno(
 
     if (
       db.estoque &&
-      data.estoque?.length
+      data.estoque
     ) {
+
+      await db.estoque.clear();
 
       await db.estoque.bulkAdd(
         data.estoque
@@ -255,8 +226,10 @@ async function importarBackupInterno(
 
     if (
       db.equipamentos &&
-      data.equipamentos?.length
+      data.equipamentos
     ) {
+
+      await db.equipamentos.clear();
 
       await db.equipamentos.bulkAdd(
         data.equipamentos
@@ -266,8 +239,10 @@ async function importarBackupInterno(
 
     if (
       db.settings &&
-      data.settings?.length
+      data.settings
     ) {
+
+      await db.settings.clear();
 
       await db.settings.bulkAdd(
         data.settings
@@ -276,38 +251,19 @@ async function importarBackupInterno(
     }
 
     alert(
-      'Backup restaurado com sucesso.'
+      'Backup restaurado.'
     );
 
     window.location.reload();
 
-    return true;
-
   } catch (error) {
 
-    console.error(
-      'Erro importando backup:',
-      error
-    );
+    console.error(error);
 
     alert(
       'Erro ao importar backup.'
     );
 
-    return false;
-
   }
 
 }
-
-// =========================
-// EXPORTS
-// =========================
-
-export {
-
-  exportarBackupInterno as exportarBackup,
-
-  importarBackupInterno as importarBackup
-
-};
