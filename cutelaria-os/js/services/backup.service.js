@@ -1,148 +1,238 @@
 import { db } from '../database/db.js';
 
-export async function exportarBackup() {
+// =========================
+// EXPORT BACKUP
+// =========================
 
-  const backup = {
+export async function exportBackup() {
 
-    versao: 1,
+  try {
 
-    data:
-      new Date().toISOString(),
+    const backupData = {
 
-    materiais:
-      await db.materiais.toArray(),
+      materiais:
+        await db.materiais.toArray(),
 
-    equipamentos:
-      await db.equipamentos.toArray(),
+      composicoes:
+        await db.composicoes.toArray(),
 
-    composicoes:
-      await db.composicoes.toArray(),
+      clientes:
+        await db.clientes.toArray(),
 
-    composicaoItens:
-      await db.composicaoItens.toArray(),
+      financeiro:
+        await db.financeiro.toArray(),
 
-    etapas:
-      await db.etapas.toArray(),
+      producao:
+        await db.producao.toArray(),
 
-    fotos:
-      await db.fotos.toArray()
+      pedidos:
+        await db.pedidos.toArray(),
 
-  };
+      estoque:
+        await db.estoque.toArray(),
 
-  const blob = new Blob(
-    [
+      equipamentos:
+        await db.equipamentos.toArray(),
+
+      settings:
+        await db.settings.toArray(),
+
+      exportedAt:
+        new Date().toISOString()
+
+    };
+
+    const json =
       JSON.stringify(
-        backup,
+        backupData,
         null,
         2
-      )
-    ],
-    {
-      type:
-        'application/json'
-    }
-  );
+      );
 
-  const url =
-    URL.createObjectURL(blob);
+    const blob =
+      new Blob(
+        [json],
+        {
 
-  const a =
-    document.createElement('a');
+          type:
+            'application/json'
 
-  a.href = url;
+        }
+      );
 
-  a.download =
-    `cutelaria-os-backup-${Date.now()}.json`;
+    const url =
+      URL.createObjectURL(
+        blob
+      );
 
-  a.click();
+    const a =
+      document.createElement(
+        'a'
+      );
 
-  URL.revokeObjectURL(url);
+    const date =
+      new Date()
+        .toISOString()
+        .split('T')[0];
+
+    a.href = url;
+
+    a.download =
+      `cutelaria-backup-${date}.json`;
+
+    a.click();
+
+    URL.revokeObjectURL(
+      url
+    );
+
+    return true;
+
+  } catch (error) {
+
+    console.error(
+      error
+    );
+
+    alert(
+      'Erro ao exportar backup.'
+    );
+
+    return false;
+
+  }
 
 }
 
-export async function importarBackup(file) {
+// =========================
+// IMPORT BACKUP
+// =========================
 
-  const texto =
-    await file.text();
+export async function importBackup(
+  file
+) {
 
-  const backup =
-    JSON.parse(texto);
+  try {
 
-  if (!backup.versao) {
+    const text =
+      await file.text();
 
-    throw new Error(
-      'Backup inválido'
+    const data =
+      JSON.parse(text);
+
+    // LIMPA TABELAS
+
+    await db.materiais.clear();
+
+    await db.composicoes.clear();
+
+    await db.clientes.clear();
+
+    await db.financeiro.clear();
+
+    await db.producao.clear();
+
+    await db.pedidos.clear();
+
+    await db.estoque.clear();
+
+    await db.equipamentos.clear();
+
+    await db.settings.clear();
+
+    // RESTORE
+
+    if (data.materiais?.length) {
+
+      await db.materiais.bulkAdd(
+        data.materiais
+      );
+
+    }
+
+    if (data.composicoes?.length) {
+
+      await db.composicoes.bulkAdd(
+        data.composicoes
+      );
+
+    }
+
+    if (data.clientes?.length) {
+
+      await db.clientes.bulkAdd(
+        data.clientes
+      );
+
+    }
+
+    if (data.financeiro?.length) {
+
+      await db.financeiro.bulkAdd(
+        data.financeiro
+      );
+
+    }
+
+    if (data.producao?.length) {
+
+      await db.producao.bulkAdd(
+        data.producao
+      );
+
+    }
+
+    if (data.pedidos?.length) {
+
+      await db.pedidos.bulkAdd(
+        data.pedidos
+      );
+
+    }
+
+    if (data.estoque?.length) {
+
+      await db.estoque.bulkAdd(
+        data.estoque
+      );
+
+    }
+
+    if (data.equipamentos?.length) {
+
+      await db.equipamentos.bulkAdd(
+        data.equipamentos
+      );
+
+    }
+
+    if (data.settings?.length) {
+
+      await db.settings.bulkAdd(
+        data.settings
+      );
+
+    }
+
+    alert(
+      'Backup restaurado com sucesso.'
     );
 
-  }
+    window.location.reload();
 
-  // LIMPA BANCO
+    return true;
 
-  await db.materiais.clear();
+  } catch (error) {
 
-  await db.equipamentos.clear();
-
-  await db.composicoes.clear();
-
-  await db.composicaoItens.clear();
-
-  await db.etapas.clear();
-
-  await db.fotos.clear();
-
-  // RESTAURA
-
-  if (backup.materiais?.length) {
-
-    await db.materiais.bulkAdd(
-      backup.materiais
+    console.error(
+      error
     );
 
-  }
-
-  if (
-    backup.equipamentos?.length
-  ) {
-
-    await db.equipamentos.bulkAdd(
-      backup.equipamentos
+    alert(
+      'Erro ao importar backup.'
     );
 
-  }
-
-  if (
-    backup.composicoes?.length
-  ) {
-
-    await db.composicoes.bulkAdd(
-      backup.composicoes
-    );
-
-  }
-
-  if (
-    backup.composicaoItens?.length
-  ) {
-
-    await db.composicaoItens.bulkAdd(
-      backup.composicaoItens
-    );
-
-  }
-
-  if (backup.etapas?.length) {
-
-    await db.etapas.bulkAdd(
-      backup.etapas
-    );
-
-  }
-
-  if (backup.fotos?.length) {
-
-    await db.fotos.bulkAdd(
-      backup.fotos
-    );
+    return false;
 
   }
 
