@@ -2,7 +2,7 @@ const DATABASE_NAME =
   'cutelariaOS';
 
 const DATABASE_VERSION =
-  11;
+  12;
 
 export const db = new Dexie(
   DATABASE_NAME
@@ -273,7 +273,7 @@ db.version(10).stores({
     '++id,nome,categoria,valor',
 
   composicoes:
-    '++id,nome,tipoAco,valorFinal',
+    '++id,nome,tipoAco,valorFinal,createdAt',
 
   financeiro:
     '++id,tipo,valor,data',
@@ -288,7 +288,7 @@ db.version(10).stores({
     '++id,nome,cliente,total',
 
   producao:
-    '++id,nome,status',
+    '++id,nome,status,createdAt',
 
   logs:
     '++id,tipo,data',
@@ -308,13 +308,13 @@ db.version(10).stores({
 // VERSION 11
 // ======================
 
-db.version(DATABASE_VERSION).stores({
+db.version(11).stores({
 
   materiais:
     '++id,nome,categoria,valor',
 
   composicoes:
-    '++id,nome,tipoAco,valorFinal',
+    '++id,nome,tipoAco,valorFinal,createdAt',
 
   financeiro:
     '++id,tipo,valor,data',
@@ -329,10 +329,10 @@ db.version(DATABASE_VERSION).stores({
     '++id,nome,cliente,total',
 
   producao:
-    '++id,nome,status',
+    '++id,nome,status,createdAt',
 
   pedidos:
-    '++id,cliente,status,total',
+    '++id,cliente,status,total,createdAt',
 
   logs:
     '++id,tipo,data',
@@ -345,6 +345,50 @@ db.version(DATABASE_VERSION).stores({
 
   backups:
     '++id,data'
+
+});
+
+// ======================
+// VERSION 12
+// ======================
+
+db.version(DATABASE_VERSION).stores({
+
+  materiais:
+    '++id,nome,categoria,valor,createdAt',
+
+  composicoes:
+    '++id,nome,tipoAco,valorFinal,createdAt',
+
+  financeiro:
+    '++id,tipo,valor,data,createdAt',
+
+  clientes:
+    '++id,nome,telefone,createdAt',
+
+  settings:
+    '++id,oficinaNome,createdAt',
+
+  orcamentos:
+    '++id,nome,cliente,total,createdAt',
+
+  producao:
+    '++id,nome,status,createdAt',
+
+  pedidos:
+    '++id,cliente,status,total,createdAt',
+
+  logs:
+    '++id,tipo,data,createdAt',
+
+  estoque:
+    '++id,nome,quantidade,createdAt',
+
+  equipamentos:
+    '++id,nome,valor,createdAt',
+
+  backups:
+    '++id,data,createdAt'
 
 });
 
@@ -373,7 +417,13 @@ async function initializeDatabase() {
       error.name === 'VersionError'
       ||
       error.name === 'DatabaseClosedError'
+      ||
+      error.name === 'SchemaError'
     ) {
+
+      console.warn(
+        'Resetando banco local...'
+      );
 
       await Dexie.delete(
         DATABASE_NAME
