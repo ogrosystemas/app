@@ -6,6 +6,7 @@ window.addEventListener(
   async () => {
 
     await initRouter();
+    initPWA();
 
   }
 );
