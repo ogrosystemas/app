@@ -1,104 +1,344 @@
-import {
-  exportarBackup,
-  importarBackup
-} from '../services/backup.service.js';
+import { db } from '../database/db.js';
 
 import {
-  showToast
-} from '../modules/toast.js';
+
+  exportBackup,
+  importBackup
+
+} from '../services/backup.service.js';
+
+// =========================
+// PAGE
+// =========================
 
 export async function configuracoesPage() {
 
+  const settings =
+    await db.settings
+      .toCollection()
+      .first();
+
   return `
-    <section>
 
-      <div class="card">
+    <section class="pb-32">
 
-        <h2 class="text-2xl font-bold mb-6">
+      <!-- HERO -->
 
-          Configurações
-
-        </h2>
-
-        <!-- BACKUP -->
-
-        <div class="mb-8">
-
-          <h3 class="font-bold text-lg mb-3">
-            Backup
-          </h3>
-
-          <button
-            id="exportBackupBtn"
-            class="primary-button w-full"
-          >
-            Exportar Backup
-          </button>
-
-        </div>
-
-        <!-- RESTORE -->
-
-        <div class="mb-8">
-
-          <h3 class="font-bold text-lg mb-3">
-            Restaurar Backup
-          </h3>
-
-          <input
-            type="file"
-            id="restoreInput"
-            accept=".json"
-            class="input"
-          />
-
-        </div>
-
-        <!-- APP -->
+      <div class="
+        flex
+        items-center
+        justify-between
+        mb-8
+      ">
 
         <div>
 
-          <h3 class="font-bold text-lg mb-3">
-            Sobre
-          </h3>
+          <h1 class="
+            text-4xl
+            font-black
+            mb-2
+          ">
 
-          <div class="text-slate-400 text-sm leading-7">
+            Configurações
 
-            <p>
-              Cutelaria OS
-            </p>
+          </h1>
 
-            <p>
-              Sistema profissional para cuteleiros.
-            </p>
+          <p class="
+            text-slate-400
+            text-lg
+          ">
 
-            <p class="mt-3">
-              Versão: 1.0.0
-            </p>
+            Oficina e segurança
 
-          </div>
+          </p>
+
+        </div>
+
+        <div class="
+          w-20
+          h-20
+          rounded-[28px]
+
+          flex
+          items-center
+          justify-center
+
+          bg-gradient-to-br
+          from-orange-500
+          to-orange-700
+
+          shadow-2xl
+        ">
+
+          <i
+            data-lucide="settings"
+            class="w-10 h-10 text-white"
+          ></i>
 
         </div>
 
       </div>
 
+      <!-- OFICINA -->
+
+      <div class="
+        card
+        mb-6
+      ">
+
+        <h2 class="
+          text-2xl
+          font-bold
+          mb-6
+        ">
+
+          Oficina
+
+        </h2>
+
+        <div class="
+          grid
+          gap-5
+        ">
+
+          <div>
+
+            <label>
+
+              Nome da oficina
+
+            </label>
+
+            <input
+              id="workshopName"
+              type="text"
+              value="${settings?.oficinaNome || ''}"
+            />
+
+          </div>
+
+          <div>
+
+            <label>
+
+              Nome do cuteleiro
+
+            </label>
+
+            <input
+              id="cutlerName"
+              type="text"
+              value="${settings?.cuteleiroNome || ''}"
+            />
+
+          </div>
+
+          <div>
+
+            <label>
+
+              Margem padrão (%)
+
+            </label>
+
+            <input
+              id="defaultMargin"
+              type="number"
+              value="${settings?.margemPadrao || 100}"
+            />
+
+          </div>
+
+          <div>
+
+            <label>
+
+              Custo/hora
+
+            </label>
+
+            <input
+              id="hourCost"
+              type="number"
+              value="${settings?.custoHora || 50}"
+            />
+
+          </div>
+
+          <button
+            id="saveSettingsButton"
+            class="primary-button mt-4"
+          >
+
+            Salvar configurações
+
+          </button>
+
+        </div>
+
+      </div>
+
+      <!-- BACKUP -->
+
+      <div class="
+        card
+        mb-6
+      ">
+
+        <h2 class="
+          text-2xl
+          font-bold
+          mb-4
+        ">
+
+          Backup
+
+        </h2>
+
+        <p class="
+          text-slate-400
+          mb-6
+        ">
+
+          Exporte todos os dados
+          da oficina para segurança.
+
+        </p>
+
+        <button
+          id="exportBackupButton"
+          class="primary-button"
+        >
+
+          Exportar Backup
+
+        </button>
+
+      </div>
+
+      <!-- RESTORE -->
+
+      <div class="card">
+
+        <h2 class="
+          text-2xl
+          font-bold
+          mb-4
+        ">
+
+          Restaurar Backup
+
+        </h2>
+
+        <p class="
+          text-slate-400
+          mb-6
+        ">
+
+          Importe um backup salvo.
+
+        </p>
+
+        <input
+          id="restoreBackupInput"
+          type="file"
+          accept=".json"
+        />
+
+      </div>
+
     </section>
+
   `;
+
 }
+
+// =========================
+// SAVE SETTINGS
+// =========================
 
 window.addEventListener(
   'click',
-  async (e) => {
+  async (event) => {
 
     if (
-      e.target.id ===
-      'exportBackupBtn'
+      event.target.id !==
+      'saveSettingsButton'
     ) {
 
-      await exportarBackup();
+      return;
 
-      showToast(
-        'Backup exportado!'
+    }
+
+    try {
+
+      await db.settings.clear();
+
+      const oficinaNome =
+
+        document.getElementById(
+          'workshopName'
+        ).value;
+
+      const cuteleiroNome =
+
+        document.getElementById(
+          'cutlerName'
+        ).value;
+
+      const margemPadrao =
+
+        Number(
+          document.getElementById(
+            'defaultMargin'
+          ).value
+        );
+
+      const custoHora =
+
+        Number(
+          document.getElementById(
+            'hourCost'
+          ).value
+        );
+
+      await db.settings.add({
+
+        oficinaNome,
+
+        cuteleiroNome,
+
+        margemPadrao,
+
+        custoHora,
+
+        createdAt:
+          new Date().toISOString()
+
+      });
+
+      localStorage.setItem(
+        'cutelaria_workshop_name',
+        oficinaNome
+      );
+
+      localStorage.setItem(
+        'cutelaria_hour_cost',
+        custoHora
+      );
+
+      alert(
+        'Configurações salvas.'
+      );
+
+    } catch (error) {
+
+      console.error(
+        error
+      );
+
+      alert(
+        'Erro ao salvar.'
       );
 
     }
@@ -106,45 +346,57 @@ window.addEventListener(
   }
 );
 
+// =========================
+// EXPORT BACKUP
+// =========================
+
 window.addEventListener(
-  'change',
-  async (e) => {
+  'click',
+  async (event) => {
 
     if (
-      e.target.id ===
-      'restoreInput'
+      event.target.id !==
+      'exportBackupButton'
     ) {
 
-      const file =
-        e.target.files[0];
-
-      if (!file) return;
-
-      try {
-
-        await importarBackup(
-          file
-        );
-
-        showToast(
-          'Backup restaurado!'
-        );
-
-        setTimeout(() => {
-
-          location.reload();
-
-        }, 1200);
-
-      } catch {
-
-        showToast(
-          'Erro ao restaurar backup'
-        );
-
-      }
+      return;
 
     }
+
+    exportBackup();
+
+  }
+);
+
+// =========================
+// IMPORT BACKUP
+// =========================
+
+window.addEventListener(
+  'change',
+  async (event) => {
+
+    if (
+      event.target.id !==
+      'restoreBackupInput'
+    ) {
+
+      return;
+
+    }
+
+    const file =
+      event.target.files[0];
+
+    if (!file) {
+
+      return;
+
+    }
+
+    importBackup(
+      file
+    );
 
   }
 );
