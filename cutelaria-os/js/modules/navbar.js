@@ -6,7 +6,11 @@ export function renderNavbar(current = '') {
 
       <a
         href="#dashboard"
-        class="${current === 'dashboard' ? 'active' : ''}"
+        class="${
+          current === 'dashboard'
+            ? 'active'
+            : ''
+        }"
       >
 
         <i data-lucide="layout-dashboard"></i>
@@ -16,8 +20,27 @@ export function renderNavbar(current = '') {
       </a>
 
       <a
+        href="#calculadora"
+        class="${
+          current === 'calculadora'
+            ? 'active'
+            : ''
+        }"
+      >
+
+        <i data-lucide="calculator"></i>
+
+        <span>Calcular</span>
+
+      </a>
+
+      <a
         href="#materiais"
-        class="${current === 'materiais' ? 'active' : ''}"
+        class="${
+          current === 'materiais'
+            ? 'active'
+            : ''
+        }"
       >
 
         <i data-lucide="package"></i>
@@ -28,7 +51,11 @@ export function renderNavbar(current = '') {
 
       <a
         href="#producao"
-        class="${current === 'producao' ? 'active' : ''}"
+        class="${
+          current === 'producao'
+            ? 'active'
+            : ''
+        }"
       >
 
         <i data-lucide="hammer"></i>
@@ -39,7 +66,11 @@ export function renderNavbar(current = '') {
 
       <a
         href="#financeiro"
-        class="${current === 'financeiro' ? 'active' : ''}"
+        class="${
+          current === 'financeiro'
+            ? 'active'
+            : ''
+        }"
       >
 
         <i data-lucide="wallet"></i>
@@ -49,19 +80,12 @@ export function renderNavbar(current = '') {
       </a>
 
       <a
-        href="#clientes"
-        class="${current === 'clientes' ? 'active' : ''}"
-      >
-
-        <i data-lucide="users"></i>
-
-        <span>Clientes</span>
-
-      </a>
-
-      <a
         href="#config"
-        class="${current === 'config' ? 'active' : ''}"
+        class="${
+          current === 'config'
+            ? 'active'
+            : ''
+        }"
       >
 
         <i data-lucide="settings"></i>
