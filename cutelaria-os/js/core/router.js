@@ -1,11 +1,11 @@
 const routes = {
 
-  dashboard: './pages/dashboard.js',
-  materiais: './pages/materiais.js',
-  producao: './pages/producao.js',
-  financeiro: './pages/financeiro.js',
-  clientes: './pages/clientes.js',
-  config: './pages/configuracoes.js'
+  dashboard: '../pages/dashboard.js',
+  materiais: '../pages/materiais.js',
+  producao: '../pages/producao.js',
+  financeiro: '../pages/financeiro.js',
+  clientes: '../pages/clientes.js',
+  config: '../pages/configuracoes.js'
 
 };
 
@@ -51,7 +51,7 @@ async function renderRoute() {
 
     `;
 
-    // RECRIAR LUCIDE
+    // RECRIAR ÍCONES
 
     if (window.lucide) {
 
