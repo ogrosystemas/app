@@ -1,12 +1,21 @@
 import { renderNavbar } from '../modules/navbar.js';
 
+import { db } from '../database/db.js';
+
 const routes = {
 
+  onboarding: '../pages/onboarding.js',
+
   dashboard: '../pages/dashboard.js',
+
   materiais: '../pages/materiais.js',
+
   producao: '../pages/producao.js',
+
   financeiro: '../pages/financeiro.js',
+
   clientes: '../pages/clientes.js',
+
   config: '../pages/configuracoes.js'
 
 };
@@ -16,19 +25,43 @@ async function renderRoute() {
   const app =
     document.getElementById('app');
 
+  // SETTINGS
+
+  const settings =
+    await db.settings.toArray();
+
+  const onboardingCompleto =
+    settings.length > 0;
+
   let hash =
     window.location.hash
       .replace('#', '');
 
-  if (!hash) {
+  // PRIMEIRO ACESSO
 
-    hash = 'dashboard';
+  if (!onboardingCompleto) {
+
+    hash = 'onboarding';
 
   }
 
+  // HASH PADRÃO
+
+  if (!hash) {
+
+    hash = onboardingCompleto
+      ? 'dashboard'
+      : 'onboarding';
+
+  }
+
+  // ROTA INVÁLIDA
+
   if (!routes[hash]) {
 
-    hash = 'dashboard';
+    hash = onboardingCompleto
+      ? 'dashboard'
+      : 'onboarding';
 
   }
 
@@ -43,6 +76,9 @@ async function renderRoute() {
     const html =
       await renderFunction();
 
+    const showNavbar =
+      hash !== 'onboarding';
+
     app.innerHTML = `
 
       <main class="page-transition">
@@ -51,14 +87,20 @@ async function renderRoute() {
 
       </main>
 
-      ${renderNavbar(hash)}
+      ${
+        showNavbar
+          ? renderNavbar(hash)
+          : ''
+      }
 
     `;
 
     requestAnimationFrame(() => {
 
       const page =
-        document.querySelector('.page-transition');
+        document.querySelector(
+          '.page-transition'
+        );
 
       if (page) {
 
