@@ -31,7 +31,7 @@ export function renderNavbar(current = '') {
         class="${current === 'producao' ? 'active' : ''}"
       >
 
-        <i data-lucide="anvil"></i>
+        <i data-lucide="hammer"></i>
 
         <span>Produção</span>
 
