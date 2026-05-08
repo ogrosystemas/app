@@ -1,13 +1,9 @@
-const CACHE_NAME =
-  'cutelaria-os-v1';
+const CACHE_NAME = 'cutelaria-os-v1';
 
 const urlsToCache = [
 
   './',
-
   './index.html',
-
-  './manifest.json',
 
   './css/main.css',
   './css/layout.css',
@@ -17,73 +13,80 @@ const urlsToCache = [
 
   './js/app.js',
 
-  './assets/icons/icon-192.png',
-  './assets/icons/icon-512.png'
+  './manifest.json'
+
 ];
 
-// INSTALL
+self.addEventListener(
+  'install',
+  (event) => {
 
-self.addEventListener('install', (event) => {
+    event.waitUntil(
 
-  event.waitUntil(
+      caches.open(CACHE_NAME)
+        .then((cache) => {
 
-    caches.open(CACHE_NAME)
-      .then((cache) => {
+          return cache.addAll(
+            urlsToCache
+          );
 
-        return cache.addAll(
-          urlsToCache
-        );
+        })
 
-      })
+    );
 
-  );
+  }
+);
 
-});
+self.addEventListener(
+  'fetch',
+  (event) => {
 
-// FETCH
+    event.respondWith(
 
-self.addEventListener('fetch', (event) => {
+      caches.match(event.request)
+        .then((response) => {
 
-  event.respondWith(
+          return (
+            response
+            ||
+            fetch(event.request)
+          );
 
-    caches.match(event.request)
+        })
 
-      .then((response) => {
+    );
 
-        return response || fetch(event.request);
+  }
+);
 
-      })
+self.addEventListener(
+  'activate',
+  (event) => {
 
-  );
+    event.waitUntil(
 
-});
+      caches.keys()
+        .then((keys) => {
 
-// ACTIVATE
+          return Promise.all(
 
-self.addEventListener('activate', (event) => {
+            keys.map((key) => {
 
-  event.waitUntil(
+              if (
+                key !== CACHE_NAME
+              ) {
 
-    caches.keys()
+                return caches.delete(key);
 
-      .then((cacheNames) => {
+              }
 
-        return Promise.all(
+            })
 
-          cacheNames.map((cache) => {
+          );
 
-            if (cache !== CACHE_NAME) {
+        })
 
-              return caches.delete(cache);
+    );
 
-            }
-
-          })
-
-        );
-
-      })
-
-  );
-
-});
+  }
+);
