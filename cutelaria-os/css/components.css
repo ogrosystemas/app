@@ -1,178 +1,245 @@
-/* TOAST */
-
-.toast {
-
-  position: fixed;
-
-  bottom: 100px;
-
-  left: 50%;
-
-  transform:
-    translateX(-50%)
-    translateY(30px);
-
-  background: rgba(15,23,42,.95);
-
-  border:
-    1px solid rgba(255,255,255,.08);
-
-  backdrop-filter: blur(12px);
-
-  padding: 14px 18px;
-
-  border-radius: 14px;
-
-  z-index: 99999;
-
-  opacity: 0;
-
-  transition: all .35s ease;
-
-  box-shadow:
-    0 10px 30px rgba(0,0,0,.35);
-}
-
-.toast.show {
-
-  opacity: 1;
-
-  transform:
-    translateX(-50%)
-    translateY(0);
-}
-
-.toast-content {
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 10px;
-
-  color: white;
-
-  font-size: .92rem;
-
-  font-weight: 500;
-}
-
-/* LOADING */
-
-#loadingOverlay {
-
-  position: fixed;
-
-  inset: 0;
-
-  background:
-    rgba(2,6,23,.75);
-
-  backdrop-filter: blur(6px);
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  z-index: 999999;
-}
-
-.loading-box {
-
-  background:
-    rgba(15,23,42,.95);
-
-  padding: 30px;
-
-  border-radius: 20px;
-
-  text-align: center;
-
-  border:
-    1px solid rgba(255,255,255,.08);
-}
-
-.loading-box p {
-
-  margin-top: 15px;
-
-  color: #cbd5e1;
-}
-
-.spinner {
-
-  width: 50px;
-
-  height: 50px;
-
-  border-radius: 50%;
-
-  border: 4px solid rgba(255,255,255,.08);
-
-  border-top:
-    4px solid #f97316;
-
-  animation:
-    spin 1s linear infinite;
-}
-
-@keyframes spin {
-
-  to {
-    transform: rotate(360deg);
-  }
-
-}
-
-/* MICROINTERAÇÕES */
+/* =========================
+   CARDS
+========================= */
 
 .card {
 
-  transition:
-    transform .25s ease,
-    box-shadow .25s ease;
-}
+  background:
+    rgba(10, 18, 40, 0.82);
 
-.card:hover {
+  border:
+    1px solid rgba(255,255,255,0.06);
 
-  transform:
-    translateY(-3px);
+  border-radius:
+    32px;
+
+  padding:
+    28px;
+
+  backdrop-filter:
+    blur(24px);
+
+  -webkit-backdrop-filter:
+    blur(24px);
 
   box-shadow:
-    0 15px 35px rgba(0,0,0,.18);
+    0 10px 40px rgba(0,0,0,0.32);
+
+  position:
+    relative;
+
+  overflow:
+    hidden;
+
+}
+
+/* =========================
+   INPUTS
+========================= */
+
+input,
+select,
+textarea {
+
+  width:
+    100%;
+
+  height:
+    56px;
+
+  padding:
+    0 18px;
+
+  margin-left:
+    10px;
+
+  margin-right:
+    10px;
+
+  border-radius:
+    18px;
+
+  border:
+    1px solid rgba(255,255,255,0.08);
+
+  background:
+    rgba(255,255,255,0.03);
+
+  color:
+    #ffffff;
+
+  font-size:
+    16px;
+
+  outline:
+    none;
+
+  transition:
+    all 0.25s ease;
+
+  box-sizing:
+    border-box;
+
+}
+
+/* =========================
+   INPUT FOCUS
+========================= */
+
+input:focus,
+select:focus,
+textarea:focus {
+
+  border-color:
+    rgba(249,115,22,0.65);
+
+  box-shadow:
+    0 0 0 4px rgba(249,115,22,0.12);
+
+  background:
+    rgba(255,255,255,0.05);
+
+}
+
+/* =========================
+   LABELS
+========================= */
+
+label {
+
+  display:
+    block;
+
+  margin-bottom:
+    10px;
+
+  margin-left:
+    10px;
+
+  color:
+    rgba(255,255,255,0.92);
+
+  font-size:
+    15px;
+
+  font-weight:
+    600;
+
+}
+
+/* =========================
+   BUTTONS
+========================= */
+
+button {
+
+  border:
+    none;
+
+  outline:
+    none;
+
+  cursor:
+    pointer;
+
+  transition:
+    all 0.25s ease;
+
 }
 
 .primary-button {
 
-  transition:
-    all .25s ease;
-}
+  width:
+    calc(100% - 20px);
 
-.primary-button:active {
+  margin-left:
+    10px;
 
-  transform:
-    scale(.97);
+  margin-right:
+    10px;
+
+  height:
+    58px;
+
+  border-radius:
+    20px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #f97316,
+      #ea580c
+    );
+
+  color:
+    white;
+
+  font-size:
+    16px;
+
+  font-weight:
+    700;
+
+  box-shadow:
+    0 10px 30px rgba(249,115,22,0.25);
+
 }
 
 .primary-button:hover {
 
-  filter: brightness(1.05);
+  transform:
+    translateY(-2px);
 
   box-shadow:
-    0 10px 25px rgba(249,115,22,.28);
+    0 16px 40px rgba(249,115,22,0.32);
+
 }
 
-/* TRANSIÇÃO */
+/* =========================
+   SELECT OPTION
+========================= */
 
-.page-transition {
+select option {
 
-  opacity: 0;
+  background:
+    #091226;
 
-  transform:
-    translateY(10px);
+  color:
+    #ffffff;
 
-  transition:
-    all .2s ease;
+}
+
+/* =========================
+   SCROLLBAR
+========================= */
+
+::-webkit-scrollbar {
+
+  width:
+    10px;
+
+}
+
+::-webkit-scrollbar-track {
+
+  background:
+    #020817;
+
+}
+
+::-webkit-scrollbar-thumb {
+
+  background:
+    rgba(255,255,255,0.12);
+
+  border-radius:
+    999px;
+
+}
+
+::-webkit-scrollbar-thumb:hover {
+
+  background:
+    rgba(255,255,255,0.22);
+
 }
