@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cutelaria-os-v1';
+const CACHE_NAME = 'cutelaria-os-v2';
 
 const urlsToCache = [
 
