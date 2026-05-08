@@ -1,355 +1,480 @@
-export async function gerarPDF({
-  composicao,
-  itens = [],
-  etapas = []
-}) {
+function currency(
+  value
+) {
 
-  const { jsPDF } = window.jspdf;
+  return new Intl.NumberFormat(
+    'pt-BR',
+    {
 
-  const doc = new jsPDF();
+      style: 'currency',
+      currency: 'BRL'
 
-  let y = 20;
+    }
+  ).format(value);
 
-  // HEADER
+}
 
-  doc.setFontSize(24);
+// =========================
+// EXPORT PDF
+// =========================
 
-  doc.text(
-    'CUTELARIA OS',
-    20,
-    y
-  );
+export async function generatePremiumPDF(
+  data
+) {
 
-  y += 8;
+  const {
 
-  doc.setFontSize(12);
+    templateName,
+    steelType,
+    handleMaterial,
+    totalCost,
+    suggestedPrice,
+    profit,
+    margin,
+    workshopName
 
-  doc.text(
-    'Ficha técnica e orçamento',
-    20,
-    y
-  );
+  } = data;
 
-  y += 10;
+  const html = `
 
-  doc.setDrawColor(220);
+    <html>
 
-  doc.line(20, y, 190, y);
+      <head>
 
-  // IDENTIFICAÇÃO
+        <title>
 
-  y += 12;
+          Orçamento Premium
 
-  doc.setFontSize(18);
+        </title>
 
-  doc.text(
-    composicao.nome,
-    20,
-    y
-  );
+        <style>
 
-  y += 10;
+          * {
 
-  doc.setFontSize(11);
+            box-sizing:
+              border-box;
 
-  doc.text(
-    `Tipo: ${composicao.tipoFaca || '-'}`,
-    20,
-    y
-  );
+            margin:
+              0;
 
-  y += 7;
+            padding:
+              0;
 
-  doc.text(
-    `Data: ${new Date(
-      composicao.createdAt
-    ).toLocaleDateString()}`,
-    20,
-    y
-  );
+            font-family:
+              Arial, sans-serif;
 
-  // FICHA TÉCNICA
+          }
 
-  y += 15;
+          body {
 
-  doc.setFontSize(16);
+            background:
+              #07111f;
 
-  doc.text(
-    'Ficha Técnica',
-    20,
-    y
-  );
+            color:
+              white;
 
-  y += 10;
+            padding:
+              50px;
 
-  doc.setFontSize(11);
+          }
 
-  const ficha = [
+          .header {
 
-    [
-      'Tipo de aço',
-      composicao.tipoAco || '-'
-    ],
+            display:
+              flex;
 
-    [
-      'HRC',
-      composicao.hrc || '-'
-    ],
+            justify-content:
+              space-between;
 
-    [
-      'Espessura',
-      `${composicao.espessura || '-'} mm`
-    ],
+            align-items:
+              center;
 
-    [
-      'Comprimento',
-      `${composicao.comprimento || '-'} cm`
-    ],
+            margin-bottom:
+              50px;
 
-    [
-      'Peso',
-      `${composicao.peso || '-'} g`
-    ],
+          }
 
-    [
-      'Acabamento',
-      composicao.acabamento || '-'
-    ],
+          .logo {
 
-    [
-      'Desbaste',
-      composicao.desbaste || '-'
-    ],
+            width:
+              90px;
 
-    [
-      'Tipo de cabo',
-      composicao.tipoCabo || '-'
-    ],
+            height:
+              90px;
 
-    [
-      'Bainha',
-      composicao.possuiBainha
-        ? 'Sim'
-        : 'Não'
-    ]
+            border-radius:
+              28px;
 
-  ];
+            background:
+              linear-gradient(
+                135deg,
+                #f97316,
+                #ea580c
+              );
 
-  ficha.forEach(item => {
+            display:
+              flex;
 
-    doc.text(
-      `${item[0]}: ${item[1]}`,
-      20,
-      y
+            align-items:
+              center;
+
+            justify-content:
+              center;
+
+            font-size:
+              34px;
+
+            font-weight:
+              bold;
+
+          }
+
+          .title h1 {
+
+            font-size:
+              38px;
+
+            margin-bottom:
+              10px;
+
+          }
+
+          .title p {
+
+            color:
+              #94a3b8;
+
+            font-size:
+              18px;
+
+          }
+
+          .card {
+
+            background:
+              rgba(255,255,255,0.04);
+
+            border:
+              1px solid rgba(255,255,255,0.08);
+
+            border-radius:
+              28px;
+
+            padding:
+              30px;
+
+            margin-bottom:
+              30px;
+
+          }
+
+          .card h2 {
+
+            margin-bottom:
+              24px;
+
+            font-size:
+              24px;
+
+          }
+
+          .row {
+
+            display:
+              flex;
+
+            justify-content:
+              space-between;
+
+            margin-bottom:
+              18px;
+
+          }
+
+          .label {
+
+            color:
+              #94a3b8;
+
+          }
+
+          .highlight {
+
+            color:
+              #fb923c;
+
+            font-weight:
+              bold;
+
+          }
+
+          .price {
+
+            font-size:
+              42px;
+
+            font-weight:
+              bold;
+
+            color:
+              #fb923c;
+
+            margin-top:
+              10px;
+
+          }
+
+          .footer {
+
+            margin-top:
+              60px;
+
+            text-align:
+              center;
+
+            color:
+              #64748b;
+
+            font-size:
+              14px;
+
+          }
+
+          .qr {
+
+            width:
+              120px;
+
+            height:
+              120px;
+
+            border-radius:
+              20px;
+
+            background:
+              rgba(255,255,255,0.05);
+
+            display:
+              flex;
+
+            align-items:
+              center;
+
+            justify-content:
+              center;
+
+            margin:
+              0 auto;
+
+            margin-top:
+              30px;
+
+            font-size:
+              14px;
+
+            color:
+              #94a3b8;
+
+          }
+
+        </style>
+
+      </head>
+
+      <body>
+
+        <!-- HEADER -->
+
+        <div class="header">
+
+          <div class="logo">
+
+            ⚔
+
+          </div>
+
+          <div class="title">
+
+            <h1>
+
+              ${workshopName}
+
+            </h1>
+
+            <p>
+
+              Orçamento Premium
+
+            </p>
+
+          </div>
+
+        </div>
+
+        <!-- FACA -->
+
+        <div class="card">
+
+          <h2>
+
+            Ficha Técnica
+
+          </h2>
+
+          <div class="row">
+
+            <span class="label">
+
+              Modelo
+
+            </span>
+
+            <strong>
+
+              ${templateName}
+
+            </strong>
+
+          </div>
+
+          <div class="row">
+
+            <span class="label">
+
+              Tipo de aço
+
+            </span>
+
+            <strong>
+
+              ${steelType}
+
+            </strong>
+
+          </div>
+
+          <div class="row">
+
+            <span class="label">
+
+              Cabo
+
+            </span>
+
+            <strong>
+
+              ${handleMaterial}
+
+            </strong>
+
+          </div>
+
+        </div>
+
+        <!-- FINANCEIRO -->
+
+        <div class="card">
+
+          <h2>
+
+            Resumo Financeiro
+
+          </h2>
+
+          <div class="row">
+
+            <span class="label">
+
+              Custo total
+
+            </span>
+
+            <strong>
+
+              ${currency(totalCost)}
+
+            </strong>
+
+          </div>
+
+          <div class="row">
+
+            <span class="label">
+
+              Margem aplicada
+
+            </span>
+
+            <strong>
+
+              ${margin}%
+
+            </strong>
+
+          </div>
+
+          <div class="row">
+
+            <span class="label">
+
+              Lucro líquido
+
+            </span>
+
+            <strong>
+
+              ${currency(profit)}
+
+            </strong>
+
+          </div>
+
+          <div class="price">
+
+            ${currency(suggestedPrice)}
+
+          </div>
+
+        </div>
+
+        <!-- QR -->
+
+        <div class="qr">
+
+          QR CODE
+
+        </div>
+
+        <!-- FOOTER -->
+
+        <div class="footer">
+
+          Gerado automaticamente pelo Cutelaria OS
+
+        </div>
+
+      </body>
+
+    </html>
+
+  `;
+
+  const win =
+    window.open(
+      '',
+      '_blank'
     );
 
-    y += 7;
-
-  });
-
-  // OBSERVAÇÕES
-
-  if (composicao.observacoes) {
-
-    y += 8;
-
-    doc.setFontSize(16);
-
-    doc.text(
-      'Observações',
-      20,
-      y
-    );
-
-    y += 10;
-
-    doc.setFontSize(11);
-
-    const observacoes =
-      doc.splitTextToSize(
-        composicao.observacoes,
-        170
-      );
-
-    doc.text(
-      observacoes,
-      20,
-      y
-    );
-
-    y +=
-      observacoes.length * 7;
-
-  }
-
-  // FINANCEIRO
-
-  y += 15;
-
-  doc.setFontSize(16);
-
-  doc.text(
-    'Resumo Financeiro',
-    20,
-    y
+  win.document.write(
+    html
   );
 
-  y += 10;
+  win.document.close();
 
-  doc.setFontSize(11);
+  setTimeout(() => {
 
-  const lucro =
-    composicao.valorFinal -
-    composicao.custoTotal;
+    win.print();
 
-  const margem =
-    (
-      (lucro /
-        composicao.valorFinal) *
-      100
-    ).toFixed(1);
-
-  const financeiro = [
-
-    [
-      'Materiais',
-      composicao.custoMateriais
-    ],
-
-    [
-      'Etapas',
-      composicao.custoEtapas
-    ],
-
-    [
-      'Custo total',
-      composicao.custoTotal
-    ],
-
-    [
-      'Lucro',
-      lucro
-    ],
-
-    [
-      'Margem',
-      `${margem}%`
-    ],
-
-    [
-      'Valor final',
-      composicao.valorFinal
-    ]
-
-  ];
-
-  financeiro.forEach(item => {
-
-    const valor =
-      typeof item[1] === 'number'
-        ? `R$ ${item[1].toFixed(2)}`
-        : item[1];
-
-    doc.text(
-      `${item[0]}: ${valor}`,
-      20,
-      y
-    );
-
-    y += 7;
-
-  });
-
-  // MATERIAIS
-
-  y += 15;
-
-  doc.setFontSize(16);
-
-  doc.text(
-    'Materiais Utilizados',
-    20,
-    y
-  );
-
-  y += 10;
-
-  doc.setFontSize(11);
-
-  itens.forEach(item => {
-
-    doc.text(
-
-      `${item.nome} | Qtd: ${item.quantidade} | R$ ${item.subtotal.toFixed(2)}`,
-
-      20,
-      y
-    );
-
-    y += 7;
-
-  });
-
-  // ETAPAS
-
-  y += 12;
-
-  doc.setFontSize(16);
-
-  doc.text(
-    'Etapas da Produção',
-    20,
-    y
-  );
-
-  y += 10;
-
-  doc.setFontSize(11);
-
-  etapas.forEach(etapa => {
-
-    doc.text(
-
-      `${etapa.nome} | ${etapa.horas}h | R$ ${etapa.custoTotal.toFixed(2)}`,
-
-      20,
-      y
-    );
-
-    y += 7;
-
-  });
-
-  // RODAPÉ
-
-  y += 20;
-
-  doc.setDrawColor(220);
-
-  doc.line(20, y, 190, y);
-
-  y += 10;
-
-  doc.setFontSize(10);
-
-  doc.text(
-    'Gerado pelo Cutelaria OS',
-    20,
-    y
-  );
-
-  y += 6;
-
-  doc.text(
-    'Sistema profissional de gestão para cuteleiros',
-    20,
-    y
-  );
-
-  // SAVE
-
-  doc.save(
-    `${composicao.nome}.pdf`
-  );
+  }, 500);
 
 }
