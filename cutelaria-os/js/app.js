@@ -1,4 +1,4 @@
-import { initRouter } from './modules/router.js';
+import { initRouter } from './core/router.js';
 
 async function startApp() {
 
@@ -8,45 +8,36 @@ async function startApp() {
 
   } catch (error) {
 
-    console.error(
-      'Erro ao iniciar app:',
-      error
-    );
+    console.error(error);
 
-    const app = document.getElementById('app');
+    document.getElementById('app').innerHTML = `
 
-    if (app) {
+      <div style="
+        padding:40px;
+        color:white;
+        font-family:Inter,sans-serif;
+      ">
 
-      app.innerHTML = `
-
-        <div style="
-          padding:40px;
-          color:white;
-          font-family:Inter,sans-serif;
+        <h1 style="
+          font-size:32px;
+          margin-bottom:16px;
         ">
+          Cutelaria OS
+        </h1>
 
-          <h1 style="
-            font-size:32px;
-            margin-bottom:16px;
-          ">
-            Cutelaria OS
-          </h1>
+        <p style="color:#94a3b8">
+          Erro ao carregar sistema.
+        </p>
 
-          <p style="color:#94a3b8">
-            Erro ao carregar sistema.
-          </p>
+        <pre style="
+          margin-top:20px;
+          color:#f97316;
+          white-space:pre-wrap;
+        ">${error}</pre>
 
-          <pre style="
-            margin-top:20px;
-            color:#f97316;
-            white-space:pre-wrap;
-          ">${error}</pre>
+      </div>
 
-        </div>
-
-      `;
-
-    }
+    `;
 
   }
 
