@@ -4,13 +4,25 @@ import {
 
 } from '../services/cost-engine.js';
 
+import {
+
+  knifeTemplates
+
+} from '../database/templates.js';
+
+import {
+
+  applyKnifeTemplate
+
+} from '../services/template.service.js';
+
 export async function calculadoraPage() {
 
   return `
 
     <section class="pb-32">
 
-      <!-- HEADER -->
+      <!-- HERO -->
 
       <div class="
         flex
@@ -36,7 +48,7 @@ export async function calculadoraPage() {
             text-lg
           ">
 
-            Precificação industrial
+            Precificação inteligente
 
           </p>
 
@@ -67,6 +79,44 @@ export async function calculadoraPage() {
 
       </div>
 
+      <!-- TEMPLATE -->
+
+      <div class="card mb-6">
+
+        <label>
+
+          Template rápido
+
+        </label>
+
+        <select
+          id="knifeTemplateSelect"
+        >
+
+          <option value="">
+
+            Escolha um modelo
+
+          </option>
+
+          ${knifeTemplates.map(
+            (template) => `
+
+              <option
+                value="${template.id}"
+              >
+
+                ${template.nome}
+
+              </option>
+
+            `
+          ).join('')}
+
+        </select>
+
+      </div>
+
       <!-- FORM -->
 
       <div class="card mb-6">
@@ -75,8 +125,6 @@ export async function calculadoraPage() {
           grid
           gap-5
         ">
-
-          <!-- MATERIAL -->
 
           <div>
 
@@ -94,8 +142,6 @@ export async function calculadoraPage() {
 
           </div>
 
-          <!-- GAS -->
-
           <div>
 
             <label>
@@ -111,8 +157,6 @@ export async function calculadoraPage() {
             />
 
           </div>
-
-          <!-- ENERGIA -->
 
           <div>
 
@@ -130,8 +174,6 @@ export async function calculadoraPage() {
 
           </div>
 
-          <!-- CONSUMIVEIS -->
-
           <div>
 
             <label>
@@ -147,8 +189,6 @@ export async function calculadoraPage() {
             />
 
           </div>
-
-          <!-- HORAS -->
 
           <div>
 
@@ -166,8 +206,6 @@ export async function calculadoraPage() {
 
           </div>
 
-          <!-- CUSTO HORA -->
-
           <div>
 
             <label>
@@ -183,8 +221,6 @@ export async function calculadoraPage() {
             />
 
           </div>
-
-          <!-- DEPRECIACAO -->
 
           <div>
 
@@ -202,8 +238,6 @@ export async function calculadoraPage() {
 
           </div>
 
-          <!-- MARGEM -->
-
           <div>
 
             <label>
@@ -220,8 +254,6 @@ export async function calculadoraPage() {
 
           </div>
 
-          <!-- BOTAO -->
-
           <button
             id="calculateKnifeButton"
             class="primary-button mt-4"
@@ -235,14 +267,11 @@ export async function calculadoraPage() {
 
       </div>
 
-      <!-- RESULTADO -->
+      <!-- RESULT -->
 
       <div
         id="calculatorResult"
-        class="grid gap-5"
-      >
-
-      </div>
+      ></div>
 
     </section>
 
@@ -250,220 +279,250 @@ export async function calculadoraPage() {
 
 }
 
-// EVENTO
+// =========================
+// TEMPLATE CHANGE
+// =========================
 
 window.addEventListener(
-  'click',
-  async (e) => {
+  'change',
+  (event) => {
 
     if (
-      e.target.id ===
-      'calculateKnifeButton'
+      event.target.id !==
+      'knifeTemplateSelect'
     ) {
 
-      const materialCost =
-
-        Number(
-          document.getElementById(
-            'materialCost'
-          ).value
-        );
-
-      const gasCost =
-
-        Number(
-          document.getElementById(
-            'gasCost'
-          ).value
-        );
-
-      const energyCost =
-
-        Number(
-          document.getElementById(
-            'energyCost'
-          ).value
-        );
-
-      const consumablesCost =
-
-        Number(
-          document.getElementById(
-            'consumablesCost'
-          ).value
-        );
-
-      const hoursWorked =
-
-        Number(
-          document.getElementById(
-            'hoursWorked'
-          ).value
-        );
-
-      const hourlyRate =
-
-        Number(
-          document.getElementById(
-            'hourlyRate'
-          ).value
-        );
-
-      const depreciationCost =
-
-        Number(
-          document.getElementById(
-            'depreciationCost'
-          ).value
-        );
-
-      const marginPercent =
-
-        Number(
-          document.getElementById(
-            'marginPercent'
-          ).value
-        );
-
-      const result =
-        calculateKnifeCost({
-
-          materials: [
-
-            {
-              quantity: 1,
-              unitCost:
-                materialCost
-            }
-
-          ],
-
-          operational: {
-
-            gasCost,
-
-            energyCost,
-
-            consumablesCost
-
-          },
-
-          labor: {
-
-            hoursWorked,
-
-            hourlyRate
-
-          },
-
-          equipments: [
-
-            {
-
-              purchaseValue:
-                depreciationCost,
-
-              usefulLifeMonths: 1,
-
-              monthlyUsage: 1,
-
-              knifeUsage: 1
-
-            }
-
-          ],
-
-          marginPercent
-
-        });
-
-      document.getElementById(
-        'calculatorResult'
-      ).innerHTML = `
-
-        <div class="card">
-
-          <h2 class="
-            text-2xl
-            font-bold
-            mb-6
-          ">
-
-            Resultado Financeiro
-
-          </h2>
-
-          <div class="
-            grid
-            gap-4
-          ">
-
-            ${createResultItem(
-              'Materiais',
-              result.materialCost
-            )}
-
-            ${createResultItem(
-              'Operacional',
-              result.operationalCost
-            )}
-
-            ${createResultItem(
-              'Mão de obra',
-              result.laborCost
-            )}
-
-            ${createResultItem(
-              'Depreciação',
-              result.depreciationCost
-            )}
-
-            <div class="
-              h-px
-              bg-slate-700
-              my-2
-            "></div>
-
-            ${createHighlightItem(
-              'Custo Total',
-              result.totalCost
-            )}
-
-            ${createHighlightItem(
-              'Preço sugerido',
-              result.suggestedPrice
-            )}
-
-            ${createHighlightItem(
-              'Lucro líquido',
-              result.netProfit
-            )}
-
-            ${createHighlightItem(
-              'Margem',
-              result.margin + '%'
-            )}
-
-          </div>
-
-        </div>
-
-      `;
-
-      if (window.lucide) {
-
-        lucide.createIcons();
-
-      }
+      return;
 
     }
+
+    const templateId =
+      event.target.value;
+
+    if (!templateId) {
+
+      return;
+
+    }
+
+    applyKnifeTemplate(
+      templateId
+    );
 
   }
 );
 
-// RESULT ITEM
+// =========================
+// CALCULAR
+// =========================
 
-function createResultItem(
+window.addEventListener(
+  'click',
+  async (event) => {
+
+    if (
+      event.target.id !==
+      'calculateKnifeButton'
+    ) {
+
+      return;
+
+    }
+
+    const materialCost =
+      Number(
+        document.getElementById(
+          'materialCost'
+        ).value
+      );
+
+    const gasCost =
+      Number(
+        document.getElementById(
+          'gasCost'
+        ).value
+      );
+
+    const energyCost =
+      Number(
+        document.getElementById(
+          'energyCost'
+        ).value
+      );
+
+    const consumablesCost =
+      Number(
+        document.getElementById(
+          'consumablesCost'
+        ).value
+      );
+
+    const hoursWorked =
+      Number(
+        document.getElementById(
+          'hoursWorked'
+        ).value
+      );
+
+    const hourlyRate =
+      Number(
+        document.getElementById(
+          'hourlyRate'
+        ).value
+      );
+
+    const depreciationCost =
+      Number(
+        document.getElementById(
+          'depreciationCost'
+        ).value
+      );
+
+    const marginPercent =
+      Number(
+        document.getElementById(
+          'marginPercent'
+        ).value
+      );
+
+    localStorage.setItem(
+      'cutelaria_hour_cost',
+      hourlyRate
+    );
+
+    const result =
+      calculateKnifeCost({
+
+        materials: [
+
+          {
+            quantity: 1,
+            unitCost:
+              materialCost
+          }
+
+        ],
+
+        operational: {
+
+          gasCost,
+
+          energyCost,
+
+          consumablesCost
+
+        },
+
+        labor: {
+
+          hoursWorked,
+
+          hourlyRate
+
+        },
+
+        equipments: [
+
+          {
+
+            purchaseValue:
+              depreciationCost,
+
+            usefulLifeMonths: 1,
+
+            monthlyUsage: 1,
+
+            knifeUsage: 1
+
+          }
+
+        ],
+
+        marginPercent
+
+      });
+
+    document.getElementById(
+      'calculatorResult'
+    ).innerHTML = `
+
+      <div class="card">
+
+        <h2 class="
+          text-2xl
+          font-bold
+          mb-6
+        ">
+
+          Resultado Financeiro
+
+        </h2>
+
+        <div class="
+          grid
+          gap-4
+        ">
+
+          ${resultItem(
+            'Materiais',
+            result.materialCost
+          )}
+
+          ${resultItem(
+            'Operacional',
+            result.operationalCost
+          )}
+
+          ${resultItem(
+            'Mão de obra',
+            result.laborCost
+          )}
+
+          ${resultItem(
+            'Depreciação',
+            result.depreciationCost
+          )}
+
+          <div class="
+            h-px
+            bg-slate-700
+            my-2
+          "></div>
+
+          ${highlightItem(
+            'Custo Total',
+            result.totalCost
+          )}
+
+          ${highlightItem(
+            'Preço sugerido',
+            result.suggestedPrice
+          )}
+
+          ${highlightItem(
+            'Lucro líquido',
+            result.netProfit
+          )}
+
+          ${highlightItem(
+            'Margem',
+            result.margin + '%'
+          )}
+
+        </div>
+
+      </div>
+
+    `;
+
+  }
+);
+
+// =========================
+// RESULT ITEM
+// =========================
+
+function resultItem(
   label,
   value
 ) {
@@ -486,7 +545,7 @@ function createResultItem(
 
       <strong>
 
-        ${formatCurrency(value)}
+        ${currency(value)}
 
       </strong>
 
@@ -496,9 +555,11 @@ function createResultItem(
 
 }
 
-// HIGHLIGHT
+// =========================
+// HIGHLIGHT ITEM
+// =========================
 
-function createHighlightItem(
+function highlightItem(
   label,
   value
 ) {
@@ -538,7 +599,7 @@ function createHighlightItem(
         ${
           typeof value === 'number'
 
-            ? formatCurrency(value)
+            ? currency(value)
 
             : value
         }
@@ -551,9 +612,11 @@ function createHighlightItem(
 
 }
 
+// =========================
 // FORMAT
+// =========================
 
-function formatCurrency(
+function currency(
   value
 ) {
 
