@@ -4,21 +4,29 @@ import { db } from '../database/db.js';
 
 const routes = {
 
-  onboarding: '../pages/onboarding.js',
+  onboarding:
+    '../pages/onboarding.js',
 
-  dashboard: '../pages/dashboard.js',
+  dashboard:
+    '../pages/dashboard.js',
 
-  materiais: '../pages/materiais.js',
+  calculadora:
+    '../pages/calculadora.js',
 
-  producao: '../pages/producao.js',
+  materiais:
+    '../pages/materiais.js',
 
-  financeiro: '../pages/financeiro.js',
+  producao:
+    '../pages/producao.js',
 
-  clientes: '../pages/clientes.js',
+  financeiro:
+    '../pages/financeiro.js',
 
-  config: '../pages/configuracoes.js'
+  clientes:
+    '../pages/clientes.js',
 
-  calculadora: '../pages/calculadora.js',
+  config:
+    '../pages/configuracoes.js'
 
 };
 
@@ -26,8 +34,6 @@ async function renderRoute() {
 
   const app =
     document.getElementById('app');
-
-  // SETTINGS
 
   const settings =
     await db.settings.toArray();
@@ -47,22 +53,26 @@ async function renderRoute() {
 
   }
 
-  // HASH PADRÃO
+  // HASH PADRAO
 
   if (!hash) {
 
     hash = onboardingCompleto
+
       ? 'dashboard'
+
       : 'onboarding';
 
   }
 
-  // ROTA INVÁLIDA
+  // ROTA INVALIDA
 
   if (!routes[hash]) {
 
     hash = onboardingCompleto
+
       ? 'dashboard'
+
       : 'onboarding';
 
   }
@@ -91,7 +101,9 @@ async function renderRoute() {
 
       ${
         showNavbar
+
           ? renderNavbar(hash)
+
           : ''
       }
 
