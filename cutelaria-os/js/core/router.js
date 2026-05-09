@@ -3,22 +3,20 @@ import {
 } from '../pages/dashboard.js';
 
 import {
-  producaoPage
-} from '../pages/producao.js';
-
-import {
-  pedidosPage
-} from '../pages/pedidos.js';
-
-// PÁGINAS EXISTENTES DO PROJETO
-
-import {
   calculadoraPage
 } from '../pages/calculadora.js';
 
 import {
   materiaisPage
 } from '../pages/materiais.js';
+
+import {
+  producaoPage
+} from '../pages/producao.js';
+
+import {
+  pedidosPage
+} from '../pages/pedidos.js';
 
 import {
   financeiroPage
@@ -217,11 +215,25 @@ export async function navigate(
 
           <p class="
             text-slate-400
+            mb-4
           ">
 
             Verifique o console.
 
           </p>
+
+          <pre class="
+            text-left
+            text-xs
+            overflow-auto
+            bg-black/30
+            p-4
+            rounded-2xl
+          ">
+
+${error}
+
+          </pre>
 
         </section>
 
