@@ -1,66 +1,173 @@
 import { db } from '../database/db.js';
 
 import {
-  gerarPDF
-} from '../services/pdf.js';
+
+  emptyState
+
+} from '../components/empty-state.js';
+
+// ========================================
+// PAGE
+// ========================================
 
 export async function producaoPage() {
 
-  const composicoes =
-    await db.composicoes
-      .orderBy('createdAt')
-      .reverse()
-      .toArray();
+  const producao =
+    db.producao
+      ? await db.producao.toArray()
+      : [];
 
-  return `
+  // ========================================
+  // EMPTY STATE
+  // ========================================
 
-    <section class="pb-32">
+  if (!producao.length) {
 
-      <!-- HEADER -->
+    return `
 
-      <div class="mb-8">
+      <section class="pb-32">
+
+        <!-- HERO -->
 
         <div class="
           flex
-          justify-between
           items-center
-          mb-4
+          justify-between
+          mb-8
         ">
 
           <div>
 
             <h1 class="
-              text-3xl
+              text-4xl
               font-black
+              mb-2
             ">
 
-              Produções
+              Produção
 
             </h1>
 
             <p class="
               text-slate-400
-              mt-2
+              text-lg
             ">
 
-              Gestão de facas e custos
+              Controle da oficina
 
             </p>
 
           </div>
 
-          <button
-            id="novaComposicao"
-            class="primary-button"
-            style="
-              width:auto;
-              padding-inline:20px;
-            "
-          >
+          <div class="
+            w-20
+            h-20
+            rounded-[28px]
 
-            Nova
+            flex
+            items-center
+            justify-center
 
-          </button>
+            bg-gradient-to-br
+            from-orange-500
+            to-orange-700
+
+            shadow-2xl
+          ">
+
+            <i
+              data-lucide="hammer"
+              class="w-10 h-10 text-white"
+            ></i>
+
+          </div>
+
+        </div>
+
+        ${emptyState({
+
+          icon: 'anvil',
+
+          title:
+            'Nenhuma faca em produção',
+
+          description:
+            'Cadastre pedidos ou inicie uma nova produção para acompanhar o andamento da oficina.',
+
+          buttonText:
+            'Nova produção',
+
+          buttonId:
+            'newProductionButton'
+
+        })}
+
+      </section>
+
+    `;
+
+  }
+
+  // ========================================
+  // LISTAGEM
+  // ========================================
+
+  return `
+
+    <section class="pb-32">
+
+      <!-- HERO -->
+
+      <div class="
+        flex
+        items-center
+        justify-between
+        mb-8
+      ">
+
+        <div>
+
+          <h1 class="
+            text-4xl
+            font-black
+            mb-2
+          ">
+
+            Produção
+
+          </h1>
+
+          <p class="
+            text-slate-400
+            text-lg
+          ">
+
+            Controle da oficina
+
+          </p>
+
+        </div>
+
+        <div class="
+          w-20
+          h-20
+          rounded-[28px]
+
+          flex
+          items-center
+          justify-center
+
+          bg-gradient-to-br
+          from-orange-500
+          to-orange-700
+
+          shadow-2xl
+        ">
+
+          <i
+            data-lucide="hammer"
+            class="w-10 h-10 text-white"
+          ></i>
 
         </div>
 
@@ -68,272 +175,33 @@ export async function producaoPage() {
 
       <!-- LISTA -->
 
-      <div class="grid gap-5">
-
-        ${
-          composicoes.length
-
-            ? composicoes.map(item => `
-
-              <div class="card">
-
-                <div class="
-                  flex
-                  justify-between
-                  items-start
-                  mb-5
-                ">
-
-                  <div>
-
-                    <h2 class="
-                      text-2xl
-                      font-bold
-                    ">
-
-                      ${item.nome}
-
-                    </h2>
-
-                    <p class="
-                      text-slate-400
-                      mt-2
-                    ">
-
-                      ${
-                        item.tipoFaca ||
-                        'Faca personalizada'
-                      }
-
-                    </p>
-
-                  </div>
-
-                  <div class="
-                    text-right
-                  ">
-
-                    <div class="
-                      text-orange-400
-                      text-2xl
-                      font-black
-                    ">
-
-                      R$ ${(item.valorFinal || 0).toFixed(2)}
-
-                    </div>
-
-                    <div class="
-                      text-slate-400
-                      text-sm
-                      mt-1
-                    ">
-
-                      venda final
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-                <!-- GRID -->
-
-                <div class="
-                  grid
-                  grid-cols-2
-                  gap-4
-                  mb-5
-                ">
-
-                  <div class="
-                    bg-slate-900/60
-                    border
-                    border-slate-700
-                    rounded-2xl
-                    p-4
-                  ">
-
-                    <div class="
-                      text-slate-400
-                      text-sm
-                      mb-2
-                    ">
-
-                      Custo
-
-                    </div>
-
-                    <div class="
-                      text-xl
-                      font-black
-                      text-red-400
-                    ">
-
-                      R$ ${(item.custoTotal || 0).toFixed(2)}
-
-                    </div>
-
-                  </div>
-
-                  <div class="
-                    bg-slate-900/60
-                    border
-                    border-slate-700
-                    rounded-2xl
-                    p-4
-                  ">
-
-                    <div class="
-                      text-slate-400
-                      text-sm
-                      mb-2
-                    ">
-
-                      Margem
-
-                    </div>
-
-                    <div class="
-                      text-xl
-                      font-black
-                      text-green-400
-                    ">
-
-                      ${item.margemLucro || 0}%
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-                <!-- DETALHES -->
-
-                <div class="
-                  grid
-                  gap-2
-                  mb-6
-                  text-sm
-                ">
-
-                  <div class="
-                    flex
-                    justify-between
-                  ">
-
-                    <span class="
-                      text-slate-400
-                    ">
-                      Tipo aço
-                    </span>
-
-                    <span>
-
-                      ${item.tipoAco || '-'}
-
-                    </span>
-
-                  </div>
-
-                  <div class="
-                    flex
-                    justify-between
-                  ">
-
-                    <span class="
-                      text-slate-400
-                    ">
-                      Acabamento
-                    </span>
-
-                    <span>
-
-                      ${item.acabamento || '-'}
-
-                    </span>
-
-                  </div>
-
-                  <div class="
-                    flex
-                    justify-between
-                  ">
-
-                    <span class="
-                      text-slate-400
-                    ">
-                      Cabo
-                    </span>
-
-                    <span>
-
-                      ${item.tipoCabo || '-'}
-
-                    </span>
-
-                  </div>
-
-                </div>
-
-                <!-- AÇÕES -->
-
-                <div class="
-                  grid
-                  grid-cols-2
-                  gap-3
-                ">
-
-                  <button
-                    class="
-                      primary-button
-                      detalhes-btn
-                    "
-                    data-id="${item.id}"
-                  >
-
-                    Detalhes
-
-                  </button>
-
-                  <button
-                    class="
-                      primary-button
-                      pdf-btn
-                    "
-                    data-id="${item.id}"
-                  >
-
-                    PDF
-
-                  </button>
-
-                </div>
-
-              </div>
-
-            `).join('')
-
-            : `
-
-              <div class="card text-center">
-
-                <div class="
-                  text-3xl
-                  mb-4
-                ">
-
-                  ⚒️
-
-                </div>
+      <div class="
+        grid
+        gap-5
+      ">
+
+        ${producao.map(item => `
+
+          <div class="
+            card
+          ">
+
+            <div class="
+              flex
+              items-center
+              justify-between
+              mb-5
+            ">
+
+              <div>
 
                 <h2 class="
                   text-2xl
                   font-bold
-                  mb-2
+                  mb-1
                 ">
 
-                  Nenhuma produção
+                  ${item.nome || 'Faca artesanal'}
 
                 </h2>
 
@@ -341,14 +209,106 @@ export async function producaoPage() {
                   text-slate-400
                 ">
 
-                  Crie sua primeira faca personalizada
+                  ${item.status || 'Em produção'}
 
                 </p>
 
               </div>
 
-            `
-        }
+              <div class="
+                w-14
+                h-14
+
+                rounded-2xl
+
+                bg-orange-500/10
+
+                border
+                border-orange-500/20
+
+                flex
+                items-center
+                justify-center
+              ">
+
+                <i
+                  data-lucide="flame"
+                  class="
+                    w-7
+                    h-7
+                    text-orange-400
+                  "
+                ></i>
+
+              </div>
+
+            </div>
+
+            <!-- PROGRESS -->
+
+            <div class="
+              mb-3
+            ">
+
+              <div class="
+                flex
+                items-center
+                justify-between
+
+                text-sm
+
+                mb-2
+              ">
+
+                <span class="
+                  text-slate-400
+                ">
+
+                  Progresso
+
+                </span>
+
+                <strong>
+
+                  ${item.progresso || 0}%
+
+                </strong>
+
+              </div>
+
+              <div class="
+                h-3
+
+                bg-slate-800
+
+                rounded-full
+
+                overflow-hidden
+              ">
+
+                <div
+                  class="
+                    h-full
+
+                    bg-gradient-to-r
+                    from-orange-500
+                    to-orange-400
+
+                    rounded-full
+                  "
+                  style="
+                    width:
+                    ${item.progresso || 0}%
+                  "
+                ></div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        `).join('')}
 
       </div>
 
@@ -357,41 +317,3 @@ export async function producaoPage() {
   `;
 
 }
-
-// PDF
-
-window.addEventListener(
-  'click',
-  async (e) => {
-
-    // EXPORTAR PDF
-
-    if (
-      e.target.classList.contains(
-        'pdf-btn'
-      )
-    ) {
-
-      const id =
-        e.target.dataset.id;
-
-      await gerarPDF(id);
-
-    }
-
-    // DETALHES
-
-    if (
-      e.target.classList.contains(
-        'detalhes-btn'
-      )
-    ) {
-
-      alert(
-        'Detalhes avançados em desenvolvimento.'
-      );
-
-    }
-
-  }
-);
