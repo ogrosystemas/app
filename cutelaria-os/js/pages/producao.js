@@ -1,10 +1,12 @@
 import { db } from '../database/db.js';
 
 import {
-
   emptyState
-
 } from '../components/empty-state.js';
+
+import {
+  showToast
+} from '../components/toast.js';
 
 // ========================================
 // PAGE
@@ -18,7 +20,7 @@ export async function producaoPage() {
       : [];
 
   // ========================================
-  // EMPTY
+  // EMPTY STATE
   // ========================================
 
   if (!producao.length) {
@@ -150,9 +152,7 @@ export async function producaoPage() {
 
         <button
           id="newProductionButton"
-          class="
-            primary-button
-          "
+          class="primary-button"
         >
 
           Nova produção
@@ -161,7 +161,7 @@ export async function producaoPage() {
 
       </div>
 
-      <!-- LISTA -->
+      <!-- GRID -->
 
       <div class="
         grid
@@ -171,6 +171,8 @@ export async function producaoPage() {
         ${producao.map(item => `
 
           <div class="card">
+
+            <!-- HEADER -->
 
             <div class="
               flex
@@ -238,7 +240,9 @@ export async function producaoPage() {
                 flex
                 items-center
                 justify-between
+
                 text-sm
+
                 mb-2
               ">
 
@@ -260,8 +264,11 @@ export async function producaoPage() {
 
               <div class="
                 h-3
+
                 bg-slate-800
+
                 rounded-full
+
                 overflow-hidden
               ">
 
@@ -282,6 +289,47 @@ export async function producaoPage() {
                 ></div>
 
               </div>
+
+            </div>
+
+            <!-- FOOTER -->
+
+            <div class="
+              mt-5
+
+              flex
+              items-center
+              justify-between
+            ">
+
+              <small class="
+                text-slate-500
+              ">
+
+                Criado em:
+                ${
+                  item.createdAt
+                    ? new Date(
+                        item.createdAt
+                      ).toLocaleDateString(
+                        'pt-BR'
+                      )
+                    : '--'
+                }
+
+              </small>
+
+              <button
+                class="
+                  text-orange-400
+                  text-sm
+                  font-semibold
+                "
+              >
+
+                Ver detalhes
+
+              </button>
 
             </div>
 
@@ -340,11 +388,18 @@ window.addEventListener(
 
       });
 
-      alert(
-        'Produção criada.'
-      );
+      showToast({
 
-      window.location.reload();
+        message:
+          'Produção criada com sucesso.'
+
+      });
+
+      setTimeout(() => {
+
+        window.location.reload();
+
+      }, 600);
 
     } catch (error) {
 
@@ -352,9 +407,14 @@ window.addEventListener(
         error
       );
 
-      alert(
-        'Erro ao criar produção.'
-      );
+      showToast({
+
+        type: 'error',
+
+        message:
+          'Erro ao criar produção.'
+
+      });
 
     }
 
