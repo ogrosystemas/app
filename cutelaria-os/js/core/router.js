@@ -10,6 +10,24 @@ import {
   pedidosPage
 } from '../pages/pedidos.js';
 
+// PÁGINAS EXISTENTES DO PROJETO
+
+import {
+  calculadoraPage
+} from '../pages/calculadora.js';
+
+import {
+  materiaisPage
+} from '../pages/materiais.js';
+
+import {
+  financeiroPage
+} from '../pages/financeiro.js';
+
+import {
+  configuracoesPage
+} from '../pages/configuracoes.js';
+
 import {
   renderNavbar
 } from '../modules/navbar.js';
@@ -20,11 +38,26 @@ import {
 
 const routes = {
 
-  dashboard: dashboardPage,
+  dashboard:
+    dashboardPage,
 
-  producao: producaoPage,
+  calculadora:
+    calculadoraPage,
 
-  pedidos: pedidosPage
+  materiais:
+    materiaisPage,
+
+  producao:
+    producaoPage,
+
+  pedidos:
+    pedidosPage,
+
+  financeiro:
+    financeiroPage,
+
+  config:
+    configuracoesPage
 
 };
 
@@ -51,7 +84,7 @@ export async function navigate(
     routes[route];
 
   // ========================================
-  // PAGE NOT FOUND
+  // 404
   // ========================================
 
   if (!page) {
@@ -107,7 +140,7 @@ export async function navigate(
   }
 
   // ========================================
-  // RENDER PAGE
+  // RENDER
   // ========================================
 
   try {
