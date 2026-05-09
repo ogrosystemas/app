@@ -1,440 +1,83 @@
-const DATABASE_NAME =
-  'cutelariaOS';
-
-const DATABASE_VERSION =
-  12;
-
-export const db = new Dexie(
-  DATABASE_NAME
+const db = new Dexie(
+  'cutelaria_os'
 );
 
-// ======================
-// VERSION 1
-// ======================
-
-db.version(1).stores({
-
-  materiais:
-    '++id,nome,categoria,valor'
-
-});
-
-// ======================
-// VERSION 2
-// ======================
-
-db.version(2).stores({
-
-  materiais:
-    '++id,nome,categoria,valor',
-
-  composicoes:
-    '++id,nome,tipoAco,valorFinal',
-
-  financeiro:
-    '++id,tipo,valor,data',
-
-  clientes:
-    '++id,nome,telefone'
-
-});
-
-// ======================
-// VERSION 3
-// ======================
-
-db.version(3).stores({
-
-  materiais:
-    '++id,nome,categoria,valor',
-
-  composicoes:
-    '++id,nome,tipoAco,valorFinal',
-
-  financeiro:
-    '++id,tipo,valor,data',
-
-  clientes:
-    '++id,nome,telefone',
-
-  settings:
-    '++id,oficinaNome'
-
-});
-
-// ======================
-// VERSION 4
-// ======================
-
-db.version(4).stores({
-
-  materiais:
-    '++id,nome,categoria,valor',
-
-  composicoes:
-    '++id,nome,tipoAco,valorFinal',
-
-  financeiro:
-    '++id,tipo,valor,data',
-
-  clientes:
-    '++id,nome,telefone',
-
-  settings:
-    '++id,oficinaNome',
-
-  orcamentos:
-    '++id,nome,cliente,total'
-
-});
-
-// ======================
-// VERSION 5
-// ======================
-
-db.version(5).stores({
-
-  materiais:
-    '++id,nome,categoria,valor',
-
-  composicoes:
-    '++id,nome,tipoAco,valorFinal',
-
-  financeiro:
-    '++id,tipo,valor,data',
-
-  clientes:
-    '++id,nome,telefone',
-
-  settings:
-    '++id,oficinaNome',
-
-  orcamentos:
-    '++id,nome,cliente,total',
-
-  producao:
-    '++id,nome,status'
-
-});
-
-// ======================
-// VERSION 6
-// ======================
-
-db.version(6).stores({
-
-  materiais:
-    '++id,nome,categoria,valor',
-
-  composicoes:
-    '++id,nome,tipoAco,valorFinal',
-
-  financeiro:
-    '++id,tipo,valor,data',
-
-  clientes:
-    '++id,nome,telefone',
-
-  settings:
-    '++id,oficinaNome',
-
-  orcamentos:
-    '++id,nome,cliente,total',
-
-  producao:
-    '++id,nome,status',
-
-  logs:
-    '++id,tipo,data'
-
-});
-
-// ======================
-// VERSION 7
-// ======================
+// ========================================
+// DATABASE VERSION
+// ========================================
 
 db.version(7).stores({
 
-  materiais:
-    '++id,nome,categoria,valor',
+  configuracoes: `
+    ++id,
+    empresa,
+    telefone,
+    cidade
+  `,
 
-  composicoes:
-    '++id,nome,tipoAco,valorFinal',
+  clientes: `
+    ++id,
+    nome,
+    telefone,
+    createdAt
+  `,
 
-  financeiro:
-    '++id,tipo,valor,data',
+  composicoes: `
+    ++id,
+    nome,
+    custo,
+    createdAt
+  `,
 
-  clientes:
-    '++id,nome,telefone',
+  producao: `
+    ++id,
+    nome,
+    status,
+    progresso,
+    createdAt
+  `,
 
-  settings:
-    '++id,oficinaNome',
+  financeiro: `
+    ++id,
+    tipo,
+    descricao,
+    valor,
+    createdAt
+  `,
 
-  orcamentos:
-    '++id,nome,cliente,total',
-
-  producao:
-    '++id,nome,status',
-
-  logs:
-    '++id,tipo,data',
-
-  estoque:
-    '++id,nome,quantidade'
-
-});
-
-// ======================
-// VERSION 8
-// ======================
-
-db.version(8).stores({
-
-  materiais:
-    '++id,nome,categoria,valor',
-
-  composicoes:
-    '++id,nome,tipoAco,valorFinal',
-
-  financeiro:
-    '++id,tipo,valor,data',
-
-  clientes:
-    '++id,nome,telefone',
-
-  settings:
-    '++id,oficinaNome',
-
-  orcamentos:
-    '++id,nome,cliente,total',
-
-  producao:
-    '++id,nome,status',
-
-  logs:
-    '++id,tipo,data',
-
-  estoque:
-    '++id,nome,quantidade',
-
-  equipamentos:
-    '++id,nome,valor'
+  pedidos: `
+    ++id,
+    nome,
+    cliente,
+    valor,
+    status,
+    prazo,
+    createdAt
+  `
 
 });
 
-// ======================
-// VERSION 9
-// ======================
+// ========================================
+// OPEN
+// ========================================
 
-db.version(9).stores({
-
-  materiais:
-    '++id,nome,categoria,valor',
-
-  composicoes:
-    '++id,nome,tipoAco,valorFinal',
-
-  financeiro:
-    '++id,tipo,valor,data',
-
-  clientes:
-    '++id,nome,telefone',
-
-  settings:
-    '++id,oficinaNome',
-
-  orcamentos:
-    '++id,nome,cliente,total',
-
-  producao:
-    '++id,nome,status',
-
-  logs:
-    '++id,tipo,data',
-
-  estoque:
-    '++id,nome,quantidade',
-
-  equipamentos:
-    '++id,nome,valor',
-
-  backups:
-    '++id,data'
-
-});
-
-// ======================
-// VERSION 10
-// ======================
-
-db.version(10).stores({
-
-  materiais:
-    '++id,nome,categoria,valor',
-
-  composicoes:
-    '++id,nome,tipoAco,valorFinal,createdAt',
-
-  financeiro:
-    '++id,tipo,valor,data',
-
-  clientes:
-    '++id,nome,telefone',
-
-  settings:
-    '++id,oficinaNome',
-
-  orcamentos:
-    '++id,nome,cliente,total',
-
-  producao:
-    '++id,nome,status,createdAt',
-
-  logs:
-    '++id,tipo,data',
-
-  estoque:
-    '++id,nome,quantidade',
-
-  equipamentos:
-    '++id,nome,valor',
-
-  backups:
-    '++id,data'
-
-});
-
-// ======================
-// VERSION 11
-// ======================
-
-db.version(11).stores({
-
-  materiais:
-    '++id,nome,categoria,valor',
-
-  composicoes:
-    '++id,nome,tipoAco,valorFinal,createdAt',
-
-  financeiro:
-    '++id,tipo,valor,data',
-
-  clientes:
-    '++id,nome,telefone',
-
-  settings:
-    '++id,oficinaNome',
-
-  orcamentos:
-    '++id,nome,cliente,total',
-
-  producao:
-    '++id,nome,status,createdAt',
-
-  pedidos:
-    '++id,cliente,status,total,createdAt',
-
-  logs:
-    '++id,tipo,data',
-
-  estoque:
-    '++id,nome,quantidade',
-
-  equipamentos:
-    '++id,nome,valor',
-
-  backups:
-    '++id,data'
-
-});
-
-// ======================
-// VERSION 12
-// ======================
-
-db.version(DATABASE_VERSION).stores({
-
-  materiais:
-    '++id,nome,categoria,valor,createdAt',
-
-  composicoes:
-    '++id,nome,tipoAco,valorFinal,createdAt',
-
-  financeiro:
-    '++id,tipo,valor,data,createdAt',
-
-  clientes:
-    '++id,nome,telefone,createdAt',
-
-  settings:
-    '++id,oficinaNome,createdAt',
-
-  orcamentos:
-    '++id,nome,cliente,total,createdAt',
-
-  producao:
-    '++id,nome,status,createdAt',
-
-  pedidos:
-    '++id,cliente,status,total,createdAt',
-
-  logs:
-    '++id,tipo,data,createdAt',
-
-  estoque:
-    '++id,nome,quantidade,createdAt',
-
-  equipamentos:
-    '++id,nome,valor,createdAt',
-
-  backups:
-    '++id,data,createdAt'
-
-});
-
-// ======================
-// INIT
-// ======================
-
-async function initializeDatabase() {
-
-  try {
-
-    await db.open();
+db.open()
+  .then(() => {
 
     console.log(
-      'IndexedDB conectado'
+      'Banco carregado.'
     );
 
-  } catch (error) {
+  })
+  .catch((error) => {
 
     console.error(
       'Erro IndexedDB:',
       error
     );
 
-    if (
-      error.name === 'VersionError'
-      ||
-      error.name === 'DatabaseClosedError'
-      ||
-      error.name === 'SchemaError'
-    ) {
+  });
 
-      console.warn(
-        'Resetando banco local...'
-      );
-
-      await Dexie.delete(
-        DATABASE_NAME
-      );
-
-      window.location.reload();
-
-    }
-
-  }
-
-}
-
-initializeDatabase();
+export {
+  db
+};
