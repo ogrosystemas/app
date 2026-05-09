@@ -1,7 +1,59 @@
 let deferredPrompt = null;
 
 // ========================================
-// CREATE INSTALL BUTTON
+// INIT
+// ========================================
+
+export function initPWA() {
+
+  initInstallPrompt();
+
+  initServiceWorker();
+
+}
+
+// ========================================
+// INSTALL PROMPT
+// ========================================
+
+function initInstallPrompt() {
+
+  window.addEventListener(
+    'beforeinstallprompt',
+    (event) => {
+
+      event.preventDefault();
+
+      deferredPrompt =
+        event;
+
+      createInstallButton();
+
+    }
+  );
+
+  window.addEventListener(
+    'appinstalled',
+    () => {
+
+      const button =
+        document.getElementById(
+          'installPwaButton'
+        );
+
+      if (button) {
+
+        button.remove();
+
+      }
+
+    }
+  );
+
+}
+
+// ========================================
+// INSTALL BUTTON
 // ========================================
 
 function createInstallButton() {
@@ -25,9 +77,11 @@ function createInstallButton() {
     'installPwaButton';
 
   button.className = `
+
     fixed
     top-4
     right-4
+
     z-[9999]
 
     flex
@@ -42,27 +96,30 @@ function createInstallButton() {
     bg-orange-500
     text-white
 
+    font-semibold
+
     shadow-2xl
 
-    font-semibold
   `;
 
   button.innerHTML = `
+
     <i
       data-lucide="smartphone"
       class="w-5 h-5"
     ></i>
 
     <span>
+
       Instalar App
+
     </span>
+
   `;
 
   document.body.appendChild(
     button
   );
-
-  // LUCIDE
 
   if (
     window.lucide
@@ -71,8 +128,6 @@ function createInstallButton() {
     lucide.createIcons();
 
   }
-
-  // CLICK
 
   button.addEventListener(
     'click',
@@ -98,52 +153,21 @@ function createInstallButton() {
 }
 
 // ========================================
-// INSTALL PROMPT
-// ========================================
-
-window.addEventListener(
-  'beforeinstallprompt',
-  (event) => {
-
-    event.preventDefault();
-
-    deferredPrompt =
-      event;
-
-    createInstallButton();
-
-  }
-);
-
-// ========================================
-// APP INSTALLED
-// ========================================
-
-window.addEventListener(
-  'appinstalled',
-  () => {
-
-    const button =
-      document.getElementById(
-        'installPwaButton'
-      );
-
-    if (button) {
-
-      button.remove();
-
-    }
-
-  }
-);
-
-// ========================================
 // SERVICE WORKER
 // ========================================
 
-if (
-  'serviceWorker' in navigator
-) {
+function initServiceWorker() {
+
+  if (
+    !(
+      'serviceWorker' in
+      navigator
+    )
+  ) {
+
+    return;
+
+  }
 
   window.addEventListener(
     'load',
