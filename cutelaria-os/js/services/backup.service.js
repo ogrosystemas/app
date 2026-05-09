@@ -1,8 +1,8 @@
 import { db } from '../database/db.js';
 
-// =========================
-// EXPORTAR
-// =========================
+// ========================================
+// EXPORTAR BACKUP
+// ========================================
 
 export async function exportarBackup() {
 
@@ -81,45 +81,57 @@ export async function exportarBackup() {
         blob
       );
 
-    const a =
+    const link =
       document.createElement(
         'a'
       );
 
-    a.href = url;
+    const date =
+      new Date()
+        .toISOString()
+        .split('T')[0];
 
-    a.download =
-      `cutelaria-backup.json`;
+    link.href = url;
+
+    link.download =
+      `cutelaria-backup-${date}.json`;
 
     document.body.appendChild(
-      a
+      link
     );
 
-    a.click();
+    link.click();
 
     document.body.removeChild(
-      a
+      link
     );
 
     URL.revokeObjectURL(
       url
     );
 
+    return true;
+
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      'Erro exportando backup:',
+      error
+    );
 
     alert(
       'Erro ao exportar backup.'
     );
 
+    return false;
+
   }
 
 }
 
-// =========================
-// IMPORTAR
-// =========================
+// ========================================
+// IMPORTAR BACKUP
+// ========================================
 
 export async function importarBackup(
   file
@@ -133,136 +145,152 @@ export async function importarBackup(
     const data =
       JSON.parse(text);
 
-    if (
-      db.materiais &&
-      data.materiais
-    ) {
+    if (db.materiais) {
 
       await db.materiais.clear();
 
-      await db.materiais.bulkAdd(
-        data.materiais
-      );
+      if (data.materiais?.length) {
+
+        await db.materiais.bulkAdd(
+          data.materiais
+        );
+
+      }
 
     }
 
-    if (
-      db.composicoes &&
-      data.composicoes
-    ) {
+    if (db.composicoes) {
 
       await db.composicoes.clear();
 
-      await db.composicoes.bulkAdd(
-        data.composicoes
-      );
+      if (data.composicoes?.length) {
+
+        await db.composicoes.bulkAdd(
+          data.composicoes
+        );
+
+      }
 
     }
 
-    if (
-      db.clientes &&
-      data.clientes
-    ) {
+    if (db.clientes) {
 
       await db.clientes.clear();
 
-      await db.clientes.bulkAdd(
-        data.clientes
-      );
+      if (data.clientes?.length) {
+
+        await db.clientes.bulkAdd(
+          data.clientes
+        );
+
+      }
 
     }
 
-    if (
-      db.financeiro &&
-      data.financeiro
-    ) {
+    if (db.financeiro) {
 
       await db.financeiro.clear();
 
-      await db.financeiro.bulkAdd(
-        data.financeiro
-      );
+      if (data.financeiro?.length) {
+
+        await db.financeiro.bulkAdd(
+          data.financeiro
+        );
+
+      }
 
     }
 
-    if (
-      db.producao &&
-      data.producao
-    ) {
+    if (db.producao) {
 
       await db.producao.clear();
 
-      await db.producao.bulkAdd(
-        data.producao
-      );
+      if (data.producao?.length) {
+
+        await db.producao.bulkAdd(
+          data.producao
+        );
+
+      }
 
     }
 
-    if (
-      db.pedidos &&
-      data.pedidos
-    ) {
+    if (db.pedidos) {
 
       await db.pedidos.clear();
 
-      await db.pedidos.bulkAdd(
-        data.pedidos
-      );
+      if (data.pedidos?.length) {
+
+        await db.pedidos.bulkAdd(
+          data.pedidos
+        );
+
+      }
 
     }
 
-    if (
-      db.estoque &&
-      data.estoque
-    ) {
+    if (db.estoque) {
 
       await db.estoque.clear();
 
-      await db.estoque.bulkAdd(
-        data.estoque
-      );
+      if (data.estoque?.length) {
+
+        await db.estoque.bulkAdd(
+          data.estoque
+        );
+
+      }
 
     }
 
-    if (
-      db.equipamentos &&
-      data.equipamentos
-    ) {
+    if (db.equipamentos) {
 
       await db.equipamentos.clear();
 
-      await db.equipamentos.bulkAdd(
-        data.equipamentos
-      );
+      if (data.equipamentos?.length) {
+
+        await db.equipamentos.bulkAdd(
+          data.equipamentos
+        );
+
+      }
 
     }
 
-    if (
-      db.settings &&
-      data.settings
-    ) {
+    if (db.settings) {
 
       await db.settings.clear();
 
-      await db.settings.bulkAdd(
-        data.settings
-      );
+      if (data.settings?.length) {
+
+        await db.settings.bulkAdd(
+          data.settings
+        );
+
+      }
 
     }
 
     alert(
-      'Backup restaurado.'
+      'Backup restaurado com sucesso.'
     );
 
     window.location.reload();
 
+    return true;
+
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      'Erro importando backup:',
+      error
+    );
 
     alert(
       'Erro ao importar backup.'
     );
+
+    return false;
 
   }
 
