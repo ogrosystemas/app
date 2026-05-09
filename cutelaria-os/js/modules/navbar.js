@@ -65,6 +65,21 @@ export function renderNavbar(current = '') {
       </a>
 
       <a
+        href="#pedidos"
+        class="${
+          current === 'pedidos'
+            ? 'active'
+            : ''
+        }"
+      >
+
+        <i data-lucide="shopping-bag"></i>
+
+        <span>Pedidos</span>
+
+      </a>
+
+      <a
         href="#financeiro"
         class="${
           current === 'financeiro'
