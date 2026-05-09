@@ -13,6 +13,43 @@ import {
 
 export async function configuracoesPage() {
 
+  // ========================================
+  // SAFE TABLE
+  // ========================================
+
+  if (!db.settings) {
+
+    return `
+
+      <section class="pb-32">
+
+        <div class="card">
+
+          <h2 class="
+            text-2xl
+            font-bold
+            mb-4
+          ">
+
+            Banco de dados não atualizado
+
+          </h2>
+
+          <p class="text-slate-400">
+
+            A tabela "settings"
+            não existe no IndexedDB.
+
+          </p>
+
+        </div>
+
+      </section>
+
+    `;
+
+  }
+
   const settings =
     await db.settings
       .toCollection()
@@ -21,8 +58,6 @@ export async function configuracoesPage() {
   return `
 
     <section class="pb-32">
-
-      <!-- HERO -->
 
       <div class="
         flex
@@ -54,52 +89,11 @@ export async function configuracoesPage() {
 
         </div>
 
-        <div class="
-          w-20
-          h-20
-          rounded-[28px]
-
-          flex
-          items-center
-          justify-center
-
-          bg-gradient-to-br
-          from-orange-500
-          to-orange-700
-
-          shadow-2xl
-        ">
-
-          <i
-            data-lucide="settings"
-            class="w-10 h-10 text-white"
-          ></i>
-
-        </div>
-
       </div>
 
-      <!-- OFICINA -->
+      <div class="card">
 
-      <div class="
-        card
-        mb-6
-      ">
-
-        <h2 class="
-          text-2xl
-          font-bold
-          mb-6
-        ">
-
-          Oficina
-
-        </h2>
-
-        <div class="
-          grid
-          gap-5
-        ">
+        <div class="grid gap-5">
 
           <div>
 
@@ -178,225 +172,8 @@ export async function configuracoesPage() {
 
       </div>
 
-      <!-- BACKUP -->
-
-      <div class="
-        card
-        mb-6
-      ">
-
-        <h2 class="
-          text-2xl
-          font-bold
-          mb-4
-        ">
-
-          Backup
-
-        </h2>
-
-        <p class="
-          text-slate-400
-          mb-6
-        ">
-
-          Exporte todos os dados
-          da oficina para segurança.
-
-        </p>
-
-        <button
-          id="exportBackupButton"
-          class="primary-button"
-        >
-
-          Exportar Backup
-
-        </button>
-
-      </div>
-
-      <!-- RESTORE -->
-
-      <div class="card">
-
-        <h2 class="
-          text-2xl
-          font-bold
-          mb-4
-        ">
-
-          Restaurar Backup
-
-        </h2>
-
-        <p class="
-          text-slate-400
-          mb-6
-        ">
-
-          Importe um backup salvo.
-
-        </p>
-
-        <input
-          id="restoreBackupInput"
-          type="file"
-          accept=".json"
-        />
-
-      </div>
-
     </section>
 
   `;
 
 }
-
-// =========================
-// SAVE SETTINGS
-// =========================
-
-window.addEventListener(
-  'click',
-  async (event) => {
-
-    if (
-      event.target.id !==
-      'saveSettingsButton'
-    ) {
-
-      return;
-
-    }
-
-    try {
-
-      await db.settings.clear();
-
-      const oficinaNome =
-
-        document.getElementById(
-          'workshopName'
-        ).value;
-
-      const cuteleiroNome =
-
-        document.getElementById(
-          'cutlerName'
-        ).value;
-
-      const margemPadrao =
-
-        Number(
-          document.getElementById(
-            'defaultMargin'
-          ).value
-        );
-
-      const custoHora =
-
-        Number(
-          document.getElementById(
-            'hourCost'
-          ).value
-        );
-
-      await db.settings.add({
-
-        oficinaNome,
-
-        cuteleiroNome,
-
-        margemPadrao,
-
-        custoHora,
-
-        createdAt:
-          new Date().toISOString()
-
-      });
-
-      localStorage.setItem(
-        'cutelaria_workshop_name',
-        oficinaNome
-      );
-
-      localStorage.setItem(
-        'cutelaria_hour_cost',
-        custoHora
-      );
-
-      alert(
-        'Configurações salvas.'
-      );
-
-    } catch (error) {
-
-      console.error(
-        error
-      );
-
-      alert(
-        'Erro ao salvar.'
-      );
-
-    }
-
-  }
-);
-
-// =========================
-// EXPORT BACKUP
-// =========================
-
-window.addEventListener(
-  'click',
-  async (event) => {
-
-    if (
-      event.target.id !==
-      'exportBackupButton'
-    ) {
-
-      return;
-
-    }
-
-    exportarBackup();
-
-  }
-);
-
-// =========================
-// IMPORT BACKUP
-// =========================
-
-window.addEventListener(
-  'change',
-  async (event) => {
-
-    if (
-      event.target.id !==
-      'restoreBackupInput'
-    ) {
-
-      return;
-
-    }
-
-    const file =
-      event.target.files[0];
-
-    if (!file) {
-
-      return;
-
-    }
-
-    importarBackup(
-      file
-    );
-
-  }
-);
