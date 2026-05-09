@@ -41,3 +41,41 @@ select {
   outline: none;
   border: none;
 }
+
+/* ========================================
+   GLOBAL FORM SPACING
+======================================== */
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* ========================================
+   INPUT SPACING
+======================================== */
+
+input,
+select,
+textarea {
+  margin-bottom: 5px;
+}
+
+/* ========================================
+   MOBILE SAFE
+======================================== */
+
+@media (max-width: 768px) {
+
+  form {
+    gap: 5px;
+  }
+
+  input,
+  select,
+  textarea {
+    margin-bottom: 5px;
+  }
+
+}
