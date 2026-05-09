@@ -1,26 +1,6 @@
 import { db } from '../database/db.js';
 
 // ========================================
-// FORMAT
-// ========================================
-
-function formatMoney(value = 0) {
-
-  return Number(value)
-    .toLocaleString(
-      'pt-BR',
-      {
-
-        style: 'currency',
-
-        currency: 'BRL'
-
-      }
-    );
-
-}
-
-// ========================================
 // PAGE
 // ========================================
 
@@ -30,19 +10,19 @@ export async function dashboardPage() {
   // LOAD DATA
   // ========================================
 
-  const pedidos =
-    db.pedidos
-      ? await db.pedidos.toArray()
-      : [];
+  const materiais =
+    db.materiais
+      ? await db.materiais.count()
+      : 0;
 
   const producao =
     db.producao
       ? await db.producao.toArray()
       : [];
 
-  const clientes =
-    db.clientes
-      ? await db.clientes.toArray()
+  const pedidos =
+    db.pedidos
+      ? await db.pedidos.toArray()
       : [];
 
   const financeiro =
@@ -50,130 +30,94 @@ export async function dashboardPage() {
       ? await db.financeiro.toArray()
       : [];
 
-  const composicoes =
-    db.composicoes
-      ? await db.composicoes.toArray()
-      : [];
+  // ========================================
+  // TOTALS
+  // ========================================
 
-  // ========================================
-  // METRICS
-  // ========================================
+  const producaoAtiva =
+    producao.filter(item =>
+      item.status !==
+      'Finalizada'
+    ).length;
+
+  const pedidosAbertos =
+    pedidos.filter(item =>
+      item.status !==
+      'Concluído'
+    ).length;
 
   const faturamento =
-
     financeiro.reduce(
-      (acc, item) => {
+      (total, item) => {
 
-        return (
-          acc +
-          Number(
-            item.valor || 0
-          )
-        );
+        if (
+          item.tipo ===
+          'entrada'
+        ) {
+
+          return (
+            total +
+            Number(
+              item.valor || 0
+            )
+          );
+
+        }
+
+        return total;
 
       },
       0
     );
 
-  const lucroEstimado =
-
-    faturamento * 0.42;
-
-  const producoesAtivas =
-
-    producao.filter(item =>
-
-      item.status !==
-      'Finalizada'
-
-    ).length;
-
-  const pedidosPendentes =
-
-    pedidos.filter(item =>
-
-      item.status !==
-      'Entregue'
-
-    ).length;
-
   // ========================================
   // RECENTES
   // ========================================
 
-  const producoesRecentes =
-
+  const producaoRecente =
     [...producao]
       .reverse()
-      .slice(0, 5);
+      .slice(0, 4);
+
+  const pedidosRecentes =
+    [...pedidos]
+      .reverse()
+      .slice(0, 4);
 
   // ========================================
-  // RETURN
+  // TEMPLATE
   // ========================================
 
   return `
 
-    <section class="pb-32">
+    <section class="
+      pb-32
+    ">
 
       <!-- HERO -->
 
       <div class="
-        flex
-        items-center
-        justify-between
-        mb-8
+        mb-10
       ">
 
-        <div>
-
-          <h1 class="
-            text-4xl
-            font-black
-            mb-2
-          ">
-
-            Dashboard
-
-          </h1>
-
-          <p class="
-            text-slate-400
-            text-lg
-          ">
-
-            Visão geral da oficina
-
-          </p>
-
-        </div>
-
-        <div class="
-          w-20
-          h-20
-
-          rounded-[28px]
-
-          flex
-          items-center
-          justify-center
-
-          bg-gradient-to-br
-          from-orange-500
-          to-orange-700
-
-          shadow-2xl
+        <h1 class="
+          text-5xl
+          font-black
+          mb-3
         ">
 
-          <i
-            data-lucide="layout-dashboard"
-            class="
-              w-10
-              h-10
-              text-white
-            "
-          ></i>
+          Dashboard
 
-        </div>
+        </h1>
+
+        <p class="
+          text-slate-400
+          text-lg
+        ">
+
+          Controle completo da oficina.
+
+        </p>
 
       </div>
 
@@ -184,8 +128,200 @@ export async function dashboardPage() {
         md:grid-cols-2
         xl:grid-cols-4
         gap-5
-        mb-8
+        mb-10
       ">
+
+        <!-- PRODUÇÃO -->
+
+        <div class="card">
+
+          <div class="
+            flex
+            items-center
+            justify-between
+            mb-5
+          ">
+
+            <div>
+
+              <p class="
+                text-slate-400
+                mb-2
+              ">
+
+                Produção ativa
+
+              </p>
+
+              <h2 class="
+                text-5xl
+                font-black
+              ">
+
+                ${producaoAtiva}
+
+              </h2>
+
+            </div>
+
+            <div class="
+              w-16
+              h-16
+
+              rounded-3xl
+
+              bg-orange-500/10
+
+              border
+              border-orange-500/20
+
+              flex
+              items-center
+              justify-center
+            ">
+
+              <i
+                data-lucide="hammer"
+                class="
+                  w-8
+                  h-8
+                  text-orange-400
+                "
+              ></i>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- PEDIDOS -->
+
+        <div class="card">
+
+          <div class="
+            flex
+            items-center
+            justify-between
+            mb-5
+          ">
+
+            <div>
+
+              <p class="
+                text-slate-400
+                mb-2
+              ">
+
+                Pedidos abertos
+
+              </p>
+
+              <h2 class="
+                text-5xl
+                font-black
+              ">
+
+                ${pedidosAbertos}
+
+              </h2>
+
+            </div>
+
+            <div class="
+              w-16
+              h-16
+
+              rounded-3xl
+
+              bg-purple-500/10
+
+              border
+              border-purple-500/20
+
+              flex
+              items-center
+              justify-center
+            ">
+
+              <i
+                data-lucide="shopping-bag"
+                class="
+                  w-8
+                  h-8
+                  text-purple-400
+                "
+              ></i>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- MATERIAIS -->
+
+        <div class="card">
+
+          <div class="
+            flex
+            items-center
+            justify-between
+            mb-5
+          ">
+
+            <div>
+
+              <p class="
+                text-slate-400
+                mb-2
+              ">
+
+                Materiais
+
+              </p>
+
+              <h2 class="
+                text-5xl
+                font-black
+              ">
+
+                ${materiais}
+
+              </h2>
+
+            </div>
+
+            <div class="
+              w-16
+              h-16
+
+              rounded-3xl
+
+              bg-blue-500/10
+
+              border
+              border-blue-500/20
+
+              flex
+              items-center
+              justify-center
+            ">
+
+              <i
+                data-lucide="package"
+                class="
+                  w-8
+                  h-8
+                  text-blue-400
+                "
+              ></i>
+
+            </div>
+
+          </div>
+
+        </div>
 
         <!-- FATURAMENTO -->
 
@@ -195,19 +331,52 @@ export async function dashboardPage() {
             flex
             items-center
             justify-between
-            mb-4
+            mb-5
           ">
 
+            <div>
+
+              <p class="
+                text-slate-400
+                mb-2
+              ">
+
+                Receita total
+
+              </p>
+
+              <h2 class="
+                text-4xl
+                font-black
+              ">
+
+                ${Number(
+                  faturamento
+                ).toLocaleString(
+                  'pt-BR',
+                  {
+
+                    style: 'currency',
+
+                    currency: 'BRL'
+
+                  }
+                )}
+
+              </h2>
+
+            </div>
+
             <div class="
-              w-14
-              h-14
+              w-16
+              h-16
 
-              rounded-2xl
+              rounded-3xl
 
-              bg-emerald-500/10
+              bg-green-500/10
 
               border
-              border-emerald-500/20
+              border-green-500/20
 
               flex
               items-center
@@ -217,50 +386,29 @@ export async function dashboardPage() {
               <i
                 data-lucide="wallet"
                 class="
-                  w-7
-                  h-7
-                  text-emerald-400
+                  w-8
+                  h-8
+                  text-green-400
                 "
               ></i>
 
             </div>
 
-            <span class="
-              text-xs
-              text-emerald-400
-              font-bold
-            ">
-
-              Receita
-
-            </span>
-
           </div>
-
-          <p class="
-            text-slate-400
-            text-sm
-            mb-2
-          ">
-
-            Faturamento total
-
-          </p>
-
-          <h2 class="
-            text-3xl
-            font-black
-          ">
-
-            ${formatMoney(
-              faturamento
-            )}
-
-          </h2>
 
         </div>
 
-        <!-- LUCRO -->
+      </div>
+
+      <!-- GRID -->
+
+      <div class="
+        grid
+        xl:grid-cols-2
+        gap-6
+      ">
+
+        <!-- PRODUÇÃO -->
 
         <div class="card">
 
@@ -268,8 +416,30 @@ export async function dashboardPage() {
             flex
             items-center
             justify-between
-            mb-4
+            mb-6
           ">
+
+            <div>
+
+              <h2 class="
+                text-2xl
+                font-black
+                mb-1
+              ">
+
+                Produção recente
+
+              </h2>
+
+              <p class="
+                text-slate-400
+              ">
+
+                Últimas atividades
+
+              </p>
+
+            </div>
 
             <div class="
               w-14
@@ -288,7 +458,7 @@ export async function dashboardPage() {
             ">
 
               <i
-                data-lucide="badge-dollar-sign"
+                data-lucide="flame"
                 class="
                   w-7
                   h-7
@@ -298,109 +468,128 @@ export async function dashboardPage() {
 
             </div>
 
-            <span class="
-              text-xs
-              text-orange-400
-              font-bold
-            ">
-
-              Lucro
-
-            </span>
-
           </div>
 
-          <p class="
-            text-slate-400
-            text-sm
-            mb-2
-          ">
+          ${
+            producaoRecente.length
 
-            Lucro estimado
+              ? `
 
-          </p>
+                <div class="
+                  grid
+                  gap-4
+                ">
 
-          <h2 class="
-            text-3xl
-            font-black
-          ">
+                  ${producaoRecente.map(item => `
 
-            ${formatMoney(
-              lucroEstimado
-            )}
+                    <div class="
+                      bg-slate-900
 
-          </h2>
+                      border
+                      border-white/5
 
-        </div>
+                      rounded-2xl
 
-        <!-- PRODUÇÃO -->
+                      p-5
+                    ">
 
-        <div class="card">
+                      <div class="
+                        flex
+                        items-center
+                        justify-between
+                        mb-3
+                      ">
 
-          <div class="
-            flex
-            items-center
-            justify-between
-            mb-4
-          ">
+                        <div>
 
-            <div class="
-              w-14
-              h-14
+                          <h3 class="
+                            text-xl
+                            font-bold
+                            mb-1
+                          ">
 
-              rounded-2xl
+                            ${item.nome}
 
-              bg-blue-500/10
+                          </h3>
 
-              border
-              border-blue-500/20
+                          <p class="
+                            text-slate-400
+                          ">
 
-              flex
-              items-center
-              justify-center
-            ">
+                            ${item.status}
 
-              <i
-                data-lucide="hammer"
-                class="
-                  w-7
-                  h-7
-                  text-blue-400
-                "
-              ></i>
+                          </p>
 
-            </div>
+                        </div>
 
-            <span class="
-              text-xs
-              text-blue-400
-              font-bold
-            ">
+                        <strong class="
+                          text-orange-400
+                        ">
 
-              Produção
+                          ${
+                            item.progresso || 0
+                          }%
 
-            </span>
+                        </strong>
 
-          </div>
+                      </div>
 
-          <p class="
-            text-slate-400
-            text-sm
-            mb-2
-          ">
+                      <div class="
+                        h-3
 
-            Produções ativas
+                        bg-slate-800
 
-          </p>
+                        rounded-full
 
-          <h2 class="
-            text-3xl
-            font-black
-          ">
+                        overflow-hidden
+                      ">
 
-            ${producoesAtivas}
+                        <div
+                          class="
+                            h-full
 
-          </h2>
+                            bg-gradient-to-r
+                            from-orange-500
+                            to-orange-400
+                          "
+                          style="
+                            width:
+                            ${
+                              item.progresso || 0
+                            }%
+                          "
+                        ></div>
+
+                      </div>
+
+                    </div>
+
+                  `).join('')}
+
+                </div>
+
+              `
+
+              : `
+
+                <div class="
+                  text-center
+                  py-12
+                ">
+
+                  <p class="
+                    text-slate-500
+                  ">
+
+                    Nenhuma produção encontrada.
+
+                  </p>
+
+                </div>
+
+              `
+
+          }
 
         </div>
 
@@ -412,8 +601,30 @@ export async function dashboardPage() {
             flex
             items-center
             justify-between
-            mb-4
+            mb-6
           ">
+
+            <div>
+
+              <h2 class="
+                text-2xl
+                font-black
+                mb-1
+              ">
+
+                Pedidos recentes
+
+              </h2>
+
+              <p class="
+                text-slate-400
+              ">
+
+                Últimos pedidos cadastrados
+
+              </p>
+
+            </div>
 
             <div class="
               w-14
@@ -442,387 +653,109 @@ export async function dashboardPage() {
 
             </div>
 
-            <span class="
-              text-xs
-              text-purple-400
-              font-bold
-            ">
-
-              Pedidos
-
-            </span>
-
           </div>
 
-          <p class="
-            text-slate-400
-            text-sm
-            mb-2
-          ">
+          ${
+            pedidosRecentes.length
 
-            Pendentes
-
-          </p>
-
-          <h2 class="
-            text-3xl
-            font-black
-          ">
-
-            ${pedidosPendentes}
-
-          </h2>
-
-        </div>
-
-      </div>
-
-      <!-- GRID -->
-
-      <div class="
-        grid
-        xl:grid-cols-3
-        gap-5
-      ">
-
-        <!-- PRODUÇÃO RECENTE -->
-
-        <div class="
-          card
-          xl:col-span-2
-        ">
-
-          <div class="
-            flex
-            items-center
-            justify-between
-            mb-6
-          ">
-
-            <div>
-
-              <h2 class="
-                text-2xl
-                font-black
-                mb-1
-              ">
-
-                Produção recente
-
-              </h2>
-
-              <p class="
-                text-slate-400
-              ">
-
-                Últimas movimentações
-
-              </p>
-
-            </div>
-
-            <div class="
-              w-12
-              h-12
-
-              rounded-2xl
-
-              bg-orange-500/10
-
-              border
-              border-orange-500/20
-
-              flex
-              items-center
-              justify-center
-            ">
-
-              <i
-                data-lucide="flame"
-                class="
-                  w-6
-                  h-6
-                  text-orange-400
-                "
-              ></i>
-
-            </div>
-
-          </div>
-
-          <div class="
-            grid
-            gap-4
-          ">
-
-            ${producoesRecentes.length
-              ? producoesRecentes.map(item => `
+              ? `
 
                 <div class="
-                  border
-                  border-white/5
-
-                  rounded-2xl
-
-                  p-5
-
-                  bg-white/[0.02]
+                  grid
+                  gap-4
                 ">
 
-                  <div class="
-                    flex
-                    items-center
-                    justify-between
-                    mb-4
-                  ">
+                  ${pedidosRecentes.map(item => `
 
-                    <div>
+                    <div class="
+                      bg-slate-900
 
-                      <h3 class="
-                        font-bold
-                        text-lg
-                        mb-1
+                      border
+                      border-white/5
+
+                      rounded-2xl
+
+                      p-5
+                    ">
+
+                      <div class="
+                        flex
+                        items-center
+                        justify-between
+                        mb-2
                       ">
 
-                        ${item.nome || 'Faca artesanal'}
+                        <div>
 
-                      </h3>
+                          <h3 class="
+                            text-xl
+                            font-bold
+                            mb-1
+                          ">
 
-                      <p class="
-                        text-slate-400
-                        text-sm
-                      ">
+                            ${item.nome}
 
-                        ${item.status || 'Em produção'}
+                          </h3>
 
-                      </p>
+                          <p class="
+                            text-slate-400
+                          ">
+
+                            ${item.cliente}
+
+                          </p>
+
+                        </div>
+
+                        <strong class="
+                          text-purple-400
+                        ">
+
+                          ${Number(
+                            item.valor || 0
+                          ).toLocaleString(
+                            'pt-BR',
+                            {
+
+                              style: 'currency',
+
+                              currency: 'BRL'
+
+                            }
+                          )}
+
+                        </strong>
+
+                      </div>
 
                     </div>
 
-                    <span class="
-                      text-orange-400
-                      font-bold
-                    ">
-
-                      ${item.progresso || 0}%
-
-                    </span>
-
-                  </div>
-
-                  <div class="
-                    h-3
-
-                    bg-slate-800
-
-                    rounded-full
-
-                    overflow-hidden
-                  ">
-
-                    <div
-                      class="
-                        h-full
-
-                        bg-gradient-to-r
-                        from-orange-500
-                        to-orange-400
-
-                        rounded-full
-                      "
-                      style="
-                        width:
-                        ${item.progresso || 0}%
-                      "
-                    ></div>
-
-                  </div>
+                  `).join('')}
 
                 </div>
 
-              `).join('')
+              `
+
               : `
 
                 <div class="
                   text-center
-                  py-16
+                  py-12
                 ">
 
-                  <i
-                    data-lucide="anvil"
-                    class="
-                      w-14
-                      h-14
-                      text-slate-600
-                      mx-auto
-                      mb-4
-                    "
-                  ></i>
-
-                  <h3 class="
-                    text-xl
-                    font-bold
-                    mb-2
-                  ">
-
-                    Nenhuma produção
-
-                  </h3>
-
                   <p class="
-                    text-slate-400
+                    text-slate-500
                   ">
 
-                    Crie sua primeira produção.
+                    Nenhum pedido encontrado.
 
                   </p>
 
                 </div>
 
               `
-            }
 
-          </div>
-
-        </div>
-
-        <!-- RESUMO -->
-
-        <div class="card">
-
-          <div class="
-            flex
-            items-center
-            justify-between
-            mb-6
-          ">
-
-            <div>
-
-              <h2 class="
-                text-2xl
-                font-black
-                mb-1
-              ">
-
-                Resumo
-
-              </h2>
-
-              <p class="
-                text-slate-400
-              ">
-
-                Oficina
-
-              </p>
-
-            </div>
-
-            <div class="
-              w-12
-              h-12
-
-              rounded-2xl
-
-              bg-orange-500/10
-
-              border
-              border-orange-500/20
-
-              flex
-              items-center
-              justify-center
-            ">
-
-              <i
-                data-lucide="activity"
-                class="
-                  w-6
-                  h-6
-                  text-orange-400
-                "
-              ></i>
-
-            </div>
-
-          </div>
-
-          <div class="
-            grid
-            gap-5
-          ">
-
-            <div>
-
-              <p class="
-                text-slate-400
-                text-sm
-                mb-2
-              ">
-
-                Clientes cadastrados
-
-              </p>
-
-              <h3 class="
-                text-3xl
-                font-black
-              ">
-
-                ${clientes.length}
-
-              </h3>
-
-            </div>
-
-            <div>
-
-              <p class="
-                text-slate-400
-                text-sm
-                mb-2
-              ">
-
-                Composições criadas
-
-              </p>
-
-              <h3 class="
-                text-3xl
-                font-black
-              ">
-
-                ${composicoes.length}
-
-              </h3>
-
-            </div>
-
-            <div>
-
-              <p class="
-                text-slate-400
-                text-sm
-                mb-2
-              ">
-
-                Produções registradas
-
-              </p>
-
-              <h3 class="
-                text-3xl
-                font-black
-              ">
-
-                ${producao.length}
-
-              </h3>
-
-            </div>
-
-          </div>
+          }
 
         </div>
 
