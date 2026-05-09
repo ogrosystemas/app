@@ -18,7 +18,7 @@ export async function producaoPage() {
       : [];
 
   // ========================================
-  // EMPTY STATE
+  // EMPTY
   // ========================================
 
   if (!producao.length) {
@@ -92,7 +92,7 @@ export async function producaoPage() {
             'Nenhuma faca em produção',
 
           description:
-            'Cadastre pedidos ou inicie uma nova produção para acompanhar o andamento da oficina.',
+            'Inicie uma nova produção para acompanhar o andamento da oficina.',
 
           buttonText:
             'Nova produção',
@@ -109,7 +109,7 @@ export async function producaoPage() {
   }
 
   // ========================================
-  // LISTAGEM
+  // LISTA
   // ========================================
 
   return `
@@ -148,28 +148,16 @@ export async function producaoPage() {
 
         </div>
 
-        <div class="
-          w-20
-          h-20
-          rounded-[28px]
+        <button
+          id="newProductionButton"
+          class="
+            primary-button
+          "
+        >
 
-          flex
-          items-center
-          justify-center
+          Nova produção
 
-          bg-gradient-to-br
-          from-orange-500
-          to-orange-700
-
-          shadow-2xl
-        ">
-
-          <i
-            data-lucide="hammer"
-            class="w-10 h-10 text-white"
-          ></i>
-
-        </div>
+        </button>
 
       </div>
 
@@ -182,9 +170,7 @@ export async function producaoPage() {
 
         ${producao.map(item => `
 
-          <div class="
-            card
-          ">
+          <div class="card">
 
             <div class="
               flex
@@ -246,17 +232,13 @@ export async function producaoPage() {
 
             <!-- PROGRESS -->
 
-            <div class="
-              mb-3
-            ">
+            <div class="mb-3">
 
               <div class="
                 flex
                 items-center
                 justify-between
-
                 text-sm
-
                 mb-2
               ">
 
@@ -278,11 +260,8 @@ export async function producaoPage() {
 
               <div class="
                 h-3
-
                 bg-slate-800
-
                 rounded-full
-
                 overflow-hidden
               ">
 
@@ -317,3 +296,67 @@ export async function producaoPage() {
   `;
 
 }
+
+// ========================================
+// NOVA PRODUÇÃO
+// ========================================
+
+window.addEventListener(
+  'click',
+  async (event) => {
+
+    if (
+      event.target.id !==
+      'newProductionButton'
+    ) {
+
+      return;
+
+    }
+
+    try {
+
+      const nome = prompt(
+        'Nome da produção:'
+      );
+
+      if (!nome) {
+
+        return;
+
+      }
+
+      await db.producao.add({
+
+        nome,
+
+        status:
+          'Iniciada',
+
+        progresso: 5,
+
+        createdAt:
+          new Date().toISOString()
+
+      });
+
+      alert(
+        'Produção criada.'
+      );
+
+      window.location.reload();
+
+    } catch (error) {
+
+      console.error(
+        error
+      );
+
+      alert(
+        'Erro ao criar produção.'
+      );
+
+    }
+
+  }
+);
