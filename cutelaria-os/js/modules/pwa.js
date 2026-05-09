@@ -1,7 +1,7 @@
 let deferredPrompt = null;
 
 // ========================================
-// INSTALL BUTTON
+// CREATE INSTALL BUTTON
 // ========================================
 
 function createInstallButton() {
@@ -25,73 +25,62 @@ function createInstallButton() {
     'installPwaButton';
 
   button.className = `
-
     fixed
-    top-5
-    right-5
-
+    top-4
+    right-4
     z-[9999]
 
     flex
     items-center
-    gap-3
+    gap-2
 
-    px-5
-    py-4
+    px-4
+    py-3
 
     rounded-2xl
 
-    border
-    border-orange-500/20
-
-    bg-orange-500/10
-
-    backdrop-blur-xl
+    bg-orange-500
+    text-white
 
     shadow-2xl
 
-    text-orange-300
-
     font-semibold
-
-    transition-all
-    duration-200
-
-    hover:scale-[1.03]
-    hover:bg-orange-500/20
-
   `;
 
   button.innerHTML = `
-
     <i
       data-lucide="smartphone"
       class="w-5 h-5"
     ></i>
 
     <span>
-
       Instalar App
-
     </span>
-
   `;
 
   document.body.appendChild(
     button
   );
 
-  if (window.lucide) {
+  // LUCIDE
+
+  if (
+    window.lucide
+  ) {
 
     lucide.createIcons();
 
   }
 
+  // CLICK
+
   button.addEventListener(
     'click',
     async () => {
 
-      if (!deferredPrompt) {
+      if (
+        !deferredPrompt
+      ) {
 
         return;
 
@@ -99,17 +88,7 @@ function createInstallButton() {
 
       deferredPrompt.prompt();
 
-      const result =
-        await deferredPrompt.userChoice;
-
-      if (
-        result.outcome ===
-        'accepted'
-      ) {
-
-        button.remove();
-
-      }
+      await deferredPrompt.userChoice;
 
       deferredPrompt = null;
 
@@ -119,7 +98,7 @@ function createInstallButton() {
 }
 
 // ========================================
-// BEFORE INSTALL PROMPT
+// INSTALL PROMPT
 // ========================================
 
 window.addEventListener(
@@ -159,216 +138,41 @@ window.addEventListener(
 );
 
 // ========================================
-// UPDATE AVAILABLE
+// SERVICE WORKER
 // ========================================
 
 if (
   'serviceWorker' in navigator
 ) {
 
-  navigator.serviceWorker
-    .register(
-      './sw.js'
-    )
-    .then((registration) => {
+  window.addEventListener(
+    'load',
+    async () => {
 
-      registration.addEventListener(
-        'updatefound',
-        () => {
+      try {
 
-          const newWorker =
-            registration.installing;
+        const registration =
+          await navigator
+            .serviceWorker
+            .register(
+              './sw.js'
+            );
 
-          if (!newWorker) {
+        console.log(
+          'SW registrado:',
+          registration
+        );
 
-            return;
+      } catch (error) {
 
-          }
-
-          newWorker.addEventListener(
-            'statechange',
-            () => {
-
-              if (
-                newWorker.state ===
-                'installed'
-              ) {
-
-                if (
-                  navigator.serviceWorker.controller
-                ) {
-
-                  showUpdateToast();
-
-                }
-
-              }
-
-            }
-          );
-
-        }
-      );
-
-    })
-    .catch((error) => {
-
-      console.error(
-        'Erro SW:',
-        error
-      );
-
-    });
-
-}
-
-// ========================================
-// UPDATE TOAST
-// ========================================
-
-function showUpdateToast() {
-
-  if (
-    document.getElementById(
-      'updateToast'
-    )
-  ) {
-
-    return;
-
-  }
-
-  const toast =
-    document.createElement(
-      'div'
-    );
-
-  toast.id =
-    'updateToast';
-
-  toast.className = `
-
-    fixed
-    top-24
-    right-5
-
-    z-[9999]
-
-    w-[320px]
-
-    rounded-3xl
-
-    border
-    border-blue-500/20
-
-    bg-slate-950/90
-
-    backdrop-blur-xl
-
-    shadow-2xl
-
-    p-5
-
-  `;
-
-  toast.innerHTML = `
-
-    <div class="
-      flex
-      items-start
-      gap-4
-    ">
-
-      <div class="
-        w-12
-        h-12
-
-        rounded-2xl
-
-        bg-blue-500/10
-
-        border
-        border-blue-500/20
-
-        flex
-        items-center
-        justify-center
-      ">
-
-        <i
-          data-lucide="download"
-          class="
-            w-6
-            h-6
-            text-blue-400
-          "
-        ></i>
-
-      </div>
-
-      <div class="
-        flex-1
-      ">
-
-        <h3 class="
-          font-bold
-          text-lg
-          mb-1
-        ">
-
-          Nova versão disponível
-
-        </h3>
-
-        <p class="
-          text-slate-400
-          text-sm
-          mb-4
-        ">
-
-          Atualize o app para aplicar melhorias e correções.
-
-        </p>
-
-        <button
-          id="reloadAppButton"
-          class="
-            primary-button
-            w-full
-          "
-        >
-
-          Atualizar agora
-
-        </button>
-
-      </div>
-
-    </div>
-
-  `;
-
-  document.body.appendChild(
-    toast
-  );
-
-  if (window.lucide) {
-
-    lucide.createIcons();
-
-  }
-
-  document
-    .getElementById(
-      'reloadAppButton'
-    )
-    .addEventListener(
-      'click',
-      () => {
-
-        window.location.reload();
+        console.error(
+          'Erro SW:',
+          error
+        );
 
       }
-    );
+
+    }
+  );
 
 }
