@@ -243,3 +243,42 @@ select option {
     rgba(255,255,255,0.22);
 
 }
+
+/* ========================================
+   TOAST
+======================================== */
+
+@keyframes toastIn {
+
+  from {
+
+    opacity: 0;
+
+    transform:
+      translate(
+        -50%,
+        20px
+      );
+
+  }
+
+  to {
+
+    opacity: 1;
+
+    transform:
+      translate(
+        -50%,
+        0
+      );
+
+  }
+
+}
+
+#globalToast {
+
+  transition:
+    all .25s ease;
+
+}
