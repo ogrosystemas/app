@@ -10,19 +10,21 @@ import {
   pedidosPage
 } from '../pages/pedidos.js';
 
+import {
+  renderNavbar
+} from '../components/navbar.js';
+
 // ========================================
 // ROUTES
 // ========================================
 
 const routes = {
 
-  '/': dashboardPage,
+  dashboard: dashboardPage,
 
-  '/dashboard': dashboardPage,
+  producao: producaoPage,
 
-  '/producao': producaoPage,
-
-  '/pedidos': pedidosPage
+  pedidos: pedidosPage
 
 };
 
@@ -31,7 +33,7 @@ const routes = {
 // ========================================
 
 export async function navigate(
-  path = '/'
+  route = 'dashboard'
 ) {
 
   const app =
@@ -46,47 +48,51 @@ export async function navigate(
   }
 
   const page =
-    routes[path];
+    routes[route];
+
+  // ========================================
+  // 404
+  // ========================================
 
   if (!page) {
 
     app.innerHTML = `
 
-      <section class="
-        py-24
-        text-center
+      <main class="
+        min-h-screen
+        pb-32
       ">
 
-        <h1 class="
-          text-5xl
-          font-black
-          mb-4
+        <section class="
+          py-24
+          text-center
         ">
 
-          404
+          <h1 class="
+            text-5xl
+            font-black
+            mb-4
+          ">
 
-        </h1>
+            404
 
-        <p class="
-          text-slate-400
-        ">
+          </h1>
 
-          Página não encontrada.
+          <p class="
+            text-slate-400
+          ">
 
-        </p>
+            Página não encontrada.
 
-      </section>
+          </p>
+
+        </section>
+
+        ${renderNavbar(route)}
+
+      </main>
 
     `;
-
-    return;
-
-  }
-
-  try {
-
-    app.innerHTML =
-      await page();
 
     if (
       window.lucide
@@ -95,6 +101,46 @@ export async function navigate(
       lucide.createIcons();
 
     }
+
+    return;
+
+  }
+
+  // ========================================
+  // RENDER
+  // ========================================
+
+  try {
+
+    const content =
+      await page();
+
+    app.innerHTML = `
+
+      <main class="
+        min-h-screen
+        pb-32
+      ">
+
+        ${content}
+
+        ${renderNavbar(route)}
+
+      </main>
+
+    `;
+
+    // ICONS
+
+    if (
+      window.lucide
+    ) {
+
+      lucide.createIcons();
+
+    }
+
+    // SCROLL TOP
 
     window.scrollTo({
 
@@ -112,42 +158,60 @@ export async function navigate(
 
     app.innerHTML = `
 
-      <section class="
-        py-24
-        text-center
+      <main class="
+        min-h-screen
+        pb-32
       ">
 
-        <h1 class="
-          text-4xl
-          font-black
-          mb-4
+        <section class="
+          py-24
+          text-center
         ">
 
-          Erro ao carregar página
+          <h1 class="
+            text-4xl
+            font-black
+            mb-4
+          ">
 
-        </h1>
+            Erro ao carregar página
 
-        <p class="
-          text-slate-400
-        ">
+          </h1>
 
-          Verifique o console.
+          <p class="
+            text-slate-400
+            mb-6
+          ">
 
-        </p>
+            Verifique o console.
 
-      </section>
+          </p>
+
+        </section>
+
+        ${renderNavbar(route)}
+
+      </main>
 
     `;
+
+    if (
+      window.lucide
+    ) {
+
+      lucide.createIcons();
+
+    }
 
   }
 
 }
 
 // ========================================
-// HASH ROUTER
+// INIT ROUTER
 // ========================================
 
-export function initRouter() {
+export async function initRouter() {
 
   async function handleRoute() {
 
@@ -155,10 +219,12 @@ export function initRouter() {
       window.location.hash
         .replace('#', '');
 
-    const path =
-      hash || '/';
+    const route =
+      hash || 'dashboard';
 
-    await navigate(path);
+    await navigate(
+      route
+    );
 
   }
 
@@ -167,6 +233,6 @@ export function initRouter() {
     handleRoute
   );
 
-  handleRoute();
+  await handleRoute();
 
 }
