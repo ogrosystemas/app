@@ -2,8 +2,8 @@ import { db } from '../database/db.js';
 
 import {
 
-  exportBackup,
-  importBackup
+  exportarBackup,
+  importarBackup
 
 } from '../services/backup.service.js';
 
