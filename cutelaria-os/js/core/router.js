@@ -51,7 +51,7 @@ export async function navigate(
     routes[route];
 
   // ========================================
-  // 404
+  // PAGE NOT FOUND
   // ========================================
 
   if (!page) {
