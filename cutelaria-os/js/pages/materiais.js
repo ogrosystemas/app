@@ -6,6 +6,43 @@ import {
 
 export async function materiaisPage() {
 
+  // ========================================
+  // SAFE TABLE
+  // ========================================
+
+  if (!db.materiais) {
+
+    return `
+
+      <section class="pb-32">
+
+        <div class="card">
+
+          <h2 class="
+            text-2xl
+            font-bold
+            mb-4
+          ">
+
+            Banco de dados não atualizado
+
+          </h2>
+
+          <p class="text-slate-400">
+
+            A tabela "materiais"
+            não existe no IndexedDB.
+
+          </p>
+
+        </div>
+
+      </section>
+
+    `;
+
+  }
+
   const materiais =
     await db.materiais.toArray();
 
@@ -15,8 +52,8 @@ export async function materiaisPage() {
 
         return total +
           (
-            item.valor *
-            item.estoqueAtual
+            Number(item.valor || 0) *
+            Number(item.estoqueAtual || 0)
           );
 
       },
@@ -27,14 +64,14 @@ export async function materiaisPage() {
     materiais.filter(item => {
 
       return (
-        item.estoqueAtual <=
-        item.estoqueMinimo
+        Number(item.estoqueAtual || 0) <=
+        Number(item.estoqueMinimo || 0)
       );
 
     });
 
   return `
-    <section>
+    <section class="pb-32">
 
       <!-- KPIS -->
 
@@ -69,8 +106,6 @@ export async function materiaisPage() {
         </div>
 
       </div>
-
-      <!-- ALERTA -->
 
       ${
         materiaisCriticos.length
@@ -187,8 +222,8 @@ export async function materiaisPage() {
         ${materiais.map(item => {
 
           const critico =
-            item.estoqueAtual <=
-            item.estoqueMinimo;
+            Number(item.estoqueAtual || 0) <=
+            Number(item.estoqueMinimo || 0);
 
           return `
 
@@ -214,7 +249,7 @@ export async function materiaisPage() {
 
                   <p class="text-slate-400 text-sm mt-1">
 
-                    ${item.categoria}
+                    ${item.categoria || '-'}
 
                   </p>
 
@@ -224,49 +259,9 @@ export async function materiaisPage() {
 
                   <div class="text-orange-400 font-bold text-xl">
 
-                    R$ ${item.valor.toFixed(2)}
+                    R$ ${Number(item.valor || 0).toFixed(2)}
 
                   </div>
-
-                </div>
-
-              </div>
-
-              <div class="grid gap-2 mt-5 text-sm">
-
-                <div class="flex justify-between">
-
-                  <span class="text-slate-400">
-                    Estoque
-                  </span>
-
-                  <span class="
-                    ${
-                      critico
-                        ? 'text-red-400 font-bold'
-                        : ''
-                    }
-                  ">
-
-                    ${item.estoqueAtual}
-                    ${item.unidade}
-
-                  </span>
-
-                </div>
-
-                <div class="flex justify-between">
-
-                  <span class="text-slate-400">
-                    Estoque mínimo
-                  </span>
-
-                  <span>
-
-                    ${item.estoqueMinimo}
-                    ${item.unidade}
-
-                  </span>
 
                 </div>
 
@@ -295,6 +290,12 @@ window.addEventListener(
 
       e.preventDefault();
 
+      if (!db.materiais) {
+
+        return;
+
+      }
+
       await db.materiais.add({
 
         nome:
@@ -311,7 +312,7 @@ window.addEventListener(
           parseFloat(
             document.getElementById(
               'valor'
-            ).value
+            ).value || 0
           ),
 
         unidade:
@@ -323,14 +324,14 @@ window.addEventListener(
           parseFloat(
             document.getElementById(
               'estoqueAtual'
-            ).value
+            ).value || 0
           ),
 
         estoqueMinimo:
           parseFloat(
             document.getElementById(
               'estoqueMinimo'
-            ).value
+            ).value || 0
           ),
 
         createdAt:
