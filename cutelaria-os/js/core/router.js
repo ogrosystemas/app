@@ -10,6 +10,10 @@ import {
   pedidosPage
 } from '../pages/pedidos.js';
 
+import {
+  renderNavbar
+} from '../modules/navbar.js';
+
 // ========================================
 // ROUTES
 // ========================================
@@ -47,54 +51,48 @@ export async function navigate(
     routes[route];
 
   // ========================================
-  // NOT FOUND
+  // 404
   // ========================================
 
   if (!page) {
 
     app.innerHTML = `
 
-      <section class="
-        py-24
-        text-center
+      <main class="
+        min-h-screen
+        pb-32
       ">
 
-        <h1 class="
-          text-5xl
-          font-black
-          mb-4
+        <section class="
+          py-24
+          text-center
         ">
 
-          404
+          <h1 class="
+            text-5xl
+            font-black
+            mb-4
+          ">
 
-        </h1>
+            404
 
-        <p class="
-          text-slate-400
-        ">
+          </h1>
 
-          Página não encontrada.
+          <p class="
+            text-slate-400
+          ">
 
-        </p>
+            Página não encontrada.
 
-      </section>
+          </p>
+
+        </section>
+
+        ${renderNavbar(route)}
+
+      </main>
 
     `;
-
-    return;
-
-  }
-
-  // ========================================
-  // RENDER
-  // ========================================
-
-  try {
-
-    app.innerHTML =
-      await page();
-
-    // ICONS
 
     if (
       window.lucide
@@ -104,7 +102,49 @@ export async function navigate(
 
     }
 
-    // SCROLL
+    return;
+
+  }
+
+  // ========================================
+  // RENDER PAGE
+  // ========================================
+
+  try {
+
+    const html =
+      await page();
+
+    app.innerHTML = `
+
+      <main class="
+        min-h-screen
+        pb-32
+      ">
+
+        ${html}
+
+        ${renderNavbar(route)}
+
+      </main>
+
+    `;
+
+    // ========================================
+    // ICONS
+    // ========================================
+
+    if (
+      window.lucide
+    ) {
+
+      lucide.createIcons();
+
+    }
+
+    // ========================================
+    // SCROLL TOP
+    // ========================================
 
     window.scrollTo({
 
@@ -122,32 +162,49 @@ export async function navigate(
 
     app.innerHTML = `
 
-      <section class="
-        py-24
-        text-center
+      <main class="
+        min-h-screen
+        pb-32
       ">
 
-        <h1 class="
-          text-4xl
-          font-black
-          mb-4
+        <section class="
+          py-24
+          text-center
         ">
 
-          Erro ao carregar página
+          <h1 class="
+            text-4xl
+            font-black
+            mb-4
+          ">
 
-        </h1>
+            Erro ao carregar página
 
-        <p class="
-          text-slate-400
-        ">
+          </h1>
 
-          Verifique o console.
+          <p class="
+            text-slate-400
+          ">
 
-        </p>
+            Verifique o console.
 
-      </section>
+          </p>
+
+        </section>
+
+        ${renderNavbar(route)}
+
+      </main>
 
     `;
+
+    if (
+      window.lucide
+    ) {
+
+      lucide.createIcons();
+
+    }
 
   }
 
