@@ -363,7 +363,7 @@ window.addEventListener(
 
     }
 
-    exportBackup();
+    exportarBackup();
 
   }
 );
@@ -394,7 +394,7 @@ window.addEventListener(
 
     }
 
-    importBackup(
+    importarBackup(
       file
     );
 
