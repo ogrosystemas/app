@@ -1,59 +1,96 @@
-const db = new Dexie(
-  'cutelaria_os'
-);
+import Dexie from 'https://unpkg.com/dexie@3/dist/dexie.mjs';
 
 // ========================================
-// DATABASE VERSION
+// DATABASE
 // ========================================
 
-db.version(7).stores({
+export const db =
+  new Dexie(
+    'CutelariaDB'
+  );
 
-  configuracoes: `
-    ++id,
-    empresa,
-    telefone,
-    cidade
-  `,
+// ========================================
+// VERSION 1
+// ========================================
 
-  clientes: `
-    ++id,
-    nome,
-    telefone,
-    createdAt
-  `,
+db.version(1).stores({
 
-  composicoes: `
-    ++id,
-    nome,
-    custo,
-    createdAt
-  `,
+  producao:
+    '++id,nome,status,progresso,createdAt'
 
-  producao: `
-    ++id,
-    nome,
-    status,
-    progresso,
-    createdAt
-  `,
+});
 
-  financeiro: `
-    ++id,
-    tipo,
-    descricao,
-    valor,
-    createdAt
-  `,
+// ========================================
+// VERSION 2
+// ========================================
 
-  pedidos: `
-    ++id,
-    nome,
-    cliente,
-    valor,
-    status,
-    prazo,
-    createdAt
-  `
+db.version(2).stores({
+
+  producao:
+    '++id,nome,status,progresso,createdAt',
+
+  materiais:
+    '++id,nome,categoria,createdAt'
+
+});
+
+// ========================================
+// VERSION 3
+// ========================================
+
+db.version(3).stores({
+
+  producao:
+    '++id,nome,status,progresso,createdAt',
+
+  materiais:
+    '++id,nome,categoria,createdAt',
+
+  financeiro:
+    '++id,tipo,categoria,createdAt'
+
+});
+
+// ========================================
+// VERSION 4
+// ========================================
+
+db.version(4).stores({
+
+  producao:
+    '++id,nome,status,progresso,createdAt',
+
+  materiais:
+    '++id,nome,categoria,createdAt',
+
+  financeiro:
+    '++id,tipo,categoria,createdAt',
+
+  pedidos:
+    '++id,nome,cliente,status,createdAt'
+
+});
+
+// ========================================
+// VERSION 5
+// ========================================
+
+db.version(5).stores({
+
+  producao:
+    '++id,nome,status,progresso,createdAt',
+
+  materiais:
+    '++id,nome,categoria,createdAt',
+
+  financeiro:
+    '++id,tipo,categoria,createdAt',
+
+  pedidos:
+    '++id,nome,cliente,status,createdAt',
+
+  settings:
+    '++id,createdAt'
 
 });
 
@@ -62,14 +99,7 @@ db.version(7).stores({
 // ========================================
 
 db.open()
-  .then(() => {
-
-    console.log(
-      'Banco carregado.'
-    );
-
-  })
-  .catch((error) => {
+  .catch(error => {
 
     console.error(
       'Erro IndexedDB:',
@@ -77,7 +107,3 @@ db.open()
     );
 
   });
-
-export {
-  db
-};
