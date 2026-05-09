@@ -1,111 +1,115 @@
 import { db } from '../database/db.js';
 
+// ========================================
+// FORMAT
+// ========================================
+
+function formatMoney(value = 0) {
+
+  return Number(value)
+    .toLocaleString(
+      'pt-BR',
+      {
+
+        style: 'currency',
+
+        currency: 'BRL'
+
+      }
+    );
+
+}
+
+// ========================================
+// PAGE
+// ========================================
+
 export async function dashboardPage() {
 
-  const composicoes =
-    await db.composicoes.toArray();
-
-  const materiais =
-    await db.materiais.toArray();
-
-  const financeiro =
-    await db.financeiro.toArray();
+  // ========================================
+  // LOAD DATA
+  // ========================================
 
   const pedidos =
-    await db.pedidos.toArray();
+    db.pedidos
+      ? await db.pedidos.toArray()
+      : [];
 
-  // KPIS
+  const producao =
+    db.producao
+      ? await db.producao.toArray()
+      : [];
 
-  const producoes =
-    composicoes.length;
+  const clientes =
+    db.clientes
+      ? await db.clientes.toArray()
+      : [];
 
-  const receita =
-    composicoes.reduce(
-      (total, item) =>
-        total + (item.valorFinal || 0),
-      0
-    );
+  const financeiro =
+    db.financeiro
+      ? await db.financeiro.toArray()
+      : [];
 
-  const custos =
-    composicoes.reduce(
-      (total, item) =>
-        total + (item.custoTotal || 0),
-      0
-    );
+  const composicoes =
+    db.composicoes
+      ? await db.composicoes.toArray()
+      : [];
 
-  const lucro =
-    receita - custos;
+  // ========================================
+  // METRICS
+  // ========================================
 
-  const margem =
-    receita > 0
-      ? ((lucro / receita) * 100)
-      : 0;
+  const faturamento =
 
-  const ticketMedio =
-    producoes > 0
-      ? receita / producoes
-      : 0;
+    financeiro.reduce(
+      (acc, item) => {
 
-  const estoque =
-    materiais.reduce(
-      (total, item) => {
-
-        return total +
-          (
-            (item.valor || 0) *
-            (item.estoqueAtual || 0)
-          );
+        return (
+          acc +
+          Number(
+            item.valor || 0
+          )
+        );
 
       },
       0
     );
 
-  // RANKING
+  const lucroEstimado =
 
-  const ranking =
-    [...composicoes]
-      .sort(
-        (a, b) =>
-          (b.valorFinal || 0) -
-          (a.valorFinal || 0)
-      )
+    faturamento * 0.42;
+
+  const producoesAtivas =
+
+    producao.filter(item =>
+
+      item.status !==
+      'Finalizada'
+
+    ).length;
+
+  const pedidosPendentes =
+
+    pedidos.filter(item =>
+
+      item.status !==
+      'Entregue'
+
+    ).length;
+
+  // ========================================
+  // RECENTES
+  // ========================================
+
+  const producoesRecentes =
+
+    [...producao]
+      .reverse()
       .slice(0, 5);
 
-  // PEDIDOS EM PRODUÇÃO
-
-  const producaoAtiva =
-    pedidos.filter(
-      item =>
-        item.status !== 'entrega'
-    );
-
-  // DESPESAS
-
-  const despesas =
-    financeiro
-      .filter(
-        item =>
-          item.tipo === 'despesa'
-      )
-      .reduce(
-        (total, item) =>
-          total + item.valor,
-        0
-      );
-
-  // RECEITAS
-
-  const receitas =
-    financeiro
-      .filter(
-        item =>
-          item.tipo === 'receita'
-      )
-      .reduce(
-        (total, item) =>
-          total + item.valor,
-        0
-      );
+  // ========================================
+  // RETURN
+  // ========================================
 
   return `
 
@@ -113,251 +117,474 @@ export async function dashboardPage() {
 
       <!-- HERO -->
 
-      <div class="mb-8">
-
-        <div class="
-          flex
-          justify-between
-          items-start
-        ">
-
-          <div>
-
-            <h1 class="
-              text-4xl
-              font-black
-              tracking-tight
-            ">
-
-              Cutelaria OS
-
-            </h1>
-
-            <p class="
-              text-slate-400
-              mt-2
-            ">
-
-              Central operacional da oficina
-
-            </p>
-
-          </div>
-
-          <div class="
-            bg-orange-500/10
-            border
-            border-orange-500/20
-            text-orange-400
-            px-4
-            py-2
-            rounded-2xl
-            text-sm
-            font-bold
-          ">
-
-            ERP INDUSTRIAL
-
-          </div>
-
-        </div>
-
-      </div>
-
-      <!-- KPIS -->
-
       <div class="
-        grid
-        grid-cols-2
-        gap-4
-        mb-5
+        flex
+        items-center
+        justify-between
+        mb-8
       ">
 
-        <div class="card">
+        <div>
 
-          <div class="metric-label">
-
-            Receita total
-
-          </div>
-
-          <div class="
-            metric-value
-            text-green-400
+          <h1 class="
+            text-4xl
+            font-black
+            mb-2
           ">
 
-            R$ ${receita.toFixed(2)}
+            Dashboard
 
-          </div>
+          </h1>
 
-        </div>
-
-        <div class="card">
-
-          <div class="metric-label">
-
-            Lucro líquido
-
-          </div>
-
-          <div class="
-            metric-value
-            text-orange-400
+          <p class="
+            text-slate-400
+            text-lg
           ">
 
-            R$ ${lucro.toFixed(2)}
+            Visão geral da oficina
 
-          </div>
-
-        </div>
-
-        <div class="card">
-
-          <div class="metric-label">
-
-            Produções
-
-          </div>
-
-          <div class="metric-value">
-
-            ${producoes}
-
-          </div>
+          </p>
 
         </div>
-
-        <div class="card">
-
-          <div class="metric-label">
-
-            Ticket médio
-
-          </div>
-
-          <div class="
-            metric-value
-            text-cyan-400
-          ">
-
-            R$ ${ticketMedio.toFixed(2)}
-
-          </div>
-
-        </div>
-
-      </div>
-
-      <!-- KPIS 2 -->
-
-      <div class="
-        grid
-        grid-cols-2
-        gap-4
-        mb-5
-      ">
-
-        <div class="card">
-
-          <div class="metric-label">
-
-            Valor em estoque
-
-          </div>
-
-          <div class="
-            metric-value
-            text-yellow-400
-          ">
-
-            R$ ${estoque.toFixed(2)}
-
-          </div>
-
-        </div>
-
-        <div class="card">
-
-          <div class="metric-label">
-
-            Margem líquida
-
-          </div>
-
-          <div class="
-            metric-value
-            text-emerald-400
-          ">
-
-            ${margem.toFixed(1)}%
-
-          </div>
-
-        </div>
-
-      </div>
-
-      <!-- PRODUÇÃO -->
-
-      <div class="card mb-5">
 
         <div class="
+          w-20
+          h-20
+
+          rounded-[28px]
+
           flex
-          justify-between
           items-center
-          mb-5
+          justify-center
+
+          bg-gradient-to-br
+          from-orange-500
+          to-orange-700
+
+          shadow-2xl
         ">
+
+          <i
+            data-lucide="layout-dashboard"
+            class="
+              w-10
+              h-10
+              text-white
+            "
+          ></i>
+
+        </div>
+
+      </div>
+
+      <!-- STATS -->
+
+      <div class="
+        grid
+        md:grid-cols-2
+        xl:grid-cols-4
+        gap-5
+        mb-8
+      ">
+
+        <!-- FATURAMENTO -->
+
+        <div class="card">
+
+          <div class="
+            flex
+            items-center
+            justify-between
+            mb-4
+          ">
+
+            <div class="
+              w-14
+              h-14
+
+              rounded-2xl
+
+              bg-emerald-500/10
+
+              border
+              border-emerald-500/20
+
+              flex
+              items-center
+              justify-center
+            ">
+
+              <i
+                data-lucide="wallet"
+                class="
+                  w-7
+                  h-7
+                  text-emerald-400
+                "
+              ></i>
+
+            </div>
+
+            <span class="
+              text-xs
+              text-emerald-400
+              font-bold
+            ">
+
+              Receita
+
+            </span>
+
+          </div>
+
+          <p class="
+            text-slate-400
+            text-sm
+            mb-2
+          ">
+
+            Faturamento total
+
+          </p>
 
           <h2 class="
-            text-2xl
-            font-bold
+            text-3xl
+            font-black
           ">
 
-            Produção ativa
+            ${formatMoney(
+              faturamento
+            )}
 
           </h2>
 
+        </div>
+
+        <!-- LUCRO -->
+
+        <div class="card">
+
           <div class="
-            text-orange-400
-            font-bold
+            flex
+            items-center
+            justify-between
+            mb-4
           ">
 
-            ${producaoAtiva.length}
+            <div class="
+              w-14
+              h-14
+
+              rounded-2xl
+
+              bg-orange-500/10
+
+              border
+              border-orange-500/20
+
+              flex
+              items-center
+              justify-center
+            ">
+
+              <i
+                data-lucide="badge-dollar-sign"
+                class="
+                  w-7
+                  h-7
+                  text-orange-400
+                "
+              ></i>
+
+            </div>
+
+            <span class="
+              text-xs
+              text-orange-400
+              font-bold
+            ">
+
+              Lucro
+
+            </span>
 
           </div>
 
+          <p class="
+            text-slate-400
+            text-sm
+            mb-2
+          ">
+
+            Lucro estimado
+
+          </p>
+
+          <h2 class="
+            text-3xl
+            font-black
+          ">
+
+            ${formatMoney(
+              lucroEstimado
+            )}
+
+          </h2>
+
         </div>
 
-        <div class="grid gap-4">
+        <!-- PRODUÇÃO -->
 
-          ${
-            producaoAtiva.length
+        <div class="card">
 
-              ? producaoAtiva.map(item => `
+          <div class="
+            flex
+            items-center
+            justify-between
+            mb-4
+          ">
+
+            <div class="
+              w-14
+              h-14
+
+              rounded-2xl
+
+              bg-blue-500/10
+
+              border
+              border-blue-500/20
+
+              flex
+              items-center
+              justify-center
+            ">
+
+              <i
+                data-lucide="hammer"
+                class="
+                  w-7
+                  h-7
+                  text-blue-400
+                "
+              ></i>
+
+            </div>
+
+            <span class="
+              text-xs
+              text-blue-400
+              font-bold
+            ">
+
+              Produção
+
+            </span>
+
+          </div>
+
+          <p class="
+            text-slate-400
+            text-sm
+            mb-2
+          ">
+
+            Produções ativas
+
+          </p>
+
+          <h2 class="
+            text-3xl
+            font-black
+          ">
+
+            ${producoesAtivas}
+
+          </h2>
+
+        </div>
+
+        <!-- PEDIDOS -->
+
+        <div class="card">
+
+          <div class="
+            flex
+            items-center
+            justify-between
+            mb-4
+          ">
+
+            <div class="
+              w-14
+              h-14
+
+              rounded-2xl
+
+              bg-purple-500/10
+
+              border
+              border-purple-500/20
+
+              flex
+              items-center
+              justify-center
+            ">
+
+              <i
+                data-lucide="shopping-bag"
+                class="
+                  w-7
+                  h-7
+                  text-purple-400
+                "
+              ></i>
+
+            </div>
+
+            <span class="
+              text-xs
+              text-purple-400
+              font-bold
+            ">
+
+              Pedidos
+
+            </span>
+
+          </div>
+
+          <p class="
+            text-slate-400
+            text-sm
+            mb-2
+          ">
+
+            Pendentes
+
+          </p>
+
+          <h2 class="
+            text-3xl
+            font-black
+          ">
+
+            ${pedidosPendentes}
+
+          </h2>
+
+        </div>
+
+      </div>
+
+      <!-- GRID -->
+
+      <div class="
+        grid
+        xl:grid-cols-3
+        gap-5
+      ">
+
+        <!-- PRODUÇÃO RECENTE -->
+
+        <div class="
+          card
+          xl:col-span-2
+        ">
+
+          <div class="
+            flex
+            items-center
+            justify-between
+            mb-6
+          ">
+
+            <div>
+
+              <h2 class="
+                text-2xl
+                font-black
+                mb-1
+              ">
+
+                Produção recente
+
+              </h2>
+
+              <p class="
+                text-slate-400
+              ">
+
+                Últimas movimentações
+
+              </p>
+
+            </div>
+
+            <div class="
+              w-12
+              h-12
+
+              rounded-2xl
+
+              bg-orange-500/10
+
+              border
+              border-orange-500/20
+
+              flex
+              items-center
+              justify-center
+            ">
+
+              <i
+                data-lucide="flame"
+                class="
+                  w-6
+                  h-6
+                  text-orange-400
+                "
+              ></i>
+
+            </div>
+
+          </div>
+
+          <div class="
+            grid
+            gap-4
+          ">
+
+            ${producoesRecentes.length
+              ? producoesRecentes.map(item => `
 
                 <div class="
-                  bg-slate-900/60
                   border
-                  border-slate-700
+                  border-white/5
+
                   rounded-2xl
-                  p-4
+
+                  p-5
+
+                  bg-white/[0.02]
                 ">
 
                   <div class="
                     flex
-                    justify-between
                     items-center
-                    mb-3
+                    justify-between
+                    mb-4
                   ">
 
                     <div>
 
                       <h3 class="
-                        text-lg
                         font-bold
+                        text-lg
+                        mb-1
                       ">
 
-                        ${item.titulo}
+                        ${item.nome || 'Faca artesanal'}
 
                       </h3>
 
@@ -366,35 +593,42 @@ export async function dashboardPage() {
                         text-sm
                       ">
 
-                        Status:
-                        ${item.status}
+                        ${item.status || 'Em produção'}
 
                       </p>
 
                     </div>
 
-                    <div class="
+                    <span class="
                       text-orange-400
-                      font-black
+                      font-bold
                     ">
 
-                      R$ ${item.valor.toFixed(2)}
+                      ${item.progresso || 0}%
 
-                    </div>
+                    </span>
 
                   </div>
 
                   <div class="
                     h-3
+
                     bg-slate-800
+
                     rounded-full
+
                     overflow-hidden
                   ">
 
                     <div
                       class="
                         h-full
-                        bg-orange-500
+
+                        bg-gradient-to-r
+                        from-orange-500
+                        to-orange-400
+
+                        rounded-full
                       "
                       style="
                         width:
@@ -407,205 +641,186 @@ export async function dashboardPage() {
                 </div>
 
               `).join('')
-
               : `
 
                 <div class="
-                  text-slate-500
                   text-center
-                  py-8
+                  py-16
                 ">
 
-                  Nenhuma produção ativa
+                  <i
+                    data-lucide="anvil"
+                    class="
+                      w-14
+                      h-14
+                      text-slate-600
+                      mx-auto
+                      mb-4
+                    "
+                  ></i>
 
-                </div>
-
-              `
-          }
-
-        </div>
-
-      </div>
-
-      <!-- RANKING -->
-
-      <div class="card mb-5">
-
-        <div class="
-          flex
-          justify-between
-          items-center
-          mb-5
-        ">
-
-          <h2 class="
-            text-2xl
-            font-bold
-          ">
-
-            Ranking Premium
-
-          </h2>
-
-          <div class="
-            text-slate-400
-            text-sm
-          ">
-
-            Mais lucrativas
-
-          </div>
-
-        </div>
-
-        <div class="grid gap-4">
-
-          ${
-            ranking.length
-
-              ? ranking.map(
-                (item, index) => `
-
-                  <div class="
-                    flex
-                    justify-between
-                    items-center
-                    bg-slate-900/60
-                    border
-                    border-slate-700
-                    rounded-2xl
-                    p-4
+                  <h3 class="
+                    text-xl
+                    font-bold
+                    mb-2
                   ">
 
-                    <div class="
-                      flex
-                      items-center
-                      gap-4
-                    ">
+                    Nenhuma produção
 
-                      <div class="
-                        w-10
-                        h-10
-                        rounded-full
-                        bg-orange-500/20
-                        flex
-                        items-center
-                        justify-center
-                        text-orange-400
-                        font-black
-                      ">
+                  </h3>
 
-                        ${index + 1}
+                  <p class="
+                    text-slate-400
+                  ">
 
-                      </div>
+                    Crie sua primeira produção.
 
-                      <div>
-
-                        <div class="
-                          font-bold
-                        ">
-
-                          ${item.nome}
-
-                        </div>
-
-                        <div class="
-                          text-slate-400
-                          text-sm
-                        ">
-
-                          ${item.tipoAco || '-'}
-
-                        </div>
-
-                      </div>
-
-                    </div>
-
-                    <div class="
-                      text-orange-400
-                      font-black
-                    ">
-
-                      R$ ${(item.valorFinal || 0).toFixed(2)}
-
-                    </div>
-
-                  </div>
-
-                `
-              ).join('')
-
-              : `
-
-                <div class="
-                  text-slate-500
-                  text-center
-                  py-8
-                ">
-
-                  Sem produções ainda
+                  </p>
 
                 </div>
 
               `
-          }
-
-        </div>
-
-      </div>
-
-      <!-- FINANCEIRO -->
-
-      <div class="
-        grid
-        grid-cols-2
-        gap-4
-      ">
-
-        <div class="card">
-
-          <div class="
-            text-slate-400
-            text-sm
-            mb-3
-          ">
-
-            Receitas extras
-
-          </div>
-
-          <div class="
-            text-3xl
-            font-black
-            text-green-400
-          ">
-
-            R$ ${receitas.toFixed(2)}
+            }
 
           </div>
 
         </div>
 
+        <!-- RESUMO -->
+
         <div class="card">
 
           <div class="
-            text-slate-400
-            text-sm
-            mb-3
+            flex
+            items-center
+            justify-between
+            mb-6
           ">
 
-            Despesas extras
+            <div>
+
+              <h2 class="
+                text-2xl
+                font-black
+                mb-1
+              ">
+
+                Resumo
+
+              </h2>
+
+              <p class="
+                text-slate-400
+              ">
+
+                Oficina
+
+              </p>
+
+            </div>
+
+            <div class="
+              w-12
+              h-12
+
+              rounded-2xl
+
+              bg-orange-500/10
+
+              border
+              border-orange-500/20
+
+              flex
+              items-center
+              justify-center
+            ">
+
+              <i
+                data-lucide="activity"
+                class="
+                  w-6
+                  h-6
+                  text-orange-400
+                "
+              ></i>
+
+            </div>
 
           </div>
 
           <div class="
-            text-3xl
-            font-black
-            text-red-400
+            grid
+            gap-5
           ">
 
-            R$ ${despesas.toFixed(2)}
+            <div>
+
+              <p class="
+                text-slate-400
+                text-sm
+                mb-2
+              ">
+
+                Clientes cadastrados
+
+              </p>
+
+              <h3 class="
+                text-3xl
+                font-black
+              ">
+
+                ${clientes.length}
+
+              </h3>
+
+            </div>
+
+            <div>
+
+              <p class="
+                text-slate-400
+                text-sm
+                mb-2
+              ">
+
+                Composições criadas
+
+              </p>
+
+              <h3 class="
+                text-3xl
+                font-black
+              ">
+
+                ${composicoes.length}
+
+              </h3>
+
+            </div>
+
+            <div>
+
+              <p class="
+                text-slate-400
+                text-sm
+                mb-2
+              ">
+
+                Produções registradas
+
+              </p>
+
+              <h3 class="
+                text-3xl
+                font-black
+              ">
+
+                ${producao.length}
+
+              </h3>
+
+            </div>
 
           </div>
 
