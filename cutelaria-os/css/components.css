@@ -307,4 +307,50 @@ select option {
 
   }
 
+  /* ========================================
+   INPUT SPACING FIX
+======================================== */
+
+.input,
+.select,
+textarea,
+input,
+select {
+
+  margin-top: 5px !important;
+  margin-bottom: 5px !important;
+
 }
+
+/* ========================================
+   FORM GRID SPACING
+======================================== */
+
+form,
+.grid {
+
+  gap: 5px !important;
+
+}
+
+/* ========================================
+   MOBILE FIX
+======================================== */
+
+@media (max-width: 768px) {
+
+  .input,
+  .select,
+  textarea,
+  input,
+  select {
+
+    margin-top: 5px !important;
+    margin-bottom: 5px !important;
+
+  }
+
+}
+
+}
+
