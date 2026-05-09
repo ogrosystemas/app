@@ -1,38 +1,97 @@
 let deferredPrompt = null;
 
+// ========================================
+// INSTALL BUTTON
+// ========================================
+
 function createInstallButton() {
 
   if (
-    document.getElementById('installPwaButton')
+    document.getElementById(
+      'installPwaButton'
+    )
   ) {
+
     return;
+
   }
 
-  const button = document.createElement('button');
+  const button =
+    document.createElement(
+      'button'
+    );
 
-  button.id = 'installPwaButton';
+  button.id =
+    'installPwaButton';
 
-  button.innerHTML = `
+  button.className = `
 
-    <div class="install-button-content">
+    fixed
+    top-5
+    right-5
 
-      <i data-lucide="smartphone"></i>
+    z-[9999]
 
-      <span>Instalar App</span>
+    flex
+    items-center
+    gap-3
 
-    </div>
+    px-5
+    py-4
+
+    rounded-2xl
+
+    border
+    border-orange-500/20
+
+    bg-orange-500/10
+
+    backdrop-blur-xl
+
+    shadow-2xl
+
+    text-orange-300
+
+    font-semibold
+
+    transition-all
+    duration-200
+
+    hover:scale-[1.03]
+    hover:bg-orange-500/20
 
   `;
 
-  button.className = 'install-pwa-button';
+  button.innerHTML = `
+
+    <i
+      data-lucide="smartphone"
+      class="w-5 h-5"
+    ></i>
+
+    <span>
+
+      Instalar App
+
+    </span>
+
+  `;
+
+  document.body.appendChild(
+    button
+  );
+
+  if (window.lucide) {
+
+    lucide.createIcons();
+
+  }
 
   button.addEventListener(
     'click',
     async () => {
 
       if (!deferredPrompt) {
-
-        showManualInstallInstructions();
 
         return;
 
@@ -44,225 +103,260 @@ function createInstallButton() {
         await deferredPrompt.userChoice;
 
       if (
-        result.outcome === 'accepted'
+        result.outcome ===
+        'accepted'
       ) {
 
-        console.log(
-          'PWA instalado com sucesso'
-        );
-
-      } else {
-
-        console.log(
-          'Usuário cancelou instalação'
-        );
+        button.remove();
 
       }
 
       deferredPrompt = null;
 
-      hideInstallButton();
-
-    }
-  );
-
-  document.body.appendChild(button);
-
-  if (window.lucide) {
-
-    lucide.createIcons();
-
-  }
-
-}
-
-function hideInstallButton() {
-
-  const button =
-    document.getElementById(
-      'installPwaButton'
-    );
-
-  if (button) {
-
-    button.remove();
-
-  }
-
-}
-
-function showManualInstallInstructions() {
-
-  const isIOS =
-    /iphone|ipad|ipod/i.test(
-      navigator.userAgent
-    );
-
-  let message = '';
-
-  if (isIOS) {
-
-    message = `
-
-      Para instalar no iPhone:
-
-      1. Toque no botão Compartilhar
-      2. Depois em "Adicionar à Tela de Início"
-
-    `;
-
-  } else {
-
-    message = `
-
-      Seu navegador não liberou a instalação automática.
-
-      Use o menu do navegador e escolha:
-      "Instalar aplicativo"
-
-    `;
-
-  }
-
-  alert(message);
-
-}
-
-function isStandaloneMode() {
-
-  return (
-    window.matchMedia(
-      '(display-mode: standalone)'
-    ).matches
-    ||
-    window.navigator.standalone === true
-  );
-
-}
-
-function registerInstallPrompt() {
-
-  window.addEventListener(
-    'beforeinstallprompt',
-    (event) => {
-
-      event.preventDefault();
-
-      deferredPrompt = event;
-
-      if (!isStandaloneMode()) {
-
-        createInstallButton();
-
-      }
-
     }
   );
 
 }
 
-function registerInstalledEvent() {
+// ========================================
+// BEFORE INSTALL PROMPT
+// ========================================
 
-  window.addEventListener(
-    'appinstalled',
-    () => {
+window.addEventListener(
+  'beforeinstallprompt',
+  (event) => {
 
-      console.log(
-        'PWA instalado'
+    event.preventDefault();
+
+    deferredPrompt =
+      event;
+
+    createInstallButton();
+
+  }
+);
+
+// ========================================
+// APP INSTALLED
+// ========================================
+
+window.addEventListener(
+  'appinstalled',
+  () => {
+
+    const button =
+      document.getElementById(
+        'installPwaButton'
       );
 
-      hideInstallButton();
+    if (button) {
+
+      button.remove();
 
     }
-  );
 
-}
+  }
+);
 
-function registerServiceWorker() {
+// ========================================
+// UPDATE AVAILABLE
+// ========================================
 
-  if (
-    'serviceWorker' in navigator
-  ) {
+if (
+  'serviceWorker' in navigator
+) {
 
-    window.addEventListener(
-      'load',
-      async () => {
+  navigator.serviceWorker
+    .register(
+      './sw.js'
+    )
+    .then((registration) => {
 
-        try {
+      registration.addEventListener(
+        'updatefound',
+        () => {
 
-          const registration =
-            await navigator.serviceWorker.register(
-              './sw.js'
-            );
+          const newWorker =
+            registration.installing;
 
-          console.log(
-            'Service Worker registrado:',
-            registration
-          );
+          if (!newWorker) {
 
-        } catch (error) {
+            return;
 
-          console.error(
-            'Erro ao registrar Service Worker:',
-            error
+          }
+
+          newWorker.addEventListener(
+            'statechange',
+            () => {
+
+              if (
+                newWorker.state ===
+                'installed'
+              ) {
+
+                if (
+                  navigator.serviceWorker.controller
+                ) {
+
+                  showUpdateToast();
+
+                }
+
+              }
+
+            }
           );
 
         }
+      );
 
-      }
-    );
+    })
+    .catch((error) => {
 
-  }
+      console.error(
+        'Erro SW:',
+        error
+      );
+
+    });
 
 }
 
-function createUpdateBanner() {
+// ========================================
+// UPDATE TOAST
+// ========================================
+
+function showUpdateToast() {
 
   if (
     document.getElementById(
-      'updateBanner'
+      'updateToast'
     )
   ) {
+
     return;
+
   }
 
-  const banner =
-    document.createElement('div');
+  const toast =
+    document.createElement(
+      'div'
+    );
 
-  banner.id = 'updateBanner';
+  toast.id =
+    'updateToast';
 
-  banner.className =
-    'update-banner';
+  toast.className = `
 
-  banner.innerHTML = `
+    fixed
+    top-24
+    right-5
 
-    <div class="update-banner-content">
+    z-[9999]
 
-      <div>
+    w-[320px]
 
-        <strong>
-          Nova versão disponível
-        </strong>
+    rounded-3xl
 
-        <p>
-          Atualize o Cutelaria OS
-        </p>
+    border
+    border-blue-500/20
+
+    bg-slate-950/90
+
+    backdrop-blur-xl
+
+    shadow-2xl
+
+    p-5
+
+  `;
+
+  toast.innerHTML = `
+
+    <div class="
+      flex
+      items-start
+      gap-4
+    ">
+
+      <div class="
+        w-12
+        h-12
+
+        rounded-2xl
+
+        bg-blue-500/10
+
+        border
+        border-blue-500/20
+
+        flex
+        items-center
+        justify-center
+      ">
+
+        <i
+          data-lucide="download"
+          class="
+            w-6
+            h-6
+            text-blue-400
+          "
+        ></i>
 
       </div>
 
-      <button id="reloadAppButton">
+      <div class="
+        flex-1
+      ">
 
-        Atualizar
+        <h3 class="
+          font-bold
+          text-lg
+          mb-1
+        ">
 
-      </button>
+          Nova versão disponível
+
+        </h3>
+
+        <p class="
+          text-slate-400
+          text-sm
+          mb-4
+        ">
+
+          Atualize o app para aplicar melhorias e correções.
+
+        </p>
+
+        <button
+          id="reloadAppButton"
+          class="
+            primary-button
+            w-full
+          "
+        >
+
+          Atualizar agora
+
+        </button>
+
+      </div>
 
     </div>
 
   `;
 
   document.body.appendChild(
-    banner
+    toast
   );
+
+  if (window.lucide) {
+
+    lucide.createIcons();
+
+  }
 
   document
     .getElementById(
@@ -276,48 +370,5 @@ function createUpdateBanner() {
 
       }
     );
-
-}
-
-function watchServiceWorkerUpdates() {
-
-  if (
-    !('serviceWorker' in navigator)
-  ) {
-    return;
-  }
-
-  navigator.serviceWorker
-    .getRegistrations()
-    .then((registrations) => {
-
-      registrations.forEach(
-        (registration) => {
-
-          registration.addEventListener(
-            'updatefound',
-            () => {
-
-              createUpdateBanner();
-
-            }
-          );
-
-        }
-      );
-
-    });
-
-}
-
-export function initPWA() {
-
-  registerServiceWorker();
-
-  registerInstallPrompt();
-
-  registerInstalledEvent();
-
-  watchServiceWorkerUpdates();
 
 }
