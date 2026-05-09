@@ -47,7 +47,7 @@ export async function navigate(
     routes[route];
 
   // ========================================
-  // PAGE NOT FOUND
+  // NOT FOUND
   // ========================================
 
   if (!page) {
@@ -91,15 +91,10 @@ export async function navigate(
 
   try {
 
-    const html =
+    app.innerHTML =
       await page();
 
-    app.innerHTML =
-      html;
-
-    // ========================================
     // ICONS
-    // ========================================
 
     if (
       window.lucide
@@ -109,9 +104,7 @@ export async function navigate(
 
     }
 
-    // ========================================
-    // SCROLL TOP
-    // ========================================
+    // SCROLL
 
     window.scrollTo({
 
@@ -161,7 +154,7 @@ export async function navigate(
 }
 
 // ========================================
-// HASH ROUTER
+// INIT ROUTER
 // ========================================
 
 export function initRouter() {
