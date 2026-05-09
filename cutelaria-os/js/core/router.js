@@ -1,161 +1,141 @@
-import { renderNavbar } from '../modules/navbar.js';
+import {
+  dashboardPage
+} from '../pages/dashboard.js';
 
-import { db } from '../database/db.js';
+import {
+  producaoPage
+} from '../pages/producao.js';
+
+import {
+  pedidosPage
+} from '../pages/pedidos.js';
+
+// ========================================
+// ROUTES
+// ========================================
 
 const routes = {
 
-  onboarding:
-    '../pages/onboarding.js',
+  '/': dashboardPage,
 
-  dashboard:
-    '../pages/dashboard.js',
+  '/dashboard': dashboardPage,
 
-  calculadora:
-    '../pages/calculadora.js',
+  '/producao': producaoPage,
 
-  materiais:
-    '../pages/materiais.js',
-
-  producao:
-    '../pages/producao.js',
-
-  financeiro:
-    '../pages/financeiro.js',
-
-  clientes:
-    '../pages/clientes.js',
-
-  config:
-    '../pages/configuracoes.js'
+  '/pedidos': pedidosPage
 
 };
 
-async function renderRoute() {
+// ========================================
+// NAVIGATE
+// ========================================
+
+export async function navigate(
+  path = '/'
+) {
 
   const app =
-    document.getElementById('app');
+    document.getElementById(
+      'app'
+    );
 
-  const settings =
-    await db.settings.toArray();
+  if (!app) {
 
-  const onboardingCompleto =
-    settings.length > 0;
-
-  let hash =
-    window.location.hash
-      .replace('#', '');
-
-  // PRIMEIRO ACESSO
-
-  if (!onboardingCompleto) {
-
-    hash = 'onboarding';
+    return;
 
   }
 
-  // HASH PADRAO
+  const page =
+    routes[path];
 
-  if (!hash) {
+  if (!page) {
 
-    hash = onboardingCompleto
+    app.innerHTML = `
 
-      ? 'dashboard'
+      <section class="
+        py-24
+        text-center
+      ">
 
-      : 'onboarding';
+        <h1 class="
+          text-5xl
+          font-black
+          mb-4
+        ">
 
-  }
+          404
 
-  // ROTA INVALIDA
+        </h1>
 
-  if (!routes[hash]) {
+        <p class="
+          text-slate-400
+        ">
 
-    hash = onboardingCompleto
+          Página não encontrada.
 
-      ? 'dashboard'
+        </p>
 
-      : 'onboarding';
+      </section>
+
+    `;
+
+    return;
 
   }
 
   try {
 
-    const module =
-      await import(routes[hash]);
+    app.innerHTML =
+      await page();
 
-    const renderFunction =
-      Object.values(module)[0];
+    if (
+      window.lucide
+    ) {
 
-    const html =
-      await renderFunction();
+      lucide.createIcons();
 
-    const showNavbar =
-      hash !== 'onboarding';
+    }
 
-    app.innerHTML = `
+    window.scrollTo({
 
-      <main class="page-transition">
+      top: 0,
 
-        ${html}
-
-      </main>
-
-      ${
-        showNavbar
-
-          ? renderNavbar(hash)
-
-          : ''
-      }
-
-    `;
-
-    requestAnimationFrame(() => {
-
-      const page =
-        document.querySelector(
-          '.page-transition'
-        );
-
-      if (page) {
-
-        page.style.opacity = '1';
-
-        page.style.transform =
-          'translateY(0px)';
-
-      }
-
-      // LUCIDE
-
-      if (window.lucide) {
-
-        lucide.createIcons();
-
-      }
+      behavior: 'smooth'
 
     });
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      error
+    );
 
     app.innerHTML = `
 
-      <div class="card">
+      <section class="
+        py-24
+        text-center
+      ">
 
-        <h1 style="
-          font-size:28px;
-          margin-bottom:20px;
+        <h1 class="
+          text-4xl
+          font-black
+          mb-4
         ">
-          Erro no Router
+
+          Erro ao carregar página
+
         </h1>
 
-        <pre style="
-          color:#f97316;
-          white-space:pre-wrap;
-        ">${error}</pre>
+        <p class="
+          text-slate-400
+        ">
 
-      </div>
+          Verifique o console.
+
+        </p>
+
+      </section>
 
     `;
 
@@ -163,13 +143,30 @@ async function renderRoute() {
 
 }
 
-export async function initRouter() {
+// ========================================
+// HASH ROUTER
+// ========================================
+
+export function initRouter() {
+
+  async function handleRoute() {
+
+    const hash =
+      window.location.hash
+        .replace('#', '');
+
+    const path =
+      hash || '/';
+
+    await navigate(path);
+
+  }
 
   window.addEventListener(
     'hashchange',
-    renderRoute
+    handleRoute
   );
 
-  await renderRoute();
+  handleRoute();
 
 }
