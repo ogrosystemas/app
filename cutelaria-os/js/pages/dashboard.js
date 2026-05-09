@@ -7,13 +7,8 @@ import { db } from '../database/db.js';
 export async function dashboardPage() {
 
   // ========================================
-  // LOAD DATA
+  // SAFE LOAD
   // ========================================
-
-  const materiais =
-    db.materiais
-      ? await db.materiais.count()
-      : 0;
 
   const producao =
     db.producao
@@ -30,8 +25,13 @@ export async function dashboardPage() {
       ? await db.financeiro.toArray()
       : [];
 
+  const materiais =
+    db.materiais
+      ? await db.materiais.toArray()
+      : [];
+
   // ========================================
-  // TOTALS
+  // STATS
   // ========================================
 
   const producaoAtiva =
@@ -286,7 +286,7 @@ export async function dashboardPage() {
                 font-black
               ">
 
-                ${materiais}
+                ${materiais.length}
 
               </h2>
 
@@ -346,7 +346,7 @@ export async function dashboardPage() {
               </p>
 
               <h2 class="
-                text-4xl
+                text-3xl
                 font-black
               ">
 
@@ -400,364 +400,320 @@ export async function dashboardPage() {
 
       </div>
 
-      <!-- GRID -->
+      <!-- PRODUÇÃO RECENTE -->
 
       <div class="
-        grid
-        xl:grid-cols-2
-        gap-6
+        card
+        mb-6
       ">
 
-        <!-- PRODUÇÃO -->
+        <div class="
+          flex
+          items-center
+          justify-between
+          mb-6
+        ">
 
-        <div class="card">
+          <div>
 
-          <div class="
-            flex
-            items-center
-            justify-between
-            mb-6
-          ">
-
-            <div>
-
-              <h2 class="
-                text-2xl
-                font-black
-                mb-1
-              ">
-
-                Produção recente
-
-              </h2>
-
-              <p class="
-                text-slate-400
-              ">
-
-                Últimas atividades
-
-              </p>
-
-            </div>
-
-            <div class="
-              w-14
-              h-14
-
-              rounded-2xl
-
-              bg-orange-500/10
-
-              border
-              border-orange-500/20
-
-              flex
-              items-center
-              justify-center
+            <h2 class="
+              text-2xl
+              font-black
+              mb-1
             ">
 
-              <i
-                data-lucide="flame"
-                class="
-                  w-7
-                  h-7
-                  text-orange-400
-                "
-              ></i>
+              Produção recente
 
-            </div>
+            </h2>
+
+            <p class="
+              text-slate-400
+            ">
+
+              Últimas atividades
+
+            </p>
 
           </div>
 
-          ${
-            producaoRecente.length
+          <i
+            data-lucide="flame"
+            class="
+              w-7
+              h-7
+              text-orange-400
+            "
+          ></i>
 
-              ? `
+        </div>
 
-                <div class="
-                  grid
-                  gap-4
-                ">
+        ${
+          producaoRecente.length
 
-                  ${producaoRecente.map(item => `
+            ? `
+
+              <div class="
+                grid
+                gap-4
+              ">
+
+                ${producaoRecente.map(item => `
+
+                  <div class="
+                    bg-slate-900
+
+                    border
+                    border-white/5
+
+                    rounded-2xl
+
+                    p-5
+                  ">
 
                     <div class="
-                      bg-slate-900
-
-                      border
-                      border-white/5
-
-                      rounded-2xl
-
-                      p-5
+                      flex
+                      items-center
+                      justify-between
+                      mb-3
                     ">
 
-                      <div class="
-                        flex
-                        items-center
-                        justify-between
-                        mb-3
-                      ">
+                      <div>
 
-                        <div>
-
-                          <h3 class="
-                            text-xl
-                            font-bold
-                            mb-1
-                          ">
-
-                            ${item.nome}
-
-                          </h3>
-
-                          <p class="
-                            text-slate-400
-                          ">
-
-                            ${item.status}
-
-                          </p>
-
-                        </div>
-
-                        <strong class="
-                          text-orange-400
+                        <h3 class="
+                          text-xl
+                          font-bold
+                          mb-1
                         ">
 
+                          ${item.nome}
+
+                        </h3>
+
+                        <p class="
+                          text-slate-400
+                        ">
+
+                          ${item.status}
+
+                        </p>
+
+                      </div>
+
+                      <strong class="
+                        text-orange-400
+                      ">
+
+                        ${
+                          item.progresso || 0
+                        }%
+
+                      </strong>
+
+                    </div>
+
+                    <div class="
+                      h-3
+
+                      bg-slate-800
+
+                      rounded-full
+
+                      overflow-hidden
+                    ">
+
+                      <div
+                        class="
+                          h-full
+
+                          bg-gradient-to-r
+                          from-orange-500
+                          to-orange-400
+                        "
+                        style="
+                          width:
                           ${
                             item.progresso || 0
                           }%
-
-                        </strong>
-
-                      </div>
-
-                      <div class="
-                        h-3
-
-                        bg-slate-800
-
-                        rounded-full
-
-                        overflow-hidden
-                      ">
-
-                        <div
-                          class="
-                            h-full
-
-                            bg-gradient-to-r
-                            from-orange-500
-                            to-orange-400
-                          "
-                          style="
-                            width:
-                            ${
-                              item.progresso || 0
-                            }%
-                          "
-                        ></div>
-
-                      </div>
+                        "
+                      ></div>
 
                     </div>
 
-                  `).join('')}
+                  </div>
 
-                </div>
+                `).join('')}
 
-              `
+              </div>
 
-              : `
+            `
 
-                <div class="
-                  text-center
-                  py-12
+            : `
+
+              <div class="
+                text-center
+                py-12
+              ">
+
+                <p class="
+                  text-slate-500
                 ">
 
-                  <p class="
-                    text-slate-500
-                  ">
+                  Nenhuma produção encontrada.
 
-                    Nenhuma produção encontrada.
+                </p>
 
-                  </p>
+              </div>
 
-                </div>
+            `
 
-              `
+        }
 
-          }
+      </div>
 
-        </div>
+      <!-- PEDIDOS -->
 
-        <!-- PEDIDOS -->
+      <div class="card">
 
-        <div class="card">
+        <div class="
+          flex
+          items-center
+          justify-between
+          mb-6
+        ">
 
-          <div class="
-            flex
-            items-center
-            justify-between
-            mb-6
-          ">
+          <div>
 
-            <div>
-
-              <h2 class="
-                text-2xl
-                font-black
-                mb-1
-              ">
-
-                Pedidos recentes
-
-              </h2>
-
-              <p class="
-                text-slate-400
-              ">
-
-                Últimos pedidos cadastrados
-
-              </p>
-
-            </div>
-
-            <div class="
-              w-14
-              h-14
-
-              rounded-2xl
-
-              bg-purple-500/10
-
-              border
-              border-purple-500/20
-
-              flex
-              items-center
-              justify-center
+            <h2 class="
+              text-2xl
+              font-black
+              mb-1
             ">
 
-              <i
-                data-lucide="shopping-bag"
-                class="
-                  w-7
-                  h-7
-                  text-purple-400
-                "
-              ></i>
+              Pedidos recentes
 
-            </div>
+            </h2>
+
+            <p class="
+              text-slate-400
+            ">
+
+              Últimos pedidos cadastrados
+
+            </p>
 
           </div>
 
-          ${
-            pedidosRecentes.length
+          <i
+            data-lucide="shopping-bag"
+            class="
+              w-7
+              h-7
+              text-purple-400
+            "
+          ></i>
 
-              ? `
+        </div>
 
-                <div class="
-                  grid
-                  gap-4
-                ">
+        ${
+          pedidosRecentes.length
 
-                  ${pedidosRecentes.map(item => `
+            ? `
+
+              <div class="
+                grid
+                gap-4
+              ">
+
+                ${pedidosRecentes.map(item => `
+
+                  <div class="
+                    bg-slate-900
+
+                    border
+                    border-white/5
+
+                    rounded-2xl
+
+                    p-5
+                  ">
 
                     <div class="
-                      bg-slate-900
-
-                      border
-                      border-white/5
-
-                      rounded-2xl
-
-                      p-5
+                      flex
+                      items-center
+                      justify-between
                     ">
 
-                      <div class="
-                        flex
-                        items-center
-                        justify-between
-                        mb-2
-                      ">
+                      <div>
 
-                        <div>
-
-                          <h3 class="
-                            text-xl
-                            font-bold
-                            mb-1
-                          ">
-
-                            ${item.nome}
-
-                          </h3>
-
-                          <p class="
-                            text-slate-400
-                          ">
-
-                            ${item.cliente}
-
-                          </p>
-
-                        </div>
-
-                        <strong class="
-                          text-purple-400
+                        <h3 class="
+                          text-xl
+                          font-bold
+                          mb-1
                         ">
 
-                          ${Number(
-                            item.valor || 0
-                          ).toLocaleString(
-                            'pt-BR',
-                            {
+                          ${item.nome}
 
-                              style: 'currency',
+                        </h3>
 
-                              currency: 'BRL'
+                        <p class="
+                          text-slate-400
+                        ">
 
-                            }
-                          )}
+                          ${item.cliente}
 
-                        </strong>
+                        </p>
 
                       </div>
 
+                      <strong class="
+                        text-purple-400
+                      ">
+
+                        ${Number(
+                          item.valor || 0
+                        ).toLocaleString(
+                          'pt-BR',
+                          {
+
+                            style: 'currency',
+
+                            currency: 'BRL'
+
+                          }
+                        )}
+
+                      </strong>
+
                     </div>
 
-                  `).join('')}
+                  </div>
 
-                </div>
+                `).join('')}
 
-              `
+              </div>
 
-              : `
+            `
 
-                <div class="
-                  text-center
-                  py-12
+            : `
+
+              <div class="
+                text-center
+                py-12
+              ">
+
+                <p class="
+                  text-slate-500
                 ">
 
-                  <p class="
-                    text-slate-500
-                  ">
+                  Nenhum pedido encontrado.
 
-                    Nenhum pedido encontrado.
+                </p>
 
-                  </p>
+              </div>
 
-                </div>
+            `
 
-              `
-
-          }
-
-        </div>
+        }
 
       </div>
 
