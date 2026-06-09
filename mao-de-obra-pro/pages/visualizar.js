@@ -115,9 +115,13 @@ export default async function visualizarPage({ id }) {
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <div class="fw-semibold">Pagamentos</div>
-            <button class="btn btn-sm btn-outline-success" onclick="abrirModalPagamento()">
-              <i class="bi bi-plus-lg me-1"></i>Registrar
-            </button>
+            ${totalRestante > 0.01 ? `
+              <button class="btn btn-sm btn-outline-success" onclick="abrirModalPagamento()">
+                <i class="bi bi-plus-lg me-1"></i>Registrar
+              </button>` : `
+              <span class="badge bg-success-subtle text-success border border-success-subtle">
+                <i class="bi bi-check-circle me-1"></i>Quitado
+              </span>`}
           </div>
 
           ${pagamentos.length === 0 ? `
