@@ -1,0 +1,174 @@
+/* ============================================================
+   app.css — Mão de Obra PRO
+   ============================================================ */
+
+:root {
+  --mdo-primary: #2563eb;
+  --mdo-success: #16a34a;
+  --mdo-bottom-nav: 64px;
+  --mdo-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ── Base ───────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  background: #f1f5f9;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* ── Layout principal ────────────────────────────────────────── */
+#app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+#page-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.page-content {
+  padding: 1rem;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+/* ── Bottom Nav ──────────────────────────────────────────────── */
+#main-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--mdo-bottom-nav) + var(--mdo-safe-bottom));
+  background: #fff;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  z-index: 1000;
+  padding-bottom: var(--mdo-safe-bottom);
+}
+
+.nav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 12px;
+  color: #94a3b8;
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: color 0.15s;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.nav-link i { font-size: 1.25rem; transition: transform 0.15s; }
+.nav-link.active { color: var(--mdo-primary); }
+.nav-link.active i { transform: scale(1.1); }
+
+/* ── FAB Novo Orçamento ──────────────────────────────────────── */
+#fab-novo {
+  position: fixed;
+  bottom: calc(var(--mdo-bottom-nav) + 16px + var(--mdo-safe-bottom));
+  right: 20px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--mdo-primary);
+  color: #fff;
+  border: none;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.4);
+  z-index: 999;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+#fab-novo:active { transform: scale(0.93); box-shadow: 0 2px 8px rgba(37,99,235,0.3); }
+
+/* ── Loader ──────────────────────────────────────────────────── */
+#app-loader {
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  gap: 16px;
+}
+
+#app-loader .spinner-border { width: 3rem; height: 3rem; color: var(--mdo-primary); }
+#app-loader-msg { color: #64748b; font-size: 0.9rem; }
+
+/* ── Toast container ─────────────────────────────────────────── */
+#toast-container {
+  position: fixed;
+  bottom: calc(var(--mdo-bottom-nav) + 80px + var(--mdo-safe-bottom));
+  right: 16px;
+  z-index: 2000;
+  min-width: 240px;
+  max-width: 320px;
+}
+
+/* ── Cards e listas ──────────────────────────────────────────── */
+.card { border-radius: 12px !important; }
+.list-group-item { border-radius: 8px !important; }
+
+/* ── Empty state ─────────────────────────────────────────────── */
+.empty-state {
+  color: #94a3b8;
+  padding: 3rem 1rem;
+}
+
+/* ── Setup ───────────────────────────────────────────────────── */
+.setup-wrapper { background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%); }
+.setup-card { border-radius: 20px !important; }
+
+.btn-prof {
+  min-height: 64px;
+  line-height: 1.3;
+  font-size: 0.85rem;
+  transition: all 0.15s;
+}
+
+/* ── Dashboard stats ─────────────────────────────────────────── */
+.card .text-muted.small { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* ── Padding body para não ficar atrás da nav ────────────────── */
+body.has-nav #page-content {
+  padding-bottom: calc(var(--mdo-bottom-nav) + var(--mdo-safe-bottom) + 80px);
+}
+
+/* ── Scrollbar fina ──────────────────────────────────────────── */
+* { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+
+/* ── Animação de entrada de página ───────────────────────────── */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-content { animation: fadeSlideIn 0.18s ease-out; }
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (min-width: 640px) {
+  #main-nav { max-width: 640px; left: 50%; transform: translateX(-50%); border-radius: 16px 16px 0 0; }
+  #fab-novo { right: calc(50% - 320px + 20px); }
+  #toast-container { right: calc(50% - 320px + 16px); }
+}
