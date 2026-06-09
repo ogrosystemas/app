@@ -138,7 +138,7 @@ function renderClientesList(clientes) {
       data-whatsapp="${whatsappSafe}"
       data-endereco="${enderecoSafe}">
       <div class="fw-semibold">${c.nome}</div>
-      ${c.whatsapp ? \`<div class="small text-muted">${c.whatsapp}</div>\` : ''}
+      ${c.whatsapp ? `<div class="small text-muted">${c.whatsapp}</div>` : ''}
     </div>`;
   }).join('');
 }

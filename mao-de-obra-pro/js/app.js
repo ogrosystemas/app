@@ -155,6 +155,9 @@ async function boot() {
     });
   }
 
+  // Expõe navigate do router no window para uso nos botões inline do HTML
+  window.navigate = navigate;
+
   startRouter();
 }
 
