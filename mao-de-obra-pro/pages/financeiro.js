@@ -123,6 +123,8 @@ export default async function financeiroPage() {
         </div>
       </div>
 
+
+
       <!-- Gráfico de barras — receita mensal -->
       <div class="card border-0 shadow-sm mb-3">
         <div class="card-body">
@@ -147,32 +149,6 @@ export default async function financeiroPage() {
           </div>
         </div>
       </div>
-
-      <!-- Por profissão -->
-      ${Object.keys(porProf).length > 0 ? `
-        <div class="card border-0 shadow-sm mb-3">
-          <div class="card-body">
-            <div class="fw-semibold mb-3">Por Profissão</div>
-            ${Object.entries(porProf).sort((a,b) => b[1].total - a[1].total).map(([nome, d]) => {
-              const pct = totalFaturado > 0 ? Math.round((d.total / totalFaturado) * 100) : 0;
-              return `
-                <div class="mb-3">
-                  <div class="d-flex justify-content-between mb-1">
-                    <span class="small fw-semibold">${nome}</span>
-                    <span class="small text-muted">${d.qtd} orç. · ${moeda(d.total)}</span>
-                  </div>
-                  <div class="progress" style="height:6px">
-                    <div class="progress-bar bg-primary" style="width:${pct}%"></div>
-                  </div>
-                  <div class="d-flex justify-content-between mt-1">
-                    <span class="small text-success">Recebido: ${moeda(d.recebido)}</span>
-                    <span class="small text-muted">${pct}%</span>
-                  </div>
-                </div>`;
-            }).join('')}
-          </div>
-        </div>
-      ` : ''}
 
       <!-- Inadimplência -->
       ${inadimplentes.length > 0 ? `
@@ -230,6 +206,35 @@ export default async function financeiroPage() {
           }).join('')}
         </div>
       </div>
+
+
+      <!-- Por profissão -->
+      ${Object.keys(porProf).length > 0 ? `
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-body">
+            <div class="fw-semibold mb-3">Por Profissão</div>
+            ${Object.entries(porProf).sort((a,b) => b[1].total - a[1].total).map(([nome, d]) => {
+              const pct = totalFaturado > 0 ? Math.round((d.total / totalFaturado) * 100) : 0;
+              return `
+                <div class="mb-3">
+                  <div class="d-flex justify-content-between mb-1">
+                    <span class="small fw-semibold">${nome}</span>
+                    <span class="small text-muted">${d.qtd} orç. · ${moeda(d.total)}</span>
+                  </div>
+                  <div class="progress" style="height:6px">
+                    <div class="progress-bar bg-primary" style="width:${pct}%"></div>
+                  </div>
+                  <div class="d-flex justify-content-between mt-1">
+                    <span class="small text-success">Recebido: ${moeda(d.recebido)}</span>
+                    <span class="small text-muted">${pct}%</span>
+                  </div>
+                </div>`;
+            }).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+
     </div>
   `);
 }

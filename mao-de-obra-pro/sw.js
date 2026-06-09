@@ -3,7 +3,7 @@
 // VERSÃO: atualize CACHE_NAME a cada novo deploy para forçar update
 // ============================================================
 
-const CACHE_NAME = 'mdo-pro-v10';
+const CACHE_NAME = 'mdo-pro-v11';
 
 const PRECACHE_RELATIVE = [
   './',
