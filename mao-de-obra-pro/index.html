@@ -41,6 +41,9 @@
       <button class="nav-link" data-route="/configuracoes" onclick="navigate('/configuracoes')">
         <i class="bi bi-gear-fill"></i><span>Config</span>
       </button>
+      <button class="nav-link d-none" id="btn-instalar" onclick="instalarApp()">
+        <i class="bi bi-download"></i><span>Instalar</span>
+      </button>
     </nav>
 
     <button id="fab-novo" class="d-none" onclick="navigate('/orcamento')" title="Novo Orçamento">
@@ -84,5 +87,38 @@
   </script>
 
   <script type="module" src="js/app.js"></script>
+
+  <script>
+    // PWA Install prompt
+    var _installPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      _installPrompt = e;
+      var btn = document.getElementById('btn-instalar');
+      if (btn) btn.classList.remove('d-none');
+    });
+
+    window.instalarApp = async function() {
+      if (!_installPrompt) {
+        // iOS: mostra instruções manuais
+        alert('Para instalar no iPhone/iPad:\n\n1. Toque no botão de compartilhar (□↑) no Safari\n2. Role e toque "Adicionar à Tela de Início"\n3. Confirme');
+        return;
+      }
+      _installPrompt.prompt();
+      var result = await _installPrompt.userChoice;
+      if (result.outcome === 'accepted') {
+        var btn = document.getElementById('btn-instalar');
+        if (btn) btn.classList.add('d-none');
+        _installPrompt = null;
+      }
+    };
+
+    window.addEventListener('appinstalled', function() {
+      var btn = document.getElementById('btn-instalar');
+      if (btn) btn.classList.add('d-none');
+      _installPrompt = null;
+    });
+  </script>
 </body>
 </html>
