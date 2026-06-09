@@ -10,11 +10,15 @@ import { navigate } from '../js/router.js';
 export default async function visualizarPage({ id }) {
   if (!id) { navigate('/'); return; }
 
-  const orc = await getById('orcamentos', parseInt(id));
+  const orc     = await getById('orcamentos', parseInt(id));
   if (!orc) { toast('Orçamento não encontrado.', 'danger'); navigate('/'); return; }
 
-  const cliente  = await getById('clientes', orc.clienteId);
-  const fotos    = await getAll('fotos', 'orcamentoId', IDBKeyRange.only(orc.id));
+  const cliente = await getById('clientes', orc.clienteId);
+  const fotos   = await getAll('fotos', 'orcamentoId', IDBKeyRange.only(orc.id));
+
+  // Mapeia fotos por índice para evitar blob no onclick
+  // O blob fica em memória — onclick usa só o índice
+  window._fotosVisualizacao = fotos;
 
   const badgeStatus = { pendente: 'warning', aprovado: 'success', recusado: 'danger', cancelado: 'secondary' };
 
@@ -28,8 +32,8 @@ export default async function visualizarPage({ id }) {
         <span class="badge bg-${badgeStatus[orc.status] || 'secondary'} fs-6">${orc.status}</span>
       </div>
 
-      <!-- Cabeçalho do orçamento -->
-      <div class="card border-0 shadow-sm mb-3" id="pdf-content">
+      <!-- Cabeçalho -->
+      <div class="card border-0 shadow-sm mb-3">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
           <div>
             <div class="fw-bold fs-5">Orçamento #${orc.id}</div>
@@ -41,6 +45,7 @@ export default async function visualizarPage({ id }) {
           </div>
         </div>
         <div class="card-body">
+
           <!-- Cliente -->
           <div class="mb-3 pb-2 border-bottom">
             <div class="text-muted small text-uppercase mb-1">Cliente</div>
@@ -57,8 +62,10 @@ export default async function visualizarPage({ id }) {
                 <div class="me-2 flex-grow-1">
                   <div class="fw-semibold">${item.nome}</div>
                   <div class="small text-muted">
-                    ${item.usaPrecoFixo ? 'Preço fixo' : `${tempo(item.tempoAjustado)} · ${DIFICULDADE[item.dificuldade]?.label || item.dificuldade}`}
-                    · Qtd: ${item.quantidade}
+                    ${item.usaPrecoFixo
+                      ? 'Preço fixo'
+                      : `${tempo(item.tempoAjustado)} · ${DIFICULDADE[item.dificuldade]?.label || item.dificuldade}`
+                    } · Qtd: ${item.quantidade}
                   </div>
                 </div>
                 <div class="fw-semibold text-primary text-nowrap">${moeda(item.precoTotal)}</div>
@@ -77,7 +84,9 @@ export default async function visualizarPage({ id }) {
             ${orc.desconto?.valor > 0 ? `
               <div class="d-flex justify-content-between text-danger mb-1">
                 <span>Desconto</span>
-                <span>− ${orc.desconto.tipo === 'percentual' ? orc.desconto.valor + '%' : moeda(orc.desconto.valor)}</span>
+                <span>− ${orc.desconto.tipo === 'percentual'
+                  ? orc.desconto.valor + '%'
+                  : moeda(orc.desconto.valor)}</span>
               </div>` : ''}
             <div class="d-flex justify-content-between fw-bold fs-5 pt-2 border-top">
               <span>Total</span><span class="text-primary">${moeda(orc.total)}</span>
@@ -86,16 +95,17 @@ export default async function visualizarPage({ id }) {
         </div>
       </div>
 
-      <!-- Fotos -->
+      <!-- Fotos — onclick usa índice, nunca o blob direto -->
       ${fotos.length > 0 ? `
         <div class="card border-0 shadow-sm mb-3">
           <div class="card-body">
             <div class="fw-semibold mb-2">Fotos (${fotos.length})</div>
             <div class="row g-2">
-              ${fotos.map(f => `
+              ${fotos.map((f, i) => `
                 <div class="col-4">
-                  <img src="${f.blob}" class="img-fluid rounded" style="height:80px;width:100%;object-fit:cover"
-                    onclick="ampliarFoto('${f.blob}')">
+                  <img src="${f.blob}" class="img-fluid rounded"
+                    style="height:80px;width:100%;object-fit:cover;cursor:pointer"
+                    onclick="ampliarFoto(${i})">
                 </div>`).join('')}
             </div>
           </div>
@@ -107,8 +117,6 @@ export default async function visualizarPage({ id }) {
         <div class="card-body">
           <div class="fw-semibold mb-3">Ações</div>
           <div class="d-grid gap-2">
-
-            <!-- Status -->
             <div class="d-flex gap-2">
               <button class="btn btn-outline-success flex-fill" onclick="mudarStatus('aprovado')">
                 <i class="bi bi-check-circle me-1"></i>Aprovado
@@ -117,23 +125,19 @@ export default async function visualizarPage({ id }) {
                 <i class="bi bi-x-circle me-1"></i>Recusado
               </button>
             </div>
-
             ${cliente?.whatsapp ? `
               <button class="btn btn-success" onclick="enviarWhatsApp()">
-                <i class="bi bi-whatsapp me-2"></i>Enviar resumo pelo WhatsApp
-              </button>
-            ` : ''}
-
-            <button class="btn btn-primary" onclick="gerarPDF()" id="btn-pdf">
+                <i class="bi bi-whatsapp me-2"></i>Enviar pelo WhatsApp
+              </button>` : ''}
+            <button class="btn btn-primary" id="btn-pdf" onclick="gerarPDF()">
               <i class="bi bi-file-earmark-pdf me-2"></i>Gerar PDF
             </button>
-
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Lightbox foto -->
+    <!-- Lightbox -->
     <div class="modal fade" id="modal-foto" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content bg-dark">
@@ -148,8 +152,12 @@ export default async function visualizarPage({ id }) {
     </div>
   `);
 
-  window.ampliarFoto = (src) => {
-    document.getElementById('foto-ampliada').src = src;
+  // ── Handlers ─────────────────────────────────────────────
+
+  window.ampliarFoto = (idx) => {
+    const foto = (window._fotosVisualizacao || [])[idx];
+    if (!foto) return;
+    document.getElementById('foto-ampliada').src = foto.blob;
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-foto')).show();
   };
 
@@ -164,27 +172,34 @@ export default async function visualizarPage({ id }) {
     const num = (cliente?.whatsapp || '').replace(/\D/g, '');
     if (!num) return;
 
-    const linhas = (orc.itens || []).map(i =>
-      `✓ ${i.nome} ×${i.quantidade} — ${moeda(i.precoTotal)}`
-    ).join('\n');
+    const linhas = (orc.itens || [])
+      .map(i => `✓ ${i.nome} ×${i.quantidade} — ${moeda(i.precoTotal)}`)
+      .join('\n');
 
-    const msg = [
+    const partes = [
       `*ORÇAMENTO #${orc.id} — MÃO DE OBRA PRO*`,
-      ``,
+      '',
       `*Cliente:* ${cliente?.nome || ''}`,
-      `*Profissão:* ${orc.profissaoNome}`,
+      `*Profissão:* ${orc.profissaoNome || ''}`,
       `*Data:* ${dataLocal(orc.data)}`,
       `*Válido até:* ${dataLocal(orc.dataVencimento)}`,
-      ``,
-      `*SERVIÇOS:*`,
+      '',
+      '*SERVIÇOS:*',
       linhas,
-      ``,
+      '',
       `*Deslocamento:* ${moeda(orc.taxaDeslocamento)}`,
-      orc.desconto?.valor > 0 ? `*Desconto:* ${orc.desconto.tipo === 'percentual' ? orc.desconto.valor + '%' : moeda(orc.desconto.valor)}` : null,
-      `*TOTAL: ${moeda(orc.total)}*`,
-    ].filter(l => l !== null).join('\n');
+    ];
 
-    window.open(`https://wa.me/55${num}?text=${encodeURIComponent(msg)}`, '_blank');
+    if (orc.desconto?.valor > 0) {
+      const dv = orc.desconto.tipo === 'percentual'
+        ? orc.desconto.valor + '%'
+        : moeda(orc.desconto.valor);
+      partes.push(`*Desconto:* ${dv}`);
+    }
+
+    partes.push(`*TOTAL: ${moeda(orc.total)}*`);
+
+    window.open(`https://wa.me/55${num}?text=${encodeURIComponent(partes.join('\n'))}`, '_blank');
   };
 
   window.gerarPDF = async () => {
@@ -193,157 +208,123 @@ export default async function visualizarPage({ id }) {
 
     try {
       if (!window.jspdf) {
-        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+        await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
       }
 
       const { jsPDF } = window.jspdf;
-      const doc      = new jsPDF({ unit: 'mm', format: 'a4' });
-      const PW       = 210;   // largura página
-      const M        = 15;    // margem
-      const CW       = PW - M * 2; // largura conteúdo
-      let y          = 0;
+      const doc  = new jsPDF({ unit: 'mm', format: 'a4' });
+      const PW   = 210;
+      const M    = 15;
+      const CW   = PW - M * 2;
+      let y      = 0;
 
-      // ── helpers ──────────────────────────────────────────
       const nl = (h = 6) => { y += h; };
 
-      const setFont = (size, style = 'normal', color = [40,40,40]) => {
+      const sf = (size, style, color) => {
         doc.setFontSize(size);
-        doc.setFont('helvetica', style);
-        doc.setTextColor(...color);
+        doc.setFont('helvetica', style || 'normal');
+        doc.setTextColor(...(color || [40,40,40]));
       };
 
-      const rowLR = (left, right, size = 10, colorL = [80,80,80], colorR = [40,40,40]) => {
-        setFont(size, 'normal', colorL);
-        doc.text(String(left), M, y);
-        setFont(size, 'bold', colorR);
-        doc.text(String(right), PW - M, y, { align: 'right' });
-        nl(6);
-      };
-
-      const hline = (color = [220,220,220]) => {
-        doc.setDrawColor(...color);
+      const hline = () => {
+        doc.setDrawColor(220, 220, 220);
         doc.line(M, y, PW - M, y);
         nl(4);
       };
 
-      // ── Header ───────────────────────────────────────────
+      // Header
       doc.setFillColor(37, 99, 235);
       doc.rect(0, 0, PW, 32, 'F');
-
-      setFont(18, 'bold', [255,255,255]);
+      sf(18, 'bold', [255,255,255]);
       doc.text('MÃO DE OBRA PRO', M, 13);
-
-      setFont(9, 'normal', [200,220,255]);
+      sf(9, 'normal', [200,220,255]);
       doc.text(`Orçamento #${orc.id}  ·  ${orc.profissaoNome || ''}`, M, 21);
       doc.text(`${dataLocal(orc.data)}  ·  Válido até ${dataLocal(orc.dataVencimento)}`, PW - M, 21, { align: 'right' });
-
       y = 42;
 
-      // ── Cliente ──────────────────────────────────────────
-      setFont(7, 'bold', [120,120,120]);
+      // Cliente
+      sf(7, 'bold', [120,120,120]);
       doc.text('CLIENTE', M, y); nl(5);
-
-      setFont(12, 'bold', [20,20,20]);
+      sf(12, 'bold', [20,20,20]);
       doc.text(cliente?.nome || 'Cliente removido', M, y); nl(5);
-
-      if (cliente?.whatsapp) {
-        setFont(9, 'normal', [80,80,80]);
-        doc.text(cliente.whatsapp, M, y); nl(4);
-      }
-      if (cliente?.endereco) {
-        setFont(9, 'normal', [120,120,120]);
-        doc.text(cliente.endereco, M, y); nl(4);
-      }
-
+      if (cliente?.whatsapp) { sf(9, 'normal', [80,80,80]);  doc.text(cliente.whatsapp, M, y); nl(4); }
+      if (cliente?.endereco) { sf(9, 'normal', [120,120,120]); doc.text(cliente.endereco, M, y); nl(4); }
       nl(4); hline();
 
-      // ── Serviços ─────────────────────────────────────────
-      setFont(7, 'bold', [120,120,120]);
+      // Serviços
+      sf(7, 'bold', [120,120,120]);
       doc.text('SERVIÇOS', M, y); nl(6);
 
       for (const item of (orc.itens || [])) {
         if (y > 255) { doc.addPage(); y = 20; }
-
-        // Nome à esquerda, preço à direita — numa única chamada cada
-        setFont(10, 'bold', [20,20,20]);
+        sf(10, 'bold', [20,20,20]);
         doc.text(item.nome, M, y);
-        setFont(10, 'bold', [37,99,235]);
+        sf(10, 'bold', [37,99,235]);
         doc.text(moeda(item.precoTotal), PW - M, y, { align: 'right' });
         nl(5);
-
-        // Detalhe
-        const detalhe = item.usaPrecoFixo
+        const det = item.usaPrecoFixo
           ? `Qtd: ${item.quantidade}  ·  Preço fixo`
-          : `Qtd: ${item.quantidade}  ·  ${tempo(item.tempoAjustado)}  ·  ${DIFICULDADE[item.dificuldade]?.label || item.dificuldade}`;
-        setFont(8, 'normal', [130,130,130]);
-        doc.text(detalhe, M, y);
-        nl(7);
+          : `Qtd: ${item.quantidade}  ·  ${tempo(item.tempoAjustado)}  ·  ${DIFICULDADE[item.dificuldade]?.label || ''}`;
+        sf(8, 'normal', [130,130,130]);
+        doc.text(det, M, y); nl(7);
       }
 
       hline();
 
-      // ── Totais ───────────────────────────────────────────
-      rowLR('Subtotal', moeda(orc.subtotal), 10, [100,100,100], [40,40,40]);
-      rowLR('Deslocamento', moeda(orc.taxaDeslocamento), 10, [100,100,100], [40,40,40]);
+      // Totais
+      const rowLR = (l, r, cl, cr) => {
+        sf(10, 'normal', cl || [100,100,100]); doc.text(String(l), M, y);
+        sf(10, 'bold',   cr || [40,40,40]);   doc.text(String(r), PW - M, y, { align: 'right' });
+        nl(6);
+      };
+
+      rowLR('Subtotal',     moeda(orc.subtotal));
+      rowLR('Deslocamento', moeda(orc.taxaDeslocamento));
 
       if (orc.desconto?.valor > 0) {
-        const dVal = orc.desconto.tipo === 'percentual'
-          ? orc.desconto.valor + '%'
-          : moeda(orc.desconto.valor);
-        rowLR('Desconto', '- ' + dVal, 10, [200,50,50], [200,50,50]);
+        const dv = orc.desconto.tipo === 'percentual'
+          ? orc.desconto.valor + '%' : moeda(orc.desconto.valor);
+        rowLR('Desconto', '- ' + dv, [200,50,50], [200,50,50]);
       }
 
       nl(2);
       doc.setFillColor(37, 99, 235);
       doc.roundedRect(M, y - 3, CW, 11, 2, 2, 'F');
-      setFont(12, 'bold', [255,255,255]);
+      sf(12, 'bold', [255,255,255]);
       doc.text('TOTAL', M + 4, y + 4);
       doc.text(moeda(orc.total), PW - M - 4, y + 4, { align: 'right' });
       nl(18);
 
-      // ── Fotos ────────────────────────────────────────────
+      // Fotos
       if (fotos.length > 0) {
         if (y > 200) { doc.addPage(); y = 20; }
-
-        setFont(7, 'bold', [120,120,120]);
+        sf(7, 'bold', [120,120,120]);
         doc.text('FOTOS DO SERVIÇO', M, y); nl(6);
 
-        const fotoW = 55;
-        const fotoH = 70; // proporção retrato
-        const gap   = 5;
-        let fx = M;
+        const fW  = 55;
+        const gap = 5;
+        let fx    = M;
+        let rowH  = 0;
 
         for (const foto of fotos) {
           try {
-            // Corrige orientação EXIF desenhando num canvas antes
-            const corrected = await corrigirOrientacaoFoto(foto.blob);
-            const imgData   = corrected.dataUrl;
-            const imgW      = corrected.width;
-            const imgH      = corrected.height;
+            const corrected = await corrigirOrientacao(foto.blob);
+            const ratio     = corrected.w / corrected.h;
+            const fH        = Math.round(fW / ratio);
 
-            // Mantém proporção real da imagem
-            const ratio   = imgW / imgH;
-            const drawH   = fotoW / ratio;
+            if (fx + fW > PW - M) { fx = M; y += rowH + gap; rowH = 0; }
+            if (y + fH > 270)     { doc.addPage(); y = 20; fx = M; rowH = 0; }
 
-            if (fx + fotoW > PW - M) {
-              fx = M;
-              y += drawH + gap;
-            }
-            if (y + drawH > 270) { doc.addPage(); y = 20; fx = M; }
-
-            doc.addImage(imgData, 'JPEG', fx, y, fotoW, drawH);
-            fx += fotoW + gap;
-          } catch (e) {
-            console.warn('Erro ao adicionar foto:', e);
-          }
+            doc.addImage(corrected.data, 'JPEG', fx, y, fW, fH);
+            if (fH > rowH) rowH = fH;
+            fx += fW + gap;
+          } catch (e) { console.warn('foto ignorada:', e); }
         }
-        y += fotoH + 10;
+        y += rowH + 10;
       }
 
-      // ── Rodapé ───────────────────────────────────────────
-      setFont(7, 'normal', [180,180,180]);
+      sf(7, 'normal', [180,180,180]);
       doc.text('Gerado por Mão de Obra PRO', PW / 2, 287, { align: 'center' });
-
       doc.save(`orcamento-${orc.id}-${(cliente?.nome || 'cliente').replace(/\s+/g, '-')}.pdf`);
       toast('PDF gerado!');
 
@@ -354,5 +335,78 @@ export default async function visualizarPage({ id }) {
       if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-file-earmark-pdf me-2"></i>Gerar PDF'; }
     }
   };
+}
 
+// ── Utilitários de módulo ────────────────────────────────────
 
+// Carrega script externo dinamicamente
+function carregarScript(src) {
+  return new Promise((res, rej) => {
+    if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+// Corrige orientação EXIF via canvas
+function corrigirOrientacao(dataUrl) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let orientation = 1;
+      try {
+        // Lê só os primeiros 512 bytes para encontrar o tag EXIF 0x0112
+        const bin = atob(dataUrl.split(',')[1].substring(0, 680));
+        for (let i = 0; i < bin.length - 12; i++) {
+          if (bin.charCodeAt(i) === 0xFF && bin.charCodeAt(i+1) === 0xE1) {
+            const le = bin.charCodeAt(i+10) === 0x49;
+            const r2 = (o) => le
+              ? bin.charCodeAt(o) | (bin.charCodeAt(o+1) << 8)
+              : (bin.charCodeAt(o) << 8) | bin.charCodeAt(o+1);
+            const base    = i + 10;
+            const ifdOff  = base + (le
+              ? bin.charCodeAt(base+4) | (bin.charCodeAt(base+5)<<8)
+              : (bin.charCodeAt(base+4)<<8) | bin.charCodeAt(base+5));
+            const entries = r2(ifdOff);
+            for (let e = 0; e < entries && e < 20; e++) {
+              const off = ifdOff + 2 + e * 12;
+              if (r2(off) === 0x0112) { orientation = r2(off + 8); break; }
+            }
+            break;
+          }
+        }
+      } catch (_) { /* sem EXIF, usa 1 */ }
+
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      const canvas = document.createElement('canvas');
+      const ctx    = canvas.getContext('2d');
+
+      if (orientation >= 5) { canvas.width = h; canvas.height = w; }
+      else                  { canvas.width = w; canvas.height = h; }
+
+      ctx.save();
+      switch (orientation) {
+        case 2: ctx.transform(-1, 0, 0,  1, w, 0); break;
+        case 3: ctx.transform(-1, 0, 0, -1, w, h); break;
+        case 4: ctx.transform( 1, 0, 0, -1, 0, h); break;
+        case 5: ctx.transform( 0, 1, 1,  0, 0, 0); break;
+        case 6: ctx.transform( 0, 1,-1,  0, h, 0); break;
+        case 7: ctx.transform( 0,-1,-1,  0, h, w); break;
+        case 8: ctx.transform( 0,-1, 1,  0, 0, w); break;
+        default: break;
+      }
+      ctx.drawImage(img, 0, 0);
+      ctx.restore();
+
+      resolve({
+        data: canvas.toDataURL('image/jpeg', 0.85),
+        w:    canvas.width,
+        h:    canvas.height,
+      });
+    };
+    img.onerror = () => resolve({ data: dataUrl, w: 100, h: 100 });
+    img.src = dataUrl;
+  });
+}
