@@ -49,7 +49,7 @@ git push -u origin main
 3. Clique **Save**
 4. Aguarde ~2 minutos e acesse a URL fornecida
 
-A URL será algo como: `https://seu-usuario.github.io/mao-de-obra-pro/`
+A URL será algo como: `https://app.ogrosystemas.com.br/mao-de-obra-pro/`
 
 ---
 

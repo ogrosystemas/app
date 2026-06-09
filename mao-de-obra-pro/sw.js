@@ -1,29 +1,30 @@
 // ============================================================
 // sw.js — Service Worker para PWA offline
+// BASE: /mao-de-obra-pro
 // ============================================================
 
 const CACHE_NAME = 'mdo-pro-v1';
+const BASE = '/mao-de-obra-pro';
 
-// Arquivos essenciais para funcionar offline
 const PRECACHE = [
-  '/',
-  '/mao-de-obra-pro/index.html',
-  '/mao-de-obra-pro/css/app.css',
-  '/mao-de-obra-pro/js/app.js',
-  '/mao-de-obra-pro/js/db.js',
-  '/mao-de-obra-pro/js/calculadora.js',
-  '/mao-de-obra-pro/js/router.js',
-  '/mao-de-obra-pro/pages/setup.js',
-  '/mao-de-obra-pro/pages/dashboard.js',
-  '/mao-de-obra-pro/pages/clientes.js',
-  '/mao-de-obra-pro/pages/catalogo.js',
-  '/mao-de-obra-pro/pages/orcamento.js',
-  '/mao-de-obra-pro/pages/visualizar.js',
-  '/mao-de-obra-pro/pages/configuracoes.js',
-  '/mao-de-obra-pro/manifest.json',
-  '/mao-de-obra-pro/icons/icon-192.png',
-  '/mao-de-obra-pro/icons/icon-512.png',
-  // CDNs — serão cacheados na primeira visita
+  BASE + '/',
+  BASE + '/index.html',
+  BASE + '/css/app.css',
+  BASE + '/js/app.js',
+  BASE + '/js/db.js',
+  BASE + '/js/calculadora.js',
+  BASE + '/js/router.js',
+  BASE + '/pages/setup.js',
+  BASE + '/pages/dashboard.js',
+  BASE + '/pages/clientes.js',
+  BASE + '/pages/catalogo.js',
+  BASE + '/pages/orcamento.js',
+  BASE + '/pages/visualizar.js',
+  BASE + '/pages/configuracoes.js',
+  BASE + '/manifest.json',
+  BASE + '/icons/icon-192.png',
+  BASE + '/icons/icon-512.png',
+  // CDNs — cacheados na primeira visita
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css',
   'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js',
@@ -45,11 +46,8 @@ self.addEventListener('activate', (e) => {
   self.clients.claim();
 });
 
-// Estratégia: Cache First para assets, Network First para páginas
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
-
-  // Ignora requisições não-GET
   if (e.request.method !== 'GET') return;
 
   // CDNs e assets locais: Cache First
@@ -79,6 +77,8 @@ self.addEventListener('fetch', (e) => {
         caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
         return res;
       })
-      .catch(() => caches.match(e.request).then(c => c || caches.match('/index.html')))
+      .catch(() => caches.match(e.request)
+        .then(c => c || caches.match(BASE + '/index.html'))
+      )
   );
 });
