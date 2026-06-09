@@ -139,6 +139,7 @@ async function boot() {
     ['/catalogo',     () => import('../pages/catalogo.js')],
     ['/orcamento',    () => import('../pages/orcamento.js')],
     ['/visualizar',   () => import('../pages/visualizar.js')],
+    ['/financeiro',   () => import('../pages/financeiro.js')],
     ['/configuracoes',() => import('../pages/configuracoes.js')],
     ['/setup',        () => import('../pages/setup.js')],
     ['*',             () => navigate('/')],
@@ -149,7 +150,7 @@ async function boot() {
       const mod = await loader();
       const isSetup = path === '/setup';
       document.getElementById('main-nav').classList.toggle('d-none', isSetup);
-      document.getElementById('fab-novo').classList.toggle('d-none', isSetup || path === '/orcamento');
+      document.getElementById('fab-novo').classList.toggle('d-none', isSetup || path === '/orcamento' || path === '/financeiro');
       setActiveNav(path);
       await mod.default(params);
     });
