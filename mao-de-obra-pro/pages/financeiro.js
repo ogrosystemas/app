@@ -25,6 +25,7 @@ export default async function financeiroPage() {
 
   // ── Cálculos globais ──────────────────────────────────────
   // Pipeline: orçamentos ativos (para faturamento)
+  // Arquivados são histórico — não entram no pipeline ativo
   const ativos       = orcamentos.filter(o => ['aprovado','em andamento','finalizado'].includes(o.status));
   const totalFaturado = ativos.reduce((s, o) => s + (o.total || 0), 0);
   const totalRecebido = pagamentos.reduce((s, p) => s + p.valor, 0);

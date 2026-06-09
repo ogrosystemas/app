@@ -15,6 +15,7 @@ const BADGE = {
   'aprovado':     'success',
   'em andamento': 'primary',
   'finalizado':   'info',
+  'arquivado':    'secondary',
   'recusado':     'danger',
   'cancelado':    'secondary',
 };
@@ -197,6 +198,11 @@ export default async function visualizarPage({ id }) {
               </div>
             ` : ''}
 
+            ${orc.status === 'arquivado' ? `
+              <button class="btn btn-outline-primary" onclick="desarquivar()">
+                <i class="bi bi-archive me-2"></i>Desarquivar
+              </button>` : ''}
+
             ${cliente?.whatsapp ? `
               <button class="btn btn-success" onclick="enviarWhatsApp()">
                 <i class="bi bi-whatsapp me-2"></i>Enviar pelo WhatsApp
@@ -294,6 +300,13 @@ export default async function visualizarPage({ id }) {
     orc.status = status;
     await put('orcamentos', orc);
     toast(`Orçamento ${status}.`);
+    visualizarPage({ id });
+  };
+
+  window.desarquivar = async () => {
+    orc.status = 'finalizado';
+    await put('orcamentos', orc);
+    toast('Orçamento reativado!');
     visualizarPage({ id });
   };
 
