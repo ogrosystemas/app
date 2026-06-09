@@ -26,8 +26,8 @@ export default async function visualizarPage({ id }) {
   if (!orc) { toast('Orçamento não encontrado.', 'danger'); navigate('/'); return; }
 
   const cliente   = await getById('clientes', orc.clienteId);
-  const fotos     = await getAll('fotos',      'orcamentoId', IDBKeyRange.only(orc.id));
-  const pagamentos = await getAll('pagamentos', 'orcamentoId', IDBKeyRange.only(orc.id));
+  const fotos     = await getAll('fotos',      'orcamentoId', IDBKeyRange.only(parseInt(orc.id)));
+  const pagamentos = await getAll('pagamentos', 'orcamentoId', IDBKeyRange.only(parseInt(orc.id)));
 
   window._fotosVisualizacao = fotos;
 

@@ -141,7 +141,7 @@ export default async function dashboardPage() {
     e.stopPropagation();
     if (!confirm('Excluir este orçamento?')) return;
     await remove('orcamentos', id);
-    const fotos = await getAll('fotos', 'orcamentoId', IDBKeyRange.only(id));
+    const fotos = await getAll('fotos', 'orcamentoId', IDBKeyRange.only(parseInt(id)));
     for (const f of fotos) await remove('fotos', f.id);
     toast('Orçamento excluído.', 'danger');
     dashboardPage();

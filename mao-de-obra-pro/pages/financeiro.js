@@ -15,10 +15,12 @@ export default async function financeiroPage() {
   const clienteMap  = {};
   clientes.forEach(c => { clienteMap[c.id] = c.nome; });
 
+  // Força orcamentoId como number para garantir lookup correto (IDB pode retornar string)
   const pagPorOrc = {};
   pagamentos.forEach(p => {
-    if (!pagPorOrc[p.orcamentoId]) pagPorOrc[p.orcamentoId] = [];
-    pagPorOrc[p.orcamentoId].push(p);
+    const key = parseInt(p.orcamentoId);
+    if (!pagPorOrc[key]) pagPorOrc[key] = [];
+    pagPorOrc[key].push(p);
   });
 
   // ── Cálculos globais ──────────────────────────────────────
