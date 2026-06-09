@@ -192,125 +192,167 @@ export default async function visualizarPage({ id }) {
     if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Gerando...'; }
 
     try {
-      // Carrega jsPDF dinamicamente
       if (!window.jspdf) {
         await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
       }
 
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-      const W_PDF = 210;
-      const MARGIN = 15;
-      const CONTENT_W = W_PDF - MARGIN * 2;
-      let y = 20;
+      const doc      = new jsPDF({ unit: 'mm', format: 'a4' });
+      const PW       = 210;   // largura página
+      const M        = 15;    // margem
+      const CW       = PW - M * 2; // largura conteúdo
+      let y          = 0;
 
-      // Funções auxiliares
-      const line = () => { doc.setDrawColor(220, 220, 220); doc.line(MARGIN, y, W_PDF - MARGIN, y); y += 4; };
-      const text = (txt, x, size = 10, style = 'normal', color = [40,40,40]) => {
-        doc.setFontSize(size); doc.setFont('helvetica', style); doc.setTextColor(...color);
-        doc.text(String(txt || ''), x, y);
+      // ── helpers ──────────────────────────────────────────
+      const nl = (h = 6) => { y += h; };
+
+      const setFont = (size, style = 'normal', color = [40,40,40]) => {
+        doc.setFontSize(size);
+        doc.setFont('helvetica', style);
+        doc.setTextColor(...color);
       };
-      const nextLine = (h = 6) => { y += h; };
 
-      // Header
+      const rowLR = (left, right, size = 10, colorL = [80,80,80], colorR = [40,40,40]) => {
+        setFont(size, 'normal', colorL);
+        doc.text(String(left), M, y);
+        setFont(size, 'bold', colorR);
+        doc.text(String(right), PW - M, y, { align: 'right' });
+        nl(6);
+      };
+
+      const hline = (color = [220,220,220]) => {
+        doc.setDrawColor(...color);
+        doc.line(M, y, PW - M, y);
+        nl(4);
+      };
+
+      // ── Header ───────────────────────────────────────────
       doc.setFillColor(37, 99, 235);
-      doc.rect(0, 0, W_PDF, 30, 'F');
-      doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
-      doc.text('MÃO DE OBRA PRO', MARGIN, 13);
-      doc.setFontSize(10); doc.setFont('helvetica', 'normal');
-      doc.text(`Orçamento #${orc.id}  ·  ${orc.profissaoNome || ''}`, MARGIN, 21);
-      doc.text(`${dataLocal(orc.data)}  ·  Válido até ${dataLocal(orc.dataVencimento)}`, W_PDF - MARGIN, 21, { align: 'right' });
-      y = 40;
+      doc.rect(0, 0, PW, 32, 'F');
 
-      // Cliente
-      doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 100, 100);
-      doc.text('CLIENTE', MARGIN, y); y += 5;
-      text(cliente?.nome || 'Cliente removido', MARGIN, 12, 'bold');
-      if (cliente?.whatsapp) { nextLine(5); text(cliente.whatsapp, MARGIN, 9, 'normal', [80,80,80]); }
-      if (cliente?.endereco) { nextLine(4); text(cliente.endereco, MARGIN, 9, 'normal', [80,80,80]); }
-      y += 8; line();
+      setFont(18, 'bold', [255,255,255]);
+      doc.text('MÃO DE OBRA PRO', M, 13);
 
-      // Serviços
-      doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 100, 100);
-      doc.text('SERVIÇOS', MARGIN, y); y += 6;
+      setFont(9, 'normal', [200,220,255]);
+      doc.text(`Orçamento #${orc.id}  ·  ${orc.profissaoNome || ''}`, M, 21);
+      doc.text(`${dataLocal(orc.data)}  ·  Válido até ${dataLocal(orc.dataVencimento)}`, PW - M, 21, { align: 'right' });
+
+      y = 42;
+
+      // ── Cliente ──────────────────────────────────────────
+      setFont(7, 'bold', [120,120,120]);
+      doc.text('CLIENTE', M, y); nl(5);
+
+      setFont(12, 'bold', [20,20,20]);
+      doc.text(cliente?.nome || 'Cliente removido', M, y); nl(5);
+
+      if (cliente?.whatsapp) {
+        setFont(9, 'normal', [80,80,80]);
+        doc.text(cliente.whatsapp, M, y); nl(4);
+      }
+      if (cliente?.endereco) {
+        setFont(9, 'normal', [120,120,120]);
+        doc.text(cliente.endereco, M, y); nl(4);
+      }
+
+      nl(4); hline();
+
+      // ── Serviços ─────────────────────────────────────────
+      setFont(7, 'bold', [120,120,120]);
+      doc.text('SERVIÇOS', M, y); nl(6);
 
       for (const item of (orc.itens || [])) {
-        if (y > 260) { doc.addPage(); y = 20; }
-        text(item.nome, MARGIN, 10, 'semibold');
-        text(moeda(item.precoTotal), W_PDF - MARGIN, 10, 'bold', [37,99,235]);
-        doc.text(moeda(item.precoTotal), W_PDF - MARGIN, y, { align: 'right' });
-        // reajusta para evitar texto duplo
-        doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.setTextColor(40,40,40);
-        doc.text(item.nome, MARGIN, y);
-        nextLine(4);
-        const detalhe = `Qtd: ${item.quantidade}  ·  ${item.usaPrecoFixo ? 'Preço fixo' : tempo(item.tempoAjustado) + ' · ' + (DIFICULDADE[item.dificuldade]?.label || '')}`;
-        doc.setFontSize(8); doc.setTextColor(120,120,120);
-        doc.text(detalhe, MARGIN, y);
-        nextLine(6);
+        if (y > 255) { doc.addPage(); y = 20; }
+
+        // Nome à esquerda, preço à direita — numa única chamada cada
+        setFont(10, 'bold', [20,20,20]);
+        doc.text(item.nome, M, y);
+        setFont(10, 'bold', [37,99,235]);
+        doc.text(moeda(item.precoTotal), PW - M, y, { align: 'right' });
+        nl(5);
+
+        // Detalhe
+        const detalhe = item.usaPrecoFixo
+          ? `Qtd: ${item.quantidade}  ·  Preço fixo`
+          : `Qtd: ${item.quantidade}  ·  ${tempo(item.tempoAjustado)}  ·  ${DIFICULDADE[item.dificuldade]?.label || item.dificuldade}`;
+        setFont(8, 'normal', [130,130,130]);
+        doc.text(detalhe, M, y);
+        nl(7);
       }
 
-      y += 2; line();
+      hline();
 
-      // Totais
-      const rows = [
-        ['Subtotal', moeda(orc.subtotal)],
-        ['Deslocamento', moeda(orc.taxaDeslocamento)],
-      ];
+      // ── Totais ───────────────────────────────────────────
+      rowLR('Subtotal', moeda(orc.subtotal), 10, [100,100,100], [40,40,40]);
+      rowLR('Deslocamento', moeda(orc.taxaDeslocamento), 10, [100,100,100], [40,40,40]);
+
       if (orc.desconto?.valor > 0) {
-        rows.push(['Desconto', `- ${orc.desconto.tipo === 'percentual' ? orc.desconto.valor + '%' : moeda(orc.desconto.valor)}`]);
+        const dVal = orc.desconto.tipo === 'percentual'
+          ? orc.desconto.valor + '%'
+          : moeda(orc.desconto.valor);
+        rowLR('Desconto', '- ' + dVal, 10, [200,50,50], [200,50,50]);
       }
 
-      for (const [label, val] of rows) {
-        doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.setTextColor(80,80,80);
-        doc.text(label, MARGIN, y);
-        doc.text(val, W_PDF - MARGIN, y, { align: 'right' });
-        nextLine(6);
-      }
-
-      // Total final
-      y += 2;
+      nl(2);
       doc.setFillColor(37, 99, 235);
-      doc.roundedRect(MARGIN, y - 4, CONTENT_W, 10, 2, 2, 'F');
-      doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(255,255,255);
-      doc.text('TOTAL', MARGIN + 4, y + 3);
-      doc.text(moeda(orc.total), W_PDF - MARGIN - 4, y + 3, { align: 'right' });
-      y += 16;
+      doc.roundedRect(M, y - 3, CW, 11, 2, 2, 'F');
+      setFont(12, 'bold', [255,255,255]);
+      doc.text('TOTAL', M + 4, y + 4);
+      doc.text(moeda(orc.total), PW - M - 4, y + 4, { align: 'right' });
+      nl(18);
 
-      // Fotos (se existirem)
+      // ── Fotos ────────────────────────────────────────────
       if (fotos.length > 0) {
         if (y > 200) { doc.addPage(); y = 20; }
-        doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(100,100,100);
-        doc.text('FOTOS DO SERVIÇO', MARGIN, y); y += 6;
-        let fx = MARGIN;
+
+        setFont(7, 'bold', [120,120,120]);
+        doc.text('FOTOS DO SERVIÇO', M, y); nl(6);
+
+        const fotoW = 55;
+        const fotoH = 70; // proporção retrato
+        const gap   = 5;
+        let fx = M;
+
         for (const foto of fotos) {
           try {
-            doc.addImage(foto.blob, 'JPEG', fx, y, 55, 42);
-            fx += 60;
-            if (fx > W_PDF - MARGIN - 55) { fx = MARGIN; y += 47; }
-          } catch {}
+            // Corrige orientação EXIF desenhando num canvas antes
+            const corrected = await corrigirOrientacaoFoto(foto.blob);
+            const imgData   = corrected.dataUrl;
+            const imgW      = corrected.width;
+            const imgH      = corrected.height;
+
+            // Mantém proporção real da imagem
+            const ratio   = imgW / imgH;
+            const drawH   = fotoW / ratio;
+
+            if (fx + fotoW > PW - M) {
+              fx = M;
+              y += drawH + gap;
+            }
+            if (y + drawH > 270) { doc.addPage(); y = 20; fx = M; }
+
+            doc.addImage(imgData, 'JPEG', fx, y, fotoW, drawH);
+            fx += fotoW + gap;
+          } catch (e) {
+            console.warn('Erro ao adicionar foto:', e);
+          }
         }
-        y += 50;
+        y += fotoH + 10;
       }
 
-      // Rodapé
-      doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(150,150,150);
-      doc.text('Gerado por Mão de Obra PRO', W_PDF / 2, 287, { align: 'center' });
+      // ── Rodapé ───────────────────────────────────────────
+      setFont(7, 'normal', [180,180,180]);
+      doc.text('Gerado por Mão de Obra PRO', PW / 2, 287, { align: 'center' });
 
-      doc.save(`orcamento-${orc.id}-${(cliente?.nome || 'cliente').replace(/\s+/g,'-')}.pdf`);
+      doc.save(`orcamento-${orc.id}-${(cliente?.nome || 'cliente').replace(/\s+/g, '-')}.pdf`);
       toast('PDF gerado!');
+
     } catch (err) {
       console.error('PDF error:', err);
-      toast('Erro ao gerar PDF. Tente novamente.', 'danger');
+      toast('Erro ao gerar PDF.', 'danger');
     } finally {
       if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-file-earmark-pdf me-2"></i>Gerar PDF'; }
     }
   };
-}
 
-function loadScript(src) {
-  return new Promise((res, rej) => {
-    const s = document.createElement('script');
-    s.src = src; s.onload = res; s.onerror = rej;
-    document.head.appendChild(s);
-  });
-}
+
