@@ -3,7 +3,7 @@
 // VERSÃO: atualize CACHE_NAME a cada novo deploy para forçar update
 // ============================================================
 
-const CACHE_NAME = 'mdo-pro-v11';
+const CACHE_NAME = 'mdo-pro-v12';
 
 const PRECACHE_RELATIVE = [
   './',
@@ -20,6 +20,7 @@ const PRECACHE_RELATIVE = [
   './pages/orcamento.js',
   './pages/visualizar.js',
   './pages/configuracoes.js',
+  './pages/financeiro.js',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -36,9 +37,18 @@ const SW_BASE = self.location.href.replace('/sw.js', '');
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
+      // CDN: cacheia em background, sem bloquear install
       cache.addAll(PRECACHE_CDN).catch(() => {});
-      return cache.addAll(
-        PRECACHE_RELATIVE.map(p => SW_BASE + '/' + p.replace('./', ''))
+      // Arquivos locais: busca SEMPRE do servidor no install (garante versão nova)
+      return Promise.all(
+        PRECACHE_RELATIVE.map(p => {
+          const url = SW_BASE + '/' + p.replace('./', '');
+          return fetch(url + '?v=' + CACHE_NAME, { cache: 'no-cache' })
+            .then(res => {
+              if (res.ok) return cache.put(url, res);
+            })
+            .catch(() => {}); // falha silenciosa, serve do cache anterior
+        })
       );
     })
   );
@@ -65,7 +75,7 @@ self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   const url = e.request.url;
 
-  // CDN: Cache First
+  // CDN: Cache First (raramente mudam)
   if (url.includes('cdn.jsdelivr.net') || url.includes('cdnjs.cloudflare.com')) {
     e.respondWith(
       caches.match(e.request).then(cached => {
@@ -79,8 +89,23 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Assets locais: Cache First
-  if (url.match(/\.(css|js|png|ico|woff2?|json)$/)) {
+  // Arquivos JS e CSS do app: Network First — sempre tenta servidor primeiro
+  // Fallback para cache se offline
+  if (url.match(/\.(js|css)$/) && url.includes(SW_BASE)) {
+    e.respondWith(
+      fetch(e.request, { cache: 'no-cache' })
+        .then(res => {
+          // Atualiza cache com versão nova
+          caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone()));
+          return res;
+        })
+        .catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // Imagens e ícones: Cache First
+  if (url.match(/\.(png|ico|woff2?)$/)) {
     e.respondWith(
       caches.match(e.request).then(cached => {
         if (cached) return cached;
@@ -93,9 +118,9 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // HTML/navegação: Network First, fallback index.html
+  // HTML e navegação: Network First, fallback index.html
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: 'no-cache' })
       .then(res => {
         caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone()));
         return res;
