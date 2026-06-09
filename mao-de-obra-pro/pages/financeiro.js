@@ -22,14 +22,18 @@ export default async function financeiroPage() {
   });
 
   // ── Cálculos globais ──────────────────────────────────────
-  const finalizados  = orcamentos.filter(o => o.status === 'finalizado' || o.status === 'em andamento' || o.status === 'aprovado');
-  const totalFaturado = finalizados.reduce((s, o) => s + (o.total || 0), 0);
+  // Pipeline: orçamentos ativos (para faturamento)
+  const ativos       = orcamentos.filter(o => ['aprovado','em andamento','finalizado'].includes(o.status));
+  const totalFaturado = ativos.reduce((s, o) => s + (o.total || 0), 0);
   const totalRecebido = pagamentos.reduce((s, p) => s + p.valor, 0);
   const totalAReceber = Math.max(0, totalFaturado - totalRecebido);
 
-  const inadimplentes = finalizados.filter(o => {
+  // Inadimplentes: apenas orçamentos FINALIZADOS com saldo pendente
+  // Usa tolerância de R$0,01 para evitar erro de ponto flutuante
+  const inadimplentes = orcamentos.filter(o => {
+    if (o.status !== 'finalizado') return false;
     const pago = (pagPorOrc[o.id] || []).reduce((s, p) => s + p.valor, 0);
-    return pago < o.total;
+    return (o.total - pago) > 0.01;
   });
 
   // ── Receita por mês (últimos 6 meses) ─────────────────────
