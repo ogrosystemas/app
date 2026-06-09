@@ -182,39 +182,41 @@ export default async function visualizarPage({ id }) {
           <div class="fw-semibold mb-3">Ações</div>
           <div class="d-grid gap-2">
 
-            <!-- Avançar status -->
-            ${proximoStatus ? `
-              <button class="btn btn-primary" onclick="avancarStatus()">
-                <i class="bi bi-arrow-right-circle me-2"></i>
-                Avançar para <strong>${proximoStatus}</strong>
-              </button>
-            ` : ''}
-
-            <!-- Recusar / Cancelar (só se não finalizado) -->
-            ${!['finalizado','recusado','cancelado'].includes(orc.status) ? `
-              <div class="d-flex gap-2">
-                <button class="btn btn-outline-danger flex-fill" onclick="mudarStatus('recusado')">
-                  <i class="bi bi-x-circle me-1"></i>Recusar
-                </button>
-                <button class="btn btn-outline-secondary flex-fill" onclick="mudarStatus('cancelado')">
-                  <i class="bi bi-slash-circle me-1"></i>Cancelar
-                </button>
-              </div>
-            ` : ''}
-
             ${orc.status === 'arquivado' ? `
+              <!-- Arquivado: só desarquivar -->
               <button class="btn btn-outline-primary" onclick="desarquivar()">
                 <i class="bi bi-archive me-2"></i>Desarquivar
-              </button>` : ''}
+              </button>
+            ` : `
+              <!-- Avançar status -->
+              ${proximoStatus ? `
+                <button class="btn btn-primary" onclick="avancarStatus()">
+                  <i class="bi bi-arrow-right-circle me-2"></i>
+                  Avançar para <strong>${proximoStatus}</strong>
+                </button>
+              ` : ''}
 
-            ${cliente?.whatsapp ? `
-              <button class="btn btn-success" onclick="enviarWhatsApp()">
-                <i class="bi bi-whatsapp me-2"></i>Enviar pelo WhatsApp
-              </button>` : ''}
+              <!-- Recusar / Cancelar (só se pendente ou aprovado) -->
+              ${['pendente','aprovado','em andamento'].includes(orc.status) ? `
+                <div class="d-flex gap-2">
+                  <button class="btn btn-outline-danger flex-fill" onclick="mudarStatus('recusado')">
+                    <i class="bi bi-x-circle me-1"></i>Recusar
+                  </button>
+                  <button class="btn btn-outline-secondary flex-fill" onclick="mudarStatus('cancelado')">
+                    <i class="bi bi-slash-circle me-1"></i>Cancelar
+                  </button>
+                </div>
+              ` : ''}
 
-            <button class="btn btn-outline-primary" id="btn-pdf" onclick="gerarPDF()">
-              <i class="bi bi-file-earmark-pdf me-2"></i>Gerar PDF
-            </button>
+              ${cliente?.whatsapp ? `
+                <button class="btn btn-success" onclick="enviarWhatsApp()">
+                  <i class="bi bi-whatsapp me-2"></i>Enviar pelo WhatsApp
+                </button>` : ''}
+
+              <button class="btn btn-outline-primary" id="btn-pdf" onclick="gerarPDF()">
+                <i class="bi bi-file-earmark-pdf me-2"></i>Gerar PDF
+              </button>
+            `}
           </div>
         </div>
       </div>
