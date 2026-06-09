@@ -1,11 +1,10 @@
 // ============================================================
 // sw.js — Service Worker PWA offline
-// Usa paths RELATIVOS — funciona em qualquer subdiretório
+// VERSÃO: atualize CACHE_NAME a cada novo deploy para forçar update
 // ============================================================
 
-const CACHE_NAME = 'mdo-pro-v2';
+const CACHE_NAME = 'mdo-pro-v3';
 
-// Paths relativos ao sw.js (que fica na raiz do app)
 const PRECACHE_RELATIVE = [
   './',
   './index.html',
@@ -32,27 +31,18 @@ const PRECACHE_CDN = [
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js',
 ];
 
-// Resolve paths relativos baseado na localização do SW
 const SW_BASE = self.location.href.replace('/sw.js', '');
-
-const PRECACHE = [
-  ...PRECACHE_RELATIVE.map(p => SW_BASE + '/' + p.replace('./', '')),
-  ...PRECACHE_CDN,
-];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        // Cacheia CDN primeiro (erros aqui não travam o install)
-        cache.addAll(PRECACHE_CDN).catch(() => {});
-        // Cacheia arquivos locais (crítico)
-        return cache.addAll(
-          PRECACHE_RELATIVE.map(p => SW_BASE + '/' + p.replace('./', ''))
-        );
-      })
+    caches.open(CACHE_NAME).then(cache => {
+      cache.addAll(PRECACHE_CDN).catch(() => {});
+      return cache.addAll(
+        PRECACHE_RELATIVE.map(p => SW_BASE + '/' + p.replace('./', ''))
+      );
+    })
   );
-  self.skipWaiting();
+  // NÃO chama skipWaiting aqui — espera o usuário confirmar via botão
 });
 
 self.addEventListener('activate', (e) => {
@@ -64,9 +54,15 @@ self.addEventListener('activate', (e) => {
   self.clients.claim();
 });
 
+// Escuta mensagem do botão "Atualizar"
+self.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
-
   const url = e.request.url;
 
   // CDN: Cache First
