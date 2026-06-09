@@ -126,13 +126,21 @@ async function renderStep1() {
 
 function renderClientesList(clientes) {
   if (!clientes.length) return '<div class="text-muted small text-center py-3">Nenhum cliente cadastrado.</div>';
-  return clientes.map(c => `
-    <div class="list-group-item list-group-item-action rounded mb-1 border ${W.cliente?.id === c.id ? 'border-primary bg-primary-subtle' : ''}"
-      onclick="selecionarCliente(${c.id}, ${JSON.stringify(c.nome)}, ${JSON.stringify(c.whatsapp || '')}, ${JSON.stringify(c.endereco || '')})">
+  return clientes.map(c => {
+    const nomeSafe     = (c.nome     || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    const whatsappSafe = (c.whatsapp || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    const enderecoSafe = (c.endereco || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    const selected = W.cliente?.id === c.id ? 'border-primary bg-primary-subtle' : '';
+    return `
+    <div class="list-group-item list-group-item-action rounded mb-1 border ${selected}"
+      onclick="selecionarCliente(${c.id})"
+      data-nome="${nomeSafe}"
+      data-whatsapp="${whatsappSafe}"
+      data-endereco="${enderecoSafe}">
       <div class="fw-semibold">${c.nome}</div>
-      ${c.whatsapp ? `<div class="small text-muted">${c.whatsapp}</div>` : ''}
-    </div>
-  `).join('');
+      ${c.whatsapp ? \`<div class="small text-muted">${c.whatsapp}</div>\` : ''}
+    </div>`;
+  }).join('');
 }
 
 // ── STEP 2: Serviços ─────────────────────────────────────────
@@ -429,7 +437,11 @@ function bindGlobals() {
     renderStep();
   };
 
-  window.selecionarCliente = (id, nome, whatsapp, endereco) => {
+  window.selecionarCliente = (id) => {
+    const el = document.querySelector('[onclick="selecionarCliente(' + id + ')"]');
+    const nome     = el ? (el.dataset.nome     || '') : '';
+    const whatsapp = el ? (el.dataset.whatsapp || '') : '';
+    const endereco = el ? (el.dataset.endereco || '') : '';
     W.cliente = { id, nome, whatsapp, endereco };
     renderStep();
   };
