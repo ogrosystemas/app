@@ -1,38 +1,56 @@
 // ============================================================
-// sw.js — Service Worker para PWA offline
-// BASE: /mao-de-obra-pro
+// sw.js — Service Worker PWA offline
+// Usa paths RELATIVOS — funciona em qualquer subdiretório
 // ============================================================
 
-const CACHE_NAME = 'mdo-pro-v1';
-const BASE = '/mao-de-obra-pro';
+const CACHE_NAME = 'mdo-pro-v2';
 
-const PRECACHE = [
-  BASE + '/',
-  BASE + '/index.html',
-  BASE + '/css/app.css',
-  BASE + '/js/app.js',
-  BASE + '/js/db.js',
-  BASE + '/js/calculadora.js',
-  BASE + '/js/router.js',
-  BASE + '/pages/setup.js',
-  BASE + '/pages/dashboard.js',
-  BASE + '/pages/clientes.js',
-  BASE + '/pages/catalogo.js',
-  BASE + '/pages/orcamento.js',
-  BASE + '/pages/visualizar.js',
-  BASE + '/pages/configuracoes.js',
-  BASE + '/manifest.json',
-  BASE + '/icons/icon-192.png',
-  BASE + '/icons/icon-512.png',
-  // CDNs — cacheados na primeira visita
+// Paths relativos ao sw.js (que fica na raiz do app)
+const PRECACHE_RELATIVE = [
+  './',
+  './index.html',
+  './css/app.css',
+  './js/app.js',
+  './js/db.js',
+  './js/calculadora.js',
+  './js/router.js',
+  './pages/setup.js',
+  './pages/dashboard.js',
+  './pages/clientes.js',
+  './pages/catalogo.js',
+  './pages/orcamento.js',
+  './pages/visualizar.js',
+  './pages/configuracoes.js',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+];
+
+const PRECACHE_CDN = [
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css',
   'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js',
 ];
 
+// Resolve paths relativos baseado na localização do SW
+const SW_BASE = self.location.href.replace('/sw.js', '');
+
+const PRECACHE = [
+  ...PRECACHE_RELATIVE.map(p => SW_BASE + '/' + p.replace('./', '')),
+  ...PRECACHE_CDN,
+];
+
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(PRECACHE))
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        // Cacheia CDN primeiro (erros aqui não travam o install)
+        cache.addAll(PRECACHE_CDN).catch(() => {});
+        // Cacheia arquivos locais (crítico)
+        return cache.addAll(
+          PRECACHE_RELATIVE.map(p => SW_BASE + '/' + p.replace('./', ''))
+        );
+      })
   );
   self.skipWaiting();
 });
@@ -47,21 +65,31 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  const url = new URL(e.request.url);
   if (e.request.method !== 'GET') return;
 
-  // CDNs e assets locais: Cache First
-  if (
-    url.hostname.includes('cdn.jsdelivr.net') ||
-    url.hostname.includes('cdnjs.cloudflare.com') ||
-    e.request.url.match(/\.(css|js|png|ico|woff2?)$/)
-  ) {
+  const url = e.request.url;
+
+  // CDN: Cache First
+  if (url.includes('cdn.jsdelivr.net') || url.includes('cdnjs.cloudflare.com')) {
     e.respondWith(
       caches.match(e.request).then(cached => {
         if (cached) return cached;
         return fetch(e.request).then(res => {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+          caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone()));
+          return res;
+        }).catch(() => cached);
+      })
+    );
+    return;
+  }
+
+  // Assets locais: Cache First
+  if (url.match(/\.(css|js|png|ico|woff2?|json)$/)) {
+    e.respondWith(
+      caches.match(e.request).then(cached => {
+        if (cached) return cached;
+        return fetch(e.request).then(res => {
+          caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone()));
           return res;
         });
       })
@@ -69,16 +97,16 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Páginas: Network First, fallback para cache
+  // HTML/navegação: Network First, fallback index.html
   e.respondWith(
     fetch(e.request)
       .then(res => {
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+        caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone()));
         return res;
       })
-      .catch(() => caches.match(e.request)
-        .then(c => c || caches.match(BASE + '/index.html'))
+      .catch(() =>
+        caches.match(e.request)
+          .then(c => c || caches.match(SW_BASE + '/index.html'))
       )
   );
 });
