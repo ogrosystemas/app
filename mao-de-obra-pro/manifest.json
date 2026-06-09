@@ -2,7 +2,7 @@
   "name": "Mão de Obra PRO",
   "short_name": "MDO Pro",
   "description": "Sistema de orçamentos para profissionais autônomos",
-  "start_url": "/",
+  "start_url": "/mao-de-obra-pro/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#2563eb",
