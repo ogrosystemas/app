@@ -3,11 +3,11 @@
 // ============================================================
 
 import { render, toast, State } from '../js/app.js';
-import { getAll, add, getById } from '../js/db.js';
+import { getAll, add } from '../js/db.js';
 import { calcularPrecoServico, calcularTotalOrcamento, moeda, tempo, DIFICULDADE, dataVencimento } from '../js/calculadora.js';
 import { navigate } from '../js/router.js';
 
-// Estado do wizard
+// Estado do wizard (módulo-level, persiste entre re-renders do mesmo step)
 let W = {};
 
 function resetWizard() {
@@ -22,10 +22,15 @@ function resetWizard() {
   };
 }
 
+// Cache de dados carregados (evita recarregar DB a cada re-render)
+let _clientesCache = [];
+let _servicosCache = [];
+
 export default async function orcamentoPage() {
   resetWizard();
+  _clientesCache = [];
+  _servicosCache = [];
 
-  // Se só tem uma profissão ativa, já seleciona
   if (State.profissoesAtivas.length === 1) W.profissao = State.profissoesAtivas[0];
 
   render(`<div id="wizard-container"></div>`);
@@ -33,12 +38,7 @@ export default async function orcamentoPage() {
 }
 
 async function renderStep() {
-  const steps = {
-    1: renderStep1,
-    2: renderStep2,
-    3: renderStep3,
-    4: renderStep4,
-  };
+  const steps = { 1: renderStep1, 2: renderStep2, 3: renderStep3, 4: renderStep4 };
   await steps[W.step]();
   bindGlobals();
 }
@@ -46,8 +46,11 @@ async function renderStep() {
 // ── STEP 1: Profissão + Cliente ──────────────────────────────
 
 async function renderStep1() {
-  const clientes = await getAll('clientes', 'nome');
-  const profs    = State.profissoesAtivas;
+  // só carrega do DB na primeira vez
+  if (_clientesCache.length === 0) {
+    _clientesCache = await getAll('clientes', 'nome');
+  }
+  const profs = State.profissoesAtivas;
 
   document.getElementById('wizard-container').innerHTML = `
     <div class="page-content pb-5">
@@ -87,7 +90,7 @@ async function renderStep1() {
           <input type="text" class="form-control mb-2" id="busca-cli"
             placeholder="Buscar cliente..." oninput="filtrarClientesWizard()">
           <div id="lista-cli-wizard" style="max-height:280px;overflow-y:auto">
-            ${renderClientesList(clientes)}
+            ${renderClientesList(_clientesCache)}
           </div>
         </div>
       </div>
@@ -119,16 +122,13 @@ async function renderStep1() {
       </div>
     </div>
   `;
-
-  // guarda todos os clientes para filtro
-  window._clientesWizard = clientes;
 }
 
 function renderClientesList(clientes) {
-  if (!clientes.length) return '<div class="text-muted small text-center py-3">Nenhum cliente</div>';
+  if (!clientes.length) return '<div class="text-muted small text-center py-3">Nenhum cliente cadastrado.</div>';
   return clientes.map(c => `
     <div class="list-group-item list-group-item-action rounded mb-1 border ${W.cliente?.id === c.id ? 'border-primary bg-primary-subtle' : ''}"
-      onclick="selecionarCliente(${c.id}, '${escapeJs(c.nome)}', '${escapeJs(c.whatsapp || '')}', '${escapeJs(c.endereco || '')}')">
+      onclick="selecionarCliente(${c.id}, ${JSON.stringify(c.nome)}, ${JSON.stringify(c.whatsapp || '')}, ${JSON.stringify(c.endereco || '')})">
       <div class="fw-semibold">${c.nome}</div>
       ${c.whatsapp ? `<div class="small text-muted">${c.whatsapp}</div>` : ''}
     </div>
@@ -138,8 +138,12 @@ function renderClientesList(clientes) {
 // ── STEP 2: Serviços ─────────────────────────────────────────
 
 async function renderStep2() {
-  const servicos = await getAll('servicos', 'profissaoId', IDBKeyRange.only(W.profissao.id));
-  const vm = State.valorMinutoPorProfissao[W.profissao.id] || 0;
+  // só carrega do DB se mudou de profissão ou ainda não carregou
+  if (_servicosCache.length === 0 || _servicosCache[0]?.profissaoId !== W.profissao.id) {
+    _servicosCache = await getAll('servicos', 'profissaoId', IDBKeyRange.only(W.profissao.id));
+  }
+
+  const vm  = State.valorMinutoPorProfissao[W.profissao.id] || 0;
   const cfg = State.config;
 
   document.getElementById('wizard-container').innerHTML = `
@@ -164,7 +168,7 @@ async function renderStep2() {
 
           ${W.itens.length > 0 ? `
             <div class="border-top pt-2 mt-2 text-end">
-              <span class="fw-bold text-primary fs-5">${moeda(W.itens.reduce((s,i) => s+i.precoTotal, 0))}</span>
+              <span class="fw-bold text-primary fs-5">${moeda(W.itens.reduce((s,i) => s + i.precoTotal, 0))}</span>
               <div class="text-muted small">subtotal serviços</div>
             </div>
           ` : ''}
@@ -194,23 +198,7 @@ async function renderStep2() {
             <input type="text" class="form-control mb-3" id="busca-srv-modal"
               placeholder="Buscar serviço..." oninput="filtrarServicosModal()">
             <div id="lista-srv-modal">
-              ${servicos.map(s => {
-                const preco = s.precoFixo || calcularPrecoServico(s.tempoPadrao, vm, 1.0, cfg.margemReserva);
-                return `
-                <div class="list-group-item list-group-item-action rounded border mb-1"
-                  onclick="adicionarServico(${s.id})">
-                  <div class="d-flex justify-content-between">
-                    <div>
-                      <div class="fw-semibold">${s.nome}</div>
-                      <div class="small text-muted">${s.categoria || ''} · ${tempo(s.tempoPadrao)}</div>
-                    </div>
-                    <div class="text-end">
-                      <div class="fw-bold text-primary">${moeda(preco)}</div>
-                      ${s.precoFixo ? '<div class="badge bg-success-subtle text-success small">Fixo</div>' : ''}
-                    </div>
-                  </div>
-                </div>`;
-              }).join('')}
+              ${renderListaServicosModal(_servicosCache, vm, cfg)}
             </div>
           </div>
           <div class="modal-footer">
@@ -220,8 +208,26 @@ async function renderStep2() {
       </div>
     </div>
   `;
+}
 
-  window._servicosDisponiveis = servicos;
+function renderListaServicosModal(servicos, vm, cfg) {
+  if (!servicos.length) return '<div class="text-muted text-center py-3">Nenhum serviço cadastrado.</div>';
+  return servicos.map(s => {
+    const preco = s.precoFixo || calcularPrecoServico(s.tempoPadrao, vm, 1.0, cfg.margemReserva);
+    return `
+      <div class="list-group-item list-group-item-action rounded border mb-1" onclick="adicionarServico(${s.id})">
+        <div class="d-flex justify-content-between">
+          <div>
+            <div class="fw-semibold">${s.nome}</div>
+            <div class="small text-muted">${s.categoria || ''} · ${tempo(s.tempoPadrao)}</div>
+          </div>
+          <div class="text-end">
+            <div class="fw-bold text-primary">${moeda(preco)}</div>
+            ${s.precoFixo ? '<div class="badge bg-success-subtle text-success small">Fixo</div>' : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 function renderItemWizard(item, idx) {
@@ -240,11 +246,11 @@ function renderItemWizard(item, idx) {
           <div class="col-6">
             <label class="form-label small mb-1">Tempo (min)</label>
             <input type="number" class="form-control form-control-sm" value="${item.tempoAjustado}"
-              min="1" onchange="atualizarItem(${idx}, 'tempo', this.value)">
+              min="1" onchange="atualizarItemTempo(${idx}, this.value)">
           </div>
           <div class="col-6">
             <label class="form-label small mb-1">Dificuldade</label>
-            <select class="form-select form-select-sm" onchange="atualizarItem(${idx}, 'dificuldade', this.value)">
+            <select class="form-select form-select-sm" onchange="atualizarItemDificuldade(${idx}, this.value)">
               ${Object.entries(DIFICULDADE).map(([k,v]) =>
                 `<option value="${k}" ${item.dificuldade === k ? 'selected' : ''}>${v.label} (${v.fator}x)</option>`
               ).join('')}
@@ -273,7 +279,7 @@ async function renderStep3() {
       <div class="card border-0 shadow-sm mb-3">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="fw-semibold">Fotos do serviço</div>
+            <div class="fw-semibold">Fotos do serviço <span class="text-muted small">(opcional)</span></div>
             <div class="d-flex gap-2">
               <label class="btn btn-sm btn-outline-primary mb-0">
                 <i class="bi bi-camera me-1"></i>Câmera
@@ -285,10 +291,7 @@ async function renderStep3() {
               </label>
             </div>
           </div>
-
-          <div id="grid-fotos">
-            ${renderGridFotos()}
-          </div>
+          <div id="grid-fotos">${renderGridFotos()}</div>
         </div>
       </div>
 
@@ -307,7 +310,7 @@ async function renderStep3() {
 function renderGridFotos() {
   if (W.fotos.length === 0) return `
     <div class="text-muted small text-center py-4">
-      <i class="bi bi-camera d-block fs-3 mb-2"></i>Nenhuma foto. Opcional.
+      <i class="bi bi-camera d-block fs-3 mb-2"></i>Nenhuma foto adicionada.
     </div>`;
   return `<div class="row g-2">
     ${W.fotos.map((f, i) => `
@@ -319,9 +322,10 @@ function renderGridFotos() {
   </div>`;
 }
 
-// ── STEP 4: Resumo e envio ───────────────────────────────────
+// ── STEP 4: Resumo ───────────────────────────────────────────
 
 async function renderStep4() {
+  // Usa W.desconto do state (atualizado via atualizarDesconto antes de re-render)
   const totais = calcularTotalOrcamento(W.itens, State.config.taxaDeslocamento, W.desconto);
 
   document.getElementById('wizard-container').innerHTML = `
@@ -366,7 +370,7 @@ async function renderStep4() {
               <input type="number" class="form-control form-control-sm" id="inp-desconto"
                 value="${W.desconto.valor}" min="0" step="0.01"
                 placeholder="${W.desconto.tipo === 'percentual' ? 'Percentual' : 'Valor R$'}"
-                oninput="atualizarDesconto()">
+                oninput="atualizarDescontoLive()">
             </div>
           </div>
 
@@ -393,7 +397,7 @@ async function renderStep4() {
               </div>` : ''}
             <div class="d-flex justify-content-between fw-bold fs-5 mt-1">
               <span>Total</span>
-              <span class="text-primary">${moeda(totais.total)}</span>
+              <span class="text-primary" id="total-preview">${moeda(totais.total)}</span>
             </div>
           </div>
         </div>
@@ -420,6 +424,8 @@ function bindGlobals() {
 
   window.selecionarProfissao = (id) => {
     W.profissao = State.profissoesAtivas.find(p => p.id === id) || null;
+    // reseta cache de serviços ao trocar profissão
+    _servicosCache = [];
     renderStep();
   };
 
@@ -429,13 +435,14 @@ function bindGlobals() {
   };
 
   window.filtrarClientesWizard = () => {
-    const q = document.getElementById('busca-cli')?.value.toLowerCase() || '';
-    const filtrados = (window._clientesWizard || []).filter(c =>
+    const q = (document.getElementById('busca-cli')?.value || '').toLowerCase();
+    const filtrados = _clientesCache.filter(c =>
       c.nome.toLowerCase().includes(q) || (c.whatsapp || '').includes(q));
     document.getElementById('lista-cli-wizard').innerHTML = renderClientesList(filtrados);
   };
 
-  window.abrirNovoClienteRapido = () => bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-cli-rapido')).show();
+  window.abrirNovoClienteRapido = () =>
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-cli-rapido')).show();
 
   window.salvarClienteRapido = async () => {
     const nome = document.getElementById('rq-nome')?.value.trim();
@@ -448,39 +455,31 @@ function bindGlobals() {
     };
     const id = await add('clientes', dados);
     W.cliente = { id, ...dados };
+    _clientesCache.push({ id, ...dados });
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-cli-rapido')).hide();
     toast('Cliente adicionado!');
-    await renderStep();
+    renderStep();
   };
 
-  window.abrirModalAddServico = () => bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-add-srv')).show();
+  window.abrirModalAddServico = () =>
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-add-srv')).show();
 
+  // FIX: filtrarServicosModal usa _servicosCache (sempre populado antes do modal abrir)
   window.filtrarServicosModal = () => {
-    const q = document.getElementById('busca-srv-modal')?.value.toLowerCase() || '';
-    const vm = State.valorMinutoPorProfissao[W.profissao.id] || 0;
+    const q   = (document.getElementById('busca-srv-modal')?.value || '').toLowerCase();
+    const vm  = State.valorMinutoPorProfissao[W.profissao.id] || 0;
     const cfg = State.config;
-    const filtrados = (window._servicosDisponiveis || []).filter(s => s.nome.toLowerCase().includes(q));
-    document.getElementById('lista-srv-modal').innerHTML = filtrados.map(s => {
-      const preco = s.precoFixo || calcularPrecoServico(s.tempoPadrao, vm, 1.0, cfg.margemReserva);
-      return `
-        <div class="list-group-item list-group-item-action rounded border mb-1" onclick="adicionarServico(${s.id})">
-          <div class="d-flex justify-content-between">
-            <div>
-              <div class="fw-semibold">${s.nome}</div>
-              <div class="small text-muted">${s.categoria || ''} · ${tempo(s.tempoPadrao)}</div>
-            </div>
-            <div class="fw-bold text-primary">${moeda(preco)}</div>
-          </div>
-        </div>`;
-    }).join('');
+    const filtrados = _servicosCache.filter(s => s.nome.toLowerCase().includes(q));
+    document.getElementById('lista-srv-modal').innerHTML =
+      renderListaServicosModal(filtrados, vm, cfg);
   };
 
   window.adicionarServico = (id) => {
-    const s = (window._servicosDisponiveis || []).find(x => x.id === id);
+    const s = _servicosCache.find(x => x.id === id);
     if (!s) return;
-    const vm = State.valorMinutoPorProfissao[W.profissao.id] || 0;
+    const vm  = State.valorMinutoPorProfissao[W.profissao.id] || 0;
     const cfg = State.config;
-    const usaPrecoFixo = !!(s.precoFixo);
+    const usaPrecoFixo  = !!(s.precoFixo);
     const precoUnitario = usaPrecoFixo
       ? s.precoFixo
       : calcularPrecoServico(s.tempoPadrao, vm, DIFICULDADE.NORMAL.fator, cfg.margemReserva);
@@ -503,23 +502,23 @@ function bindGlobals() {
 
   window.ajustarQtd = (idx, delta) => {
     W.itens[idx].quantidade = Math.max(1, W.itens[idx].quantidade + delta);
-    recalcItem(idx);
+    W.itens[idx].precoTotal = W.itens[idx].precoUnitario * W.itens[idx].quantidade;
     renderStep();
   };
 
-  window.atualizarItem = (idx, campo, val) => {
-    if (campo === 'tempo') W.itens[idx].tempoAjustado = parseInt(val) || 1;
-    if (campo === 'dificuldade') W.itens[idx].dificuldade = val;
-    if (!W.itens[idx].usaPrecoFixo) {
-      const vm = State.valorMinutoPorProfissao[W.profissao.id] || 0;
-      W.itens[idx].precoUnitario = calcularPrecoServico(
-        W.itens[idx].tempoAjustado, vm,
-        DIFICULDADE[W.itens[idx].dificuldade].fator,
-        State.config.margemReserva
-      );
-    }
-    W.itens[idx].precoTotal = W.itens[idx].precoUnitario * W.itens[idx].quantidade;
-    renderStep();
+  // FIX: atualizarItem separado em tempo e dificuldade para evitar re-render no oninput
+  window.atualizarItemTempo = (idx, val) => {
+    W.itens[idx].tempoAjustado = parseInt(val) || 1;
+    if (!W.itens[idx].usaPrecoFixo) recalcItem(idx);
+    // Atualiza só o total do item sem re-render completo
+    const el = document.querySelector(`#itens-wizard .border:nth-child(${idx + 1}) .text-primary`);
+    if (el) el.textContent = moeda(W.itens[idx].precoTotal);
+  };
+
+  window.atualizarItemDificuldade = (idx, val) => {
+    W.itens[idx].dificuldade = val;
+    if (!W.itens[idx].usaPrecoFixo) recalcItem(idx);
+    renderStep(); // re-render ok para select (não perde foco)
   };
 
   window.adicionarFoto = (e) => {
@@ -539,62 +538,90 @@ function bindGlobals() {
     document.getElementById('grid-fotos').innerHTML = renderGridFotos();
   };
 
-  window.setTipoDesconto = (tipo) => { W.desconto.tipo = tipo; renderStep(); };
+  // FIX: setTipoDesconto salva o valor atual antes de re-renderizar
+  window.setTipoDesconto = (tipo) => {
+    W.desconto.valor = parseFloat(document.getElementById('inp-desconto')?.value) || 0;
+    W.desconto.tipo  = tipo;
+    renderStep();
+  };
+
   window.setValidade = (d) => { W.validade = d; renderStep(); };
 
-  window.atualizarDesconto = () => {
+  // FIX: atualiza W.desconto sem re-render (atualiza só o total na tela)
+  window.atualizarDescontoLive = () => {
     W.desconto.valor = parseFloat(document.getElementById('inp-desconto')?.value) || 0;
+    const totais = calcularTotalOrcamento(W.itens, State.config.taxaDeslocamento, W.desconto);
+    const el = document.getElementById('total-preview');
+    if (el) el.textContent = moeda(totais.total);
   };
 
   window.salvarOrcamento = async () => {
     const btn = document.getElementById('btn-salvar');
     if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...'; }
 
-    window.atualizarDesconto?.();
+    // garante que o desconto está atualizado com o valor do input
+    W.desconto.valor = parseFloat(document.getElementById('inp-desconto')?.value) || W.desconto.valor;
     const totais = calcularTotalOrcamento(W.itens, State.config.taxaDeslocamento, W.desconto);
 
-    const orcamento = {
-      clienteId:     W.cliente.id,
-      profissaoId:   W.profissao.id,
-      profissaoNome: W.profissao.nome,
-      data:          new Date().toISOString(),
-      validade:      W.validade,
-      dataVencimento: dataVencimento(W.validade),
-      itens:         W.itens.map(i => ({
-        servicoId: i.servicoId, nome: i.nome,
-        tempoAjustado: i.tempoAjustado, dificuldade: i.dificuldade,
-        precoUnitario: i.precoUnitario, quantidade: i.quantidade,
-        precoTotal: i.precoTotal, usaPrecoFixo: i.usaPrecoFixo,
-      })),
-      desconto:       W.desconto,
-      taxaDeslocamento: totais.taxaDeslocamento,
-      subtotal:       totais.subtotal,
-      total:          totais.total,
-      status:         'pendente',
-    };
+    try {
+      const orcamento = {
+        clienteId:      W.cliente.id,
+        profissaoId:    W.profissao.id,
+        profissaoNome:  W.profissao.nome,
+        data:           new Date().toISOString(),
+        validade:       W.validade,
+        dataVencimento: dataVencimento(W.validade),
+        itens: W.itens.map(i => ({
+          servicoId:    i.servicoId,
+          nome:         i.nome,
+          tempoAjustado:i.tempoAjustado,
+          dificuldade:  i.dificuldade,
+          precoUnitario:i.precoUnitario,
+          quantidade:   i.quantidade,
+          precoTotal:   i.precoTotal,
+          usaPrecoFixo: i.usaPrecoFixo,
+        })),
+        desconto:        W.desconto,
+        taxaDeslocamento:totais.taxaDeslocamento,
+        subtotal:        totais.subtotal,
+        total:           totais.total,
+        status:          'pendente',
+      };
 
-    const id = await add('orcamentos', orcamento);
+      const id = await add('orcamentos', orcamento);
 
-    // Salva fotos separadamente
-    for (const blob of W.fotos) {
-      await add('fotos', { orcamentoId: id, blob, criadoEm: new Date().toISOString() });
+      for (const blob of W.fotos) {
+        await add('fotos', { orcamentoId: id, blob, criadoEm: new Date().toISOString() });
+      }
+
+      toast('Orçamento salvo!');
+      navigate('/visualizar', { id });
+    } catch (err) {
+      console.error('Erro ao salvar:', err);
+      toast('Erro ao salvar orçamento.', 'danger');
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Salvar Orçamento'; }
     }
-
-    toast('Orçamento salvo!');
-    navigate('/visualizar', { id });
   };
 }
 
 function recalcItem(idx) {
+  const vm  = State.valorMinutoPorProfissao[W.profissao.id] || 0;
+  const cfg = State.config;
+  W.itens[idx].precoUnitario = calcularPrecoServico(
+    W.itens[idx].tempoAjustado,
+    vm,
+    DIFICULDADE[W.itens[idx].dificuldade].fator,
+    cfg.margemReserva
+  );
   W.itens[idx].precoTotal = W.itens[idx].precoUnitario * W.itens[idx].quantidade;
 }
 
 function stepHeader(current) {
   const steps = [
-    { n: 1, label: 'Cliente',   icon: 'bi-person' },
-    { n: 2, label: 'Serviços',  icon: 'bi-tools' },
-    { n: 3, label: 'Fotos',     icon: 'bi-camera' },
-    { n: 4, label: 'Resumo',    icon: 'bi-clipboard-check' },
+    { n: 1, label: 'Cliente',  icon: 'bi-person' },
+    { n: 2, label: 'Serviços', icon: 'bi-tools' },
+    { n: 3, label: 'Fotos',    icon: 'bi-camera' },
+    { n: 4, label: 'Resumo',   icon: 'bi-clipboard-check' },
   ];
   return `
     <div class="d-flex align-items-center justify-content-between mb-4">
@@ -608,15 +635,11 @@ function stepHeader(current) {
             </div>
             <div class="small d-none d-sm-block ${current === s.n ? 'fw-semibold text-primary' : 'text-muted'}">${s.label}</div>
           </div>
-          ${i < steps.length - 1 ? `<div class="flex-fill border-top mx-2 ${current > s.n ? 'border-success' : 'border-light'}"></div>` : ''}
+          ${i < steps.length - 1 ? `<div class="flex-fill border-top mx-2 ${current > s.n ? 'border-success' : 'border-secondary opacity-25'}"></div>` : ''}
         </div>
       `).join('')}
     </div>
     <h5 class="fw-bold mb-3">
-      ${['', 'Cliente e Profissão', 'Serviços', 'Fotos', 'Revisar e Salvar'][current]}
+      ${{ 1: 'Cliente e Profissão', 2: 'Serviços', 3: 'Fotos', 4: 'Revisar e Salvar' }[current]}
     </h5>`;
-}
-
-function escapeJs(str) {
-  return (str || '').replace(/'/g, "\\'").replace(/"/g, '\\"');
 }

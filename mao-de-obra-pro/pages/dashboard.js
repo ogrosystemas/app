@@ -3,15 +3,14 @@
 // ============================================================
 
 import { render, State, toast } from '../js/app.js';
-import { getAll, getById, remove } from '../js/db.js';
+import { getAll, getById, remove, put } from '../js/db.js';
 import { moeda, dataLocal } from '../js/calculadora.js';
 import { navigate } from '../js/router.js';
 
 export default async function dashboardPage() {
   const orcamentos = await getAll('orcamentos', 'data');
-  orcamentos.reverse(); // mais recentes primeiro
+  orcamentos.reverse();
 
-  // Busca nomes de clientes em batch
   const clienteIds = [...new Set(orcamentos.map(o => o.clienteId))];
   const clienteMap = {};
   await Promise.all(clienteIds.map(async id => {
@@ -38,7 +37,7 @@ export default async function dashboardPage() {
           <h4 class="fw-bold mb-0">Dashboard</h4>
           <div class="text-muted small">${new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' })}</div>
         </div>
-        <div class="d-flex gap-2 align-items-center">
+        <div class="d-flex gap-2 flex-wrap justify-content-end" style="max-width:60%">
           ${State.profissoesAtivas.map(p =>
             `<span class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle">
               <i class="bi ${p.icone} me-1"></i>${p.nome}
@@ -47,7 +46,6 @@ export default async function dashboardPage() {
         </div>
       </div>
 
-      <!-- Cards de stats -->
       <div class="row g-3 mb-4">
         <div class="col-6">
           <div class="card border-0 shadow-sm h-100">
@@ -83,7 +81,6 @@ export default async function dashboardPage() {
         </div>
       </div>
 
-      <!-- Orçamentos recentes -->
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h6 class="fw-bold mb-0">Orçamentos Recentes</h6>
       </div>
@@ -94,31 +91,32 @@ export default async function dashboardPage() {
           <p class="text-muted mt-3">Nenhum orçamento ainda.<br>Toque no <strong>+</strong> para criar.</p>
         </div>
       ` : `
-        <div class="list-group list-group-flush" id="lista-orcamentos">
+        <div id="lista-orcamentos">
           ${orcamentos.map(o => `
-            <div class="list-group-item list-group-item-action px-0 py-3 border-bottom"
-              onclick="verOrcamento(${o.id})">
-              <div class="d-flex justify-content-between align-items-start">
-                <div class="flex-grow-1 me-2">
-                  <div class="fw-semibold">${clienteMap[o.clienteId] || 'Cliente removido'}</div>
-                  <div class="small text-muted">${o.profissaoNome || '—'} · ${dataLocal(o.data)}</div>
-                  <div class="small text-muted mt-1">${(o.itens || []).length} serviço(s)</div>
+            <div class="card border-0 shadow-sm mb-2">
+              <div class="card-body py-2 px-3" onclick="verOrcamento(${o.id})" style="cursor:pointer">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div class="flex-grow-1 me-2">
+                    <div class="fw-semibold">${clienteMap[o.clienteId] || 'Cliente removido'}</div>
+                    <div class="small text-muted">${o.profissaoNome || '—'} · ${dataLocal(o.data)}</div>
+                    <div class="small text-muted">${(o.itens || []).length} serviço(s)</div>
+                  </div>
+                  <div class="text-end">
+                    <div class="fw-bold text-primary">${moeda(o.total)}</div>
+                    <span class="badge bg-${badgeStatus[o.status] || 'secondary'} mt-1">${o.status}</span>
+                  </div>
                 </div>
-                <div class="text-end">
-                  <div class="fw-bold text-primary">${moeda(o.total)}</div>
-                  <span class="badge bg-${badgeStatus[o.status] || 'secondary'} mt-1">${o.status}</span>
+                <div class="d-flex gap-2 mt-2" onclick="event.stopPropagation()">
+                  <button class="btn btn-sm btn-outline-primary flex-fill" onclick="verOrcamento(${o.id})">
+                    <i class="bi bi-eye me-1"></i>Ver
+                  </button>
+                  <button class="btn btn-sm btn-outline-success flex-fill" onclick="aprovarOrcamento(${o.id})">
+                    <i class="bi bi-check me-1"></i>Aprovar
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger" onclick="excluirOrcamento(${o.id}, event)">
+                    <i class="bi bi-trash"></i>
+                  </button>
                 </div>
-              </div>
-              <div class="d-flex gap-2 mt-2" onclick="event.stopPropagation()">
-                <button class="btn btn-sm btn-outline-primary flex-fill" onclick="verOrcamento(${o.id})">
-                  <i class="bi bi-eye me-1"></i>Ver
-                </button>
-                <button class="btn btn-sm btn-outline-success flex-fill" onclick="aprovarOrcamento(${o.id})">
-                  <i class="bi bi-check me-1"></i>Aprovar
-                </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="excluirOrcamento(${o.id}, event)">
-                  <i class="bi bi-trash"></i>
-                </button>
               </div>
             </div>
           `).join('')}
@@ -133,20 +131,18 @@ export default async function dashboardPage() {
     const o = await getById('orcamentos', id);
     if (!o) return;
     o.status = 'aprovado';
-    const { put } = await import('../js/db.js');
     await put('orcamentos', o);
     toast('Orçamento aprovado!');
     dashboardPage();
   };
 
+  // FIX: usa remove importado no topo, sem reimport dinâmico
   window.excluirOrcamento = async (id, e) => {
     e.stopPropagation();
     if (!confirm('Excluir este orçamento?')) return;
     await remove('orcamentos', id);
-    // remove fotos associadas
     const fotos = await getAll('fotos', 'orcamentoId', IDBKeyRange.only(id));
-    const { remove: rem } = await import('../js/db.js');
-    for (const f of fotos) await rem('fotos', f.id);
+    for (const f of fotos) await remove('fotos', f.id);
     toast('Orçamento excluído.', 'danger');
     dashboardPage();
   };
