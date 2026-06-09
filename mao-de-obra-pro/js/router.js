@@ -3,7 +3,6 @@
 // ============================================================
 
 const routes = {};
-let currentRoute = null;
 let beforeEach = null;
 
 export function route(path, handler) {
@@ -18,11 +17,18 @@ export function navigate(path, params = {}) {
   const query = Object.keys(params).length
     ? '?' + new URLSearchParams(params).toString()
     : '';
-  window.location.hash = path + query;
+  const newHash = path + query;
+
+  if (window.location.hash === '#' + newHash) {
+    // Hash igual — força o dispatch manualmente
+    dispatch();
+  } else {
+    window.location.hash = newHash;
+  }
 }
 
 export function getParams() {
-  const hash = window.location.hash.slice(1); // remove #
+  const hash = window.location.hash.slice(1);
   const [, qs] = hash.split('?');
   if (!qs) return {};
   return Object.fromEntries(new URLSearchParams(qs));
@@ -40,11 +46,9 @@ function dispatch() {
 
   if (beforeEach) {
     beforeEach(path, () => {
-      currentRoute = path;
       handler(getParams());
     });
   } else {
-    currentRoute = path;
     handler(getParams());
   }
 }

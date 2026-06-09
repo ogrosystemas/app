@@ -59,7 +59,13 @@
     function navigate(path, params) {
       var q = (params && Object.keys(params).length)
         ? '?' + new URLSearchParams(params).toString() : '';
-      window.location.hash = path + q;
+      var newHash = path + q;
+      if (window.location.hash === '#' + newHash) {
+        // Hash não vai mudar — dispara hashchange manualmente
+        window.dispatchEvent(new HashChangeEvent('hashchange'));
+      } else {
+        window.location.hash = newHash;
+      }
     }
 
     // Remove SWs antigos e registra o novo
@@ -89,35 +95,67 @@
   <script type="module" src="js/app.js"></script>
 
   <script>
-    // PWA Install prompt
     var _installPrompt = null;
 
+    // Captura o prompt nativo (Android/Chrome/Edge)
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      _installPrompt = e;
+    });
+
+    // Esconde o botão se já instalou
+    window.addEventListener('appinstalled', function() {
+      _installPrompt = null;
+      var btn = document.getElementById('btn-instalar');
+      if (btn) btn.classList.add('d-none');
+    });
+
+    window.instalarApp = async function() {
+      // Já está rodando como app instalado?
+      var isStandalone = window.matchMedia('(display-mode: standalone)').matches
+        || window.navigator.standalone === true;
+
+      if (isStandalone) {
+        alert('O app já está instalado!');
+        return;
+      }
+
+      // Android/Chrome — prompt nativo disponível
+      if (_installPrompt) {
+        _installPrompt.prompt();
+        var result = await _installPrompt.userChoice;
+        if (result.outcome === 'accepted') {
+          _installPrompt = null;
+          var btn = document.getElementById('btn-instalar');
+          if (btn) btn.classList.add('d-none');
+        }
+        return;
+      }
+
+      // iOS Safari — instrução manual
+      var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      if (isIOS) {
+        alert('Para instalar no iPhone/iPad:
+
+1. Toque no botão compartilhar (□↑) na barra do Safari
+2. Role até "Adicionar à Tela de Início"
+3. Toque em "Adicionar"');
+        return;
+      }
+
+      // Chrome desktop ou outros — instrução manual
+      alert('Para instalar:
+
+No Chrome: clique no ícone ⊕ na barra de endereço
+Ou: menu (⋮) → "Instalar app"');
+    };
+
+    // Mostra o botão quando o prompt nativo estiver disponível
     window.addEventListener('beforeinstallprompt', function(e) {
       e.preventDefault();
       _installPrompt = e;
       var btn = document.getElementById('btn-instalar');
       if (btn) btn.classList.remove('d-none');
-    });
-
-    window.instalarApp = async function() {
-      if (!_installPrompt) {
-        // iOS: mostra instruções manuais
-        alert('Para instalar no iPhone/iPad:\n\n1. Toque no botão de compartilhar (□↑) no Safari\n2. Role e toque "Adicionar à Tela de Início"\n3. Confirme');
-        return;
-      }
-      _installPrompt.prompt();
-      var result = await _installPrompt.userChoice;
-      if (result.outcome === 'accepted') {
-        var btn = document.getElementById('btn-instalar');
-        if (btn) btn.classList.add('d-none');
-        _installPrompt = null;
-      }
-    };
-
-    window.addEventListener('appinstalled', function() {
-      var btn = document.getElementById('btn-instalar');
-      if (btn) btn.classList.add('d-none');
-      _installPrompt = null;
     });
   </script>
 </body>
