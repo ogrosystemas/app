@@ -7,7 +7,6 @@ import { getById, getAll, add, remove, put } from '../js/db.js';
 import { moeda, dataLocal, tempo, DIFICULDADE } from '../js/calculadora.js';
 import { navigate } from '../js/router.js';
 
-// Fluxo de status permitido (só avança, não volta)
 const FLUXO = ['pendente', 'aprovado', 'em andamento', 'finalizado'];
 
 const BADGE = {
@@ -23,7 +22,7 @@ const BADGE = {
 export default async function visualizarPage({ id }) {
   if (!id) { navigate('/'); return; }
 
-  const orc     = await getById('orcamentos', parseInt(id));
+  const orc      = await getById('orcamentos', parseInt(id));
   if (!orc) { toast('Orçamento não encontrado.', 'danger'); navigate('/'); return; }
 
   const cliente   = await getById('clientes', orc.clienteId);
@@ -32,11 +31,13 @@ export default async function visualizarPage({ id }) {
 
   window._fotosVisualizacao = fotos;
 
-  const totalPago    = pagamentos.reduce((s, p) => s + p.valor, 0);
+  const totalPago     = pagamentos.reduce((s, p) => s + p.valor, 0);
   const totalRestante = Math.max(0, (orc.total || 0) - totalPago);
-  const idxAtual     = FLUXO.indexOf(orc.status);
+  const idxAtual      = FLUXO.indexOf(orc.status);
   const proximoStatus = idxAtual >= 0 && idxAtual < FLUXO.length - 1
     ? FLUXO[idxAtual + 1] : null;
+
+  const arquivado = orc.status === 'arquivado';
 
   render(`
     <div class="page-content pb-5">
@@ -110,24 +111,24 @@ export default async function visualizarPage({ id }) {
         </div>
       </div>
 
-      <!-- Pagamentos -->
-      <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="fw-semibold">Pagamentos</div>
-            ${totalRestante > 0.01 ? `
-              <button class="btn btn-sm btn-outline-success" onclick="abrirModalPagamento()">
-                <i class="bi bi-plus-lg me-1"></i>Registrar
-              </button>` : `
-              <span class="badge bg-success-subtle text-success border border-success-subtle">
-                <i class="bi bi-check-circle me-1"></i>Quitado
-              </span>`}
-          </div>
+      <!-- Pagamentos: só mostra se não arquivado -->
+      ${!arquivado ? `
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div class="fw-semibold">Pagamentos</div>
+              ${totalRestante > 0.01 ? `
+                <button class="btn btn-sm btn-outline-success" onclick="abrirModalPagamento()">
+                  <i class="bi bi-plus-lg me-1"></i>Registrar
+                </button>` : `
+                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                  <i class="bi bi-check-circle me-1"></i>Quitado
+                </span>`}
+            </div>
 
-          ${pagamentos.length === 0 ? `
-            <div class="text-muted small text-center py-2">Nenhum pagamento registrado.</div>
-          ` : `
-            ${pagamentos.map(p => `
+            ${pagamentos.length === 0 ? `
+              <div class="text-muted small text-center py-2">Nenhum pagamento registrado.</div>
+            ` : pagamentos.map(p => `
               <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
                 <div>
                   <div class="small fw-semibold">${p.descricao || 'Pagamento'}</div>
@@ -141,23 +142,39 @@ export default async function visualizarPage({ id }) {
                 </div>
               </div>
             `).join('')}
-          `}
 
-          <!-- Resumo financeiro -->
-          <div class="mt-3 pt-2 border-top">
-            <div class="d-flex justify-content-between text-muted small mb-1">
-              <span>Total do orçamento</span><span>${moeda(orc.total)}</span>
-            </div>
-            <div class="d-flex justify-content-between text-success small mb-1">
-              <span>Recebido</span><span>${moeda(totalPago)}</span>
-            </div>
-            <div class="d-flex justify-content-between fw-bold ${totalRestante > 0 ? 'text-danger' : 'text-success'}">
-              <span>${totalRestante > 0 ? 'A receber' : 'Quitado'}</span>
-              <span>${moeda(totalRestante)}</span>
+            <div class="mt-3 pt-2 border-top">
+              <div class="d-flex justify-content-between text-muted small mb-1">
+                <span>Total do orçamento</span><span>${moeda(orc.total)}</span>
+              </div>
+              <div class="d-flex justify-content-between text-success small mb-1">
+                <span>Recebido</span><span>${moeda(totalPago)}</span>
+              </div>
+              <div class="d-flex justify-content-between fw-bold ${totalRestante > 0 ? 'text-danger' : 'text-success'}">
+                <span>${totalRestante > 0 ? 'A receber' : 'Quitado'}</span>
+                <span>${moeda(totalRestante)}</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      ` : pagamentos.length > 0 ? `
+        <!-- Arquivado: mostra pagamentos em modo somente leitura -->
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-body">
+            <div class="fw-semibold mb-2">Pagamentos registrados</div>
+            ${pagamentos.map(p => `
+              <div class="d-flex justify-content-between py-1 border-bottom">
+                <span class="small text-muted">${p.descricao || 'Pagamento'} · ${dataLocal(p.data)}</span>
+                <span class="small fw-semibold text-success">${moeda(p.valor)}</span>
+              </div>
+            `).join('')}
+            <div class="d-flex justify-content-between fw-bold pt-2 mt-1">
+              <span class="small">Total pago</span>
+              <span class="small text-success">${moeda(totalPago)}</span>
+            </div>
+          </div>
+        </div>
+      ` : ''}
 
       <!-- Fotos -->
       ${fotos.length > 0 ? `
@@ -181,14 +198,11 @@ export default async function visualizarPage({ id }) {
         <div class="card-body">
           <div class="fw-semibold mb-3">Ações</div>
           <div class="d-grid gap-2">
-
-            ${orc.status === 'arquivado' ? `
-              <!-- Arquivado: só desarquivar -->
+            ${arquivado ? `
               <button class="btn btn-outline-primary" onclick="desarquivar()">
                 <i class="bi bi-archive me-2"></i>Desarquivar
               </button>
             ` : `
-              <!-- Avançar status -->
               ${proximoStatus ? `
                 <button class="btn btn-primary" onclick="avancarStatus()">
                   <i class="bi bi-arrow-right-circle me-2"></i>
@@ -196,7 +210,6 @@ export default async function visualizarPage({ id }) {
                 </button>
               ` : ''}
 
-              <!-- Recusar / Cancelar (só se pendente ou aprovado) -->
               ${['pendente','aprovado','em andamento'].includes(orc.status) ? `
                 <div class="d-flex gap-2">
                   <button class="btn btn-outline-danger flex-fill" onclick="mudarStatus('recusado')">
@@ -247,17 +260,10 @@ export default async function visualizarPage({ id }) {
               <input type="date" class="form-control" id="pag-data"
                 value="${new Date().toISOString().slice(0,10)}">
             </div>
-            ${totalRestante > 0 ? `
-              <div class="alert alert-info small mb-0">
-                <i class="bi bi-info-circle me-1"></i>
-                Saldo restante: <strong>${moeda(totalRestante)}</strong>
-              </div>
-            ` : `
-              <div class="alert alert-success small mb-0">
-                <i class="bi bi-check-circle me-1"></i>
-                Orçamento já quitado!
-              </div>
-            `}
+            <div class="alert alert-info small mb-0">
+              <i class="bi bi-info-circle me-1"></i>
+              Saldo restante: <strong>${moeda(totalRestante)}</strong>
+            </div>
           </div>
           <div class="modal-footer">
             <button class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
@@ -284,7 +290,7 @@ export default async function visualizarPage({ id }) {
     </div>
   `);
 
-  // ── Handlers ──────────────────────────────────────────────
+  // ── Handlers ─────────────────────────────────────────────
 
   window.ampliarFoto = (idx) => {
     const foto = (window._fotosVisualizacao || [])[idx];
@@ -328,13 +334,12 @@ export default async function visualizarPage({ id }) {
     const data      = document.getElementById('pag-data')?.value || new Date().toISOString().slice(0,10);
 
     await add('pagamentos', {
-      orcamentoId: orc.id,
+      orcamentoId: parseInt(orc.id),
       valor,
       descricao,
       data: new Date(data + 'T12:00:00').toISOString(),
     });
 
-    // Se quitado, avança para finalizado automaticamente (se estiver em andamento)
     const novoPago = totalPago + valor;
     if (novoPago >= orc.total && orc.status === 'em andamento') {
       orc.status = 'finalizado';
@@ -386,7 +391,7 @@ export default async function visualizarPage({ id }) {
     if (totalPago > 0) {
       partes.push('');
       partes.push(`*Recebido:* ${moeda(totalPago)}`);
-      partes.push(`*A receber:* ${moeda(totalRestante)}`);
+      if (totalRestante > 0.01) partes.push(`*A receber:* ${moeda(totalRestante)}`);
     }
 
     window.open(`https://wa.me/55${num}?text=${encodeURIComponent(partes.join('\n'))}`, '_blank');
@@ -403,10 +408,8 @@ export default async function visualizarPage({ id }) {
 
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-      const PW  = 210;
-      const M   = 15;
-      const CW  = PW - M * 2;
-      let y     = 0;
+      const PW  = 210, M = 15, CW = PW - M * 2;
+      let y = 0;
 
       const nl = (h = 6) => { y += h; };
       const sf = (size, style, color) => {
@@ -419,12 +422,16 @@ export default async function visualizarPage({ id }) {
         doc.line(M, y, PW - M, y);
         nl(4);
       };
+      const rowLR = (l, r, cl, cr) => {
+        sf(10, 'normal', cl || [100,100,100]); doc.text(String(l), M, y);
+        sf(10, 'bold',   cr || [40,40,40]);   doc.text(String(r), PW - M, y, { align: 'right' });
+        nl(6);
+      };
 
       // Header
       doc.setFillColor(37, 99, 235);
       doc.rect(0, 0, PW, 32, 'F');
-      sf(18, 'bold', [255,255,255]);
-      doc.text('MÃO DE OBRA PRO', M, 13);
+      sf(18, 'bold', [255,255,255]); doc.text('MÃO DE OBRA PRO', M, 13);
       sf(9, 'normal', [200,220,255]);
       doc.text(`Orçamento #${orc.id}  ·  ${orc.profissaoNome || ''}`, M, 21);
       doc.text(`${dataLocal(orc.data)}  ·  Válido até ${dataLocal(orc.dataVencimento)}`, PW - M, 21, { align: 'right' });
@@ -433,7 +440,7 @@ export default async function visualizarPage({ id }) {
       // Cliente
       sf(7, 'bold', [120,120,120]); doc.text('CLIENTE', M, y); nl(5);
       sf(12, 'bold', [20,20,20]);  doc.text(cliente?.nome || 'Cliente removido', M, y); nl(5);
-      if (cliente?.whatsapp) { sf(9, 'normal', [80,80,80]);   doc.text(cliente.whatsapp, M, y); nl(4); }
+      if (cliente?.whatsapp) { sf(9, 'normal', [80,80,80]);    doc.text(cliente.whatsapp, M, y); nl(4); }
       if (cliente?.endereco) { sf(9, 'normal', [120,120,120]); doc.text(cliente.endereco, M, y); nl(4); }
       nl(4); hline();
 
@@ -441,8 +448,8 @@ export default async function visualizarPage({ id }) {
       sf(7, 'bold', [120,120,120]); doc.text('SERVIÇOS', M, y); nl(6);
       for (const item of (orc.itens || [])) {
         if (y > 255) { doc.addPage(); y = 20; }
-        sf(10, 'bold', [20,20,20]);   doc.text(item.nome, M, y);
-        sf(10, 'bold', [37,99,235]);  doc.text(moeda(item.precoTotal), PW - M, y, { align: 'right' });
+        sf(10, 'bold', [20,20,20]);  doc.text(item.nome, M, y);
+        sf(10, 'bold', [37,99,235]); doc.text(moeda(item.precoTotal), PW - M, y, { align: 'right' });
         nl(5);
         const det = item.usaPrecoFixo
           ? `Qtd: ${item.quantidade}  ·  Preço fixo`
@@ -452,16 +459,10 @@ export default async function visualizarPage({ id }) {
       hline();
 
       // Totais
-      const rowLR = (l, r, cl, cr) => {
-        sf(10, 'normal', cl || [100,100,100]); doc.text(String(l), M, y);
-        sf(10, 'bold',   cr || [40,40,40]);   doc.text(String(r), PW - M, y, { align: 'right' });
-        nl(6);
-      };
       rowLR('Subtotal',     moeda(orc.subtotal));
       rowLR('Deslocamento', moeda(orc.taxaDeslocamento));
       if (orc.desconto?.valor > 0) {
-        const dv = orc.desconto.tipo === 'percentual'
-          ? orc.desconto.valor + '%' : moeda(orc.desconto.valor);
+        const dv = orc.desconto.tipo === 'percentual' ? orc.desconto.valor + '%' : moeda(orc.desconto.valor);
         rowLR('Desconto', '- ' + dv, [200,50,50], [200,50,50]);
       }
       nl(2);
@@ -472,7 +473,7 @@ export default async function visualizarPage({ id }) {
       doc.text(moeda(orc.total), PW - M - 4, y + 4, { align: 'right' });
       nl(18);
 
-      // Pagamentos no PDF
+      // Pagamentos
       if (pagamentos.length > 0) {
         if (y > 220) { doc.addPage(); y = 20; }
         sf(7, 'bold', [120,120,120]); doc.text('PAGAMENTOS', M, y); nl(6);
@@ -483,8 +484,8 @@ export default async function visualizarPage({ id }) {
           nl(6);
         }
         hline();
-        rowLR('Recebido',  moeda(totalPago),     [22,163,74],  [22,163,74]);
-        if (totalRestante > 0) rowLR('A receber', moeda(totalRestante), [220,50,50], [220,50,50]);
+        rowLR('Recebido', moeda(totalPago), [22,163,74], [22,163,74]);
+        if (totalRestante > 0.01) rowLR('A receber', moeda(totalRestante), [220,50,50], [220,50,50]);
         else { sf(9, 'bold', [22,163,74]); doc.text('QUITADO', PW - M, y, { align: 'right' }); nl(6); }
         nl(4);
       }
@@ -493,15 +494,14 @@ export default async function visualizarPage({ id }) {
       if (fotos.length > 0) {
         if (y > 200) { doc.addPage(); y = 20; }
         sf(7, 'bold', [120,120,120]); doc.text('FOTOS DO SERVIÇO', M, y); nl(6);
-        const fW = 55; const gap = 5;
-        let fx = M; let rowH = 0;
+        const fW = 55, gap = 5;
+        let fx = M, rowH = 0;
         for (const foto of fotos) {
           try {
-            const c     = await corrigirOrientacao(foto.blob);
-            const ratio = c.w / c.h;
-            const fH    = Math.round(fW / ratio);
-            if (fx + fW > PW - M)  { fx = M; y += rowH + gap; rowH = 0; }
-            if (y + fH > 270)      { doc.addPage(); y = 20; fx = M; rowH = 0; }
+            const c = await corrigirOrientacao(foto.blob);
+            const fH = Math.round(fW / (c.w / c.h));
+            if (fx + fW > PW - M) { fx = M; y += rowH + gap; rowH = 0; }
+            if (y + fH > 270)     { doc.addPage(); y = 20; fx = M; rowH = 0; }
             doc.addImage(c.data, 'JPEG', fx, y, fW, fH);
             if (fH > rowH) rowH = fH;
             fx += fW + gap;
@@ -524,7 +524,7 @@ export default async function visualizarPage({ id }) {
   };
 }
 
-// ── Utilitários de módulo ─────────────────────────────────────
+// ── Utilitários ───────────────────────────────────────────────
 
 function carregarScript(src) {
   return new Promise((res, rej) => {
@@ -544,8 +544,8 @@ function corrigirOrientacao(dataUrl) {
         const bin = atob(dataUrl.split(',')[1].substring(0, 680));
         for (let i = 0; i < bin.length - 12; i++) {
           if (bin.charCodeAt(i) === 0xFF && bin.charCodeAt(i+1) === 0xE1) {
-            const le  = bin.charCodeAt(i+10) === 0x49;
-            const r2  = (o) => le
+            const le = bin.charCodeAt(i+10) === 0x49;
+            const r2 = (o) => le
               ? bin.charCodeAt(o) | (bin.charCodeAt(o+1) << 8)
               : (bin.charCodeAt(o) << 8) | bin.charCodeAt(o+1);
             const base   = i + 10;
@@ -562,7 +562,7 @@ function corrigirOrientacao(dataUrl) {
         }
       } catch (_) {}
 
-      const w = img.naturalWidth; const h = img.naturalHeight;
+      const w = img.naturalWidth, h = img.naturalHeight;
       const canvas = document.createElement('canvas');
       const ctx    = canvas.getContext('2d');
       if (orientation >= 5) { canvas.width = h; canvas.height = w; }

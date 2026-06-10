@@ -65,7 +65,6 @@ export default async function dashboardPage() {
 
   const totalClientes   = (await getAll('clientes')).length;
   const emAndamento     = ativos.filter(o => o.status === 'em andamento').length;
-  const finalizados     = ativos.filter(o => o.status === 'finalizado').length;
   const pendentes       = ativos.filter(o => o.status === 'pendente').length;
   const totalValor      = ativos
     .filter(o => ['aprovado','em andamento','finalizado'].includes(o.status))

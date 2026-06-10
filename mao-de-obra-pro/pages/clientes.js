@@ -4,9 +4,21 @@
 
 import { render, toast, showModal, hideModal } from '../js/app.js';
 import { getAll, add, put, remove, getById } from '../js/db.js';
+import { moeda, dataLocal } from '../js/calculadora.js';
+import { navigate } from '../js/router.js';
 
 let _clientes = [];
 let _editando = null;
+
+const BADGE = {
+  'pendente':     'warning',
+  'aprovado':     'success',
+  'em andamento': 'primary',
+  'finalizado':   'info',
+  'arquivado':    'secondary',
+  'recusado':     'danger',
+  'cancelado':    'secondary',
+};
 
 export default async function clientesPage() {
   _clientes = await getAll('clientes', 'nome');
@@ -69,6 +81,24 @@ export default async function clientesPage() {
         </div>
       </div>
     </div>
+
+    <!-- Modal perfil do cliente -->
+    <div class="modal fade" id="modal-perfil" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="perfil-titulo">Perfil do Cliente</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body" id="perfil-body">
+            <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-light" data-bs-dismiss="modal">Fechar</button>
+          </div>
+        </div>
+      </div>
+    </div>
   `);
 
   window.filtrarClientes = () => {
@@ -83,10 +113,10 @@ export default async function clientesPage() {
   window.abrirNovoCliente = () => {
     _editando = null;
     document.getElementById('modal-cliente-titulo').textContent = 'Novo Cliente';
-    document.getElementById('inp-nome').value = '';
+    document.getElementById('inp-nome').value     = '';
     document.getElementById('inp-whatsapp').value = '';
     document.getElementById('inp-endereco').value = '';
-    document.getElementById('inp-obs').value = '';
+    document.getElementById('inp-obs').value      = '';
     showModal('modal-cliente');
   };
 
@@ -94,10 +124,10 @@ export default async function clientesPage() {
     _editando = await getById('clientes', id);
     if (!_editando) return;
     document.getElementById('modal-cliente-titulo').textContent = 'Editar Cliente';
-    document.getElementById('inp-nome').value      = _editando.nome || '';
-    document.getElementById('inp-whatsapp').value  = _editando.whatsapp || '';
-    document.getElementById('inp-endereco').value  = _editando.endereco || '';
-    document.getElementById('inp-obs').value       = _editando.obs || '';
+    document.getElementById('inp-nome').value     = _editando.nome     || '';
+    document.getElementById('inp-whatsapp').value = _editando.whatsapp || '';
+    document.getElementById('inp-endereco').value = _editando.endereco || '';
+    document.getElementById('inp-obs').value      = _editando.obs      || '';
     showModal('modal-cliente');
   };
 
@@ -109,7 +139,7 @@ export default async function clientesPage() {
       nome,
       whatsapp:  document.getElementById('inp-whatsapp')?.value.trim() || '',
       endereco:  document.getElementById('inp-endereco')?.value.trim() || '',
-      obs:       document.getElementById('inp-obs')?.value.trim() || '',
+      obs:       document.getElementById('inp-obs')?.value.trim()      || '',
       criadoEm:  _editando?.criadoEm || new Date().toISOString(),
     };
 
@@ -138,6 +168,96 @@ export default async function clientesPage() {
     const num = whatsapp.replace(/\D/g, '');
     window.open(`https://wa.me/55${num}`, '_blank');
   };
+
+  window.verPerfil = async (id) => {
+    const cliente = await getById('clientes', id);
+    if (!cliente) return;
+
+    document.getElementById('perfil-titulo').textContent = cliente.nome;
+    document.getElementById('perfil-body').innerHTML =
+      '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+    showModal('modal-perfil');
+
+    // Carrega orçamentos do cliente
+    const orcamentos = await getAll('orcamentos', 'clienteId', IDBKeyRange.only(parseInt(id)));
+    orcamentos.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+    const pagamentos = await getAll('pagamentos');
+    const pagPorOrc = {};
+    pagamentos.forEach(p => {
+      const key = parseInt(p.orcamentoId);
+      if (!pagPorOrc[key]) pagPorOrc[key] = [];
+      pagPorOrc[key].push(p);
+    });
+
+    const totalGasto = orcamentos
+      .filter(o => ['aprovado','em andamento','finalizado','arquivado'].includes(o.status))
+      .reduce((s, o) => s + (o.total || 0), 0);
+
+    document.getElementById('perfil-body').innerHTML = `
+      <!-- Info do cliente -->
+      <div class="mb-4">
+        ${cliente.whatsapp ? `
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <i class="bi bi-whatsapp text-success"></i>
+            <span>${cliente.whatsapp}</span>
+            <button class="btn btn-sm btn-outline-success ms-auto" onclick="ligarWhatsApp('${cliente.whatsapp}')">
+              Abrir
+            </button>
+          </div>` : ''}
+        ${cliente.endereco ? `
+          <div class="d-flex gap-2 mb-2">
+            <i class="bi bi-geo-alt text-muted mt-1"></i>
+            <span class="text-muted">${cliente.endereco}</span>
+          </div>` : ''}
+        ${cliente.obs ? `
+          <div class="d-flex gap-2 mb-2">
+            <i class="bi bi-chat-text text-muted mt-1"></i>
+            <span class="text-muted">${cliente.obs}</span>
+          </div>` : ''}
+        <div class="d-flex gap-2 mt-3">
+          <div class="card border-0 bg-light flex-fill text-center py-2">
+            <div class="small text-muted">Orçamentos</div>
+            <div class="fw-bold">${orcamentos.length}</div>
+          </div>
+          <div class="card border-0 bg-light flex-fill text-center py-2">
+            <div class="small text-muted">Total gasto</div>
+            <div class="fw-bold text-primary">${moeda(totalGasto)}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Histórico de orçamentos -->
+      <div class="fw-semibold mb-2">Histórico de Orçamentos</div>
+      ${orcamentos.length === 0 ? `
+        <div class="text-muted small text-center py-3">Nenhum orçamento ainda.</div>
+      ` : orcamentos.map(o => {
+        const pago = (pagPorOrc[o.id] || []).reduce((s, p) => s + p.valor, 0);
+        const restante = Math.max(0, o.total - pago);
+        return `
+          <div class="card border-0 bg-light mb-2" onclick="verOrcamentoModal(${o.id})" style="cursor:pointer">
+            <div class="card-body py-2 px-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <div class="small fw-semibold">#${o.id} · ${o.profissaoNome || '—'}</div>
+                  <div class="small text-muted">${dataLocal(o.data)} · ${(o.itens || []).length} serviço(s)</div>
+                </div>
+                <div class="text-end">
+                  <div class="fw-bold small text-primary">${moeda(o.total)}</div>
+                  <span class="badge bg-${BADGE[o.status] || 'secondary'} text-capitalize">${o.status}</span>
+                  ${restante > 0.01 ? `<div class="small text-danger">A receber: ${moeda(restante)}</div>` : ''}
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }).join('')}
+    `;
+
+    window.verOrcamentoModal = (orcId) => {
+      hideModal('modal-perfil');
+      setTimeout(() => navigate('/visualizar', { id: orcId }), 300);
+    };
+  };
 }
 
 function renderLista(clientes) {
@@ -151,7 +271,7 @@ function renderLista(clientes) {
     <div class="card border-0 shadow-sm mb-2">
       <div class="card-body py-2 px-3">
         <div class="d-flex justify-content-between align-items-start">
-          <div class="flex-grow-1">
+          <div class="flex-grow-1" onclick="verPerfil(${c.id})" style="cursor:pointer">
             <div class="fw-semibold">${c.nome}</div>
             ${c.whatsapp ? `<div class="small text-success"><i class="bi bi-whatsapp me-1"></i>${c.whatsapp}</div>` : ''}
             ${c.endereco ? `<div class="small text-muted"><i class="bi bi-geo-alt me-1"></i>${c.endereco}</div>` : ''}
