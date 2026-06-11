@@ -25,16 +25,18 @@ const statusBadge = (status) => {
   return `<span class="badge ${map[status]||'badge-gray'}">${status}</span>`;
 };
 
+// ============================================
+// PAGE
+// ============================================
+
 export async function producaoPage() {
   const [producao, pedidos] = await Promise.all([
     db.producao ? db.producao.orderBy('id').reverse().toArray() : [],
     db.pedidos  ? db.pedidos.toArray() : [],
   ]);
 
-  // Mapa rápido id → pedido para exibir vínculo nos cards
-  const pedidoMap = Object.fromEntries(pedidos.map(p => [p.id, p]));
-
-  const ativas     = producao.filter(i => i.status !== STATUS_PRODUCAO.FINALIZADA).length;
+  const pedidoMap   = Object.fromEntries(pedidos.map(p => [p.id, p]));
+  const ativas      = producao.filter(i => i.status !== STATUS_PRODUCAO.FINALIZADA).length;
   const finalizadas = producao.filter(i => i.status === STATUS_PRODUCAO.FINALIZADA).length;
 
   return `
@@ -65,8 +67,8 @@ export async function producaoPage() {
       }) : `
         <div class="grid-stack">
           ${producao.map(item => {
-            const pct     = item.progresso ?? STATUS_PROGRESS[item.status] ?? 0;
-            const pedido  = item.pedidoId ? pedidoMap[item.pedidoId] : null;
+            const pct    = item.progresso ?? STATUS_PROGRESS[item.status] ?? 0;
+            const pedido = item.pedidoId ? pedidoMap[item.pedidoId] : null;
 
             return `
               <div class="card">
@@ -90,9 +92,9 @@ export async function producaoPage() {
 
                 ${item.acoTipo || item.caboMaterial ? `
                   <div style="display:flex;gap:16px;margin-bottom:12px">
-                    ${item.acoTipo        ? `<div><div style="font-size:11px;color:var(--muted)">Aço</div><div style="font-size:14px;font-weight:600">${item.acoTipo}</div></div>` : ''}
-                    ${item.caboMaterial   ? `<div><div style="font-size:11px;color:var(--muted)">Cabo</div><div style="font-size:14px;font-weight:600">${item.caboMaterial}</div></div>` : ''}
-                    ${item.comprimentoLamina ? `<div><div style="font-size:11px;color:var(--muted)">Lâmina</div><div style="font-size:14px;font-weight:600">${item.comprimentoLamina}cm</div></div>` : ''}
+                    ${item.acoTipo          ? `<div><div style="font-size:11px;color:var(--muted)">Aço</div><div style="font-size:14px;font-weight:600">${item.acoTipo}</div></div>` : ''}
+                    ${item.caboMaterial     ? `<div><div style="font-size:11px;color:var(--muted)">Cabo</div><div style="font-size:14px;font-weight:600">${item.caboMaterial}</div></div>` : ''}
+                    ${item.comprimentoLamina? `<div><div style="font-size:11px;color:var(--muted)">Lâmina</div><div style="font-size:14px;font-weight:600">${item.comprimentoLamina}cm</div></div>` : ''}
                   </div>
                 ` : ''}
 
@@ -106,10 +108,13 @@ export async function producaoPage() {
                   </div>
                 </div>
 
+                <!-- ETAPAS RÁPIDAS -->
                 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
                   ${STATUS_LIST.filter(s => s !== item.status).map(s => `
-                    <button class="advance-status-btn btn btn-ghost btn-sm" data-id="${item.id}" data-status="${s}" style="font-size:11px;padding:5px 10px">
-                      → ${s}
+                    <button class="advance-status-btn btn btn-ghost btn-sm"
+                      data-id="${item.id}" data-status="${s}"
+                      style="font-size:11px;padding:5px 10px;${s === STATUS_PRODUCAO.FINALIZADA ? 'color:#34d399;border-color:rgba(52,211,153,.3)' : ''}">
+                      ${s === STATUS_PRODUCAO.FINALIZADA ? '✓' : '→'} ${s}
                     </button>
                   `).join('')}
                 </div>
@@ -132,11 +137,140 @@ export async function producaoPage() {
 }
 
 // ============================================
-// MODAL — abre com lista de pedidos abertos
+// MODAL DE CONSUMO DE MATERIAIS
+// Abre quando status vai para Finalizada
+// ============================================
+
+async function openConsumoModal(producaoId, producaoNome, onConfirm) {
+  const materiais = db.materiais ? await db.materiais.orderBy('nome').toArray() : [];
+
+  if (!materiais.length) {
+    // Sem materiais cadastrados — finaliza direto
+    await onConfirm([]);
+    return;
+  }
+
+  openModal({
+    title: 'Baixa de estoque',
+    size: 'md',
+    content: `
+      <div style="margin-bottom:16px">
+        <p style="font-size:14px;color:var(--muted);line-height:1.6">
+          Informe quanto de cada material foi usado em
+          <strong style="color:var(--text)">${producaoNome}</strong>.
+          Deixe em branco os que não foram usados.
+        </p>
+      </div>
+
+      <form id="consumoForm" class="grid-stack">
+        ${materiais.map(m => `
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:14px;font-weight:600">${m.nome}</div>
+              <div style="font-size:12px;color:var(--muted)">
+                Estoque atual: <span style="color:var(--text);font-weight:600">${m.estoqueAtual||0} ${m.unidade||'un'}</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+              <input
+                type="number"
+                class="consumo-input"
+                data-id="${m.id}"
+                data-atual="${m.estoqueAtual||0}"
+                data-unidade="${m.unidade||'un'}"
+                min="0"
+                step="0.01"
+                placeholder="0"
+                style="width:80px;margin-bottom:0;text-align:right;padding:8px 10px;font-size:14px"
+              />
+              <span style="font-size:13px;color:var(--muted);width:28px">${m.unidade||'un'}</span>
+            </div>
+          </div>
+        `).join('')}
+
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <button type="button" id="consumoSkipBtn" class="btn btn-ghost" style="flex:1">
+            Finalizar sem baixa
+          </button>
+          <button type="submit" class="btn btn-primary" style="flex:2">
+            <i data-lucide="check" style="width:16px;height:16px"></i>
+            Confirmar baixa
+          </button>
+        </div>
+      </form>
+    `
+  });
+
+  if (window.lucide) lucide.createIcons();
+
+  // Botão "finalizar sem baixa"
+  document.getElementById('consumoSkipBtn').addEventListener('click', async () => {
+    closeModal();
+    await onConfirm([]);
+  });
+
+  // Confirmar baixa
+  document.getElementById('consumoForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const inputs  = document.querySelectorAll('.consumo-input');
+    const consumos = [];
+
+    for (const input of inputs) {
+      const qtd = parseFloat(input.value) || 0;
+      if (qtd <= 0) continue;
+
+      const id    = Number(input.dataset.id);
+      const atual = parseFloat(input.dataset.atual) || 0;
+      const unidade = input.dataset.unidade;
+
+      if (qtd > atual) {
+        showToast({ type:'error', message:`Quantidade maior que o estoque disponível (${atual} ${unidade}).` });
+        return;
+      }
+
+      consumos.push({ id, qtd, novoEstoque: Math.max(0, atual - qtd) });
+    }
+
+    closeModal();
+    await onConfirm(consumos);
+  });
+}
+
+// ============================================
+// FINALIZAR PRODUÇÃO com baixa de estoque
+// ============================================
+
+async function finalizarProducao(id) {
+  const item = await db.producao.get(id);
+  if (!item) return;
+
+  openConsumoModal(id, item.nome, async (consumos) => {
+    // Dá baixa em cada material informado
+    for (const { id: matId, novoEstoque } of consumos) {
+      await db.materiais.update(matId, { estoqueAtual: novoEstoque });
+    }
+
+    // Atualiza status da produção
+    await db.producao.update(id, {
+      status:    STATUS_PRODUCAO.FINALIZADA,
+      progresso: 100,
+    });
+
+    const msg = consumos.length > 0
+      ? `Produção finalizada! Baixa em ${consumos.length} material${consumos.length > 1 ? 'is' : ''}.`
+      : 'Produção finalizada!';
+
+    showToast({ message: msg });
+    setTimeout(() => navigate('producao'), 300);
+  });
+}
+
+// ============================================
+// MODAL CRIAR / EDITAR
 // ============================================
 
 async function openProducaoModal(existing = null) {
-  // Carrega pedidos abertos para o select
   const pedidosAbertos = db.pedidos
     ? await db.pedidos
         .filter(p => p.status === STATUS_PEDIDO.ABERTO || p.status === STATUS_PEDIDO.EM_PRODUCAO)
@@ -161,12 +295,10 @@ async function openProducaoModal(existing = null) {
           <label>Nome da peça *</label>
           <input type="text" id="prodNome" placeholder="Ex: Bowie artesanal" value="${existing?.nome||''}" />
         </div>
-
         <div>
           <label>Pedido relacionado</label>
           <select id="prodPedidoId">${pedidoOptions}</select>
         </div>
-
         <div class="grid-2" style="gap:12px">
           <div>
             <label>Tipo de aço</label>
@@ -188,9 +320,11 @@ async function openProducaoModal(existing = null) {
           </div>
         </div>
         <div>
-          <label>Status</label>
+          <label>Status inicial</label>
           <select id="prodStatus">
-            ${STATUS_LIST.map(s => `<option value="${s}" ${(existing?.status||STATUS_PRODUCAO.INICIADA)===s?'selected':''}>${s}</option>`).join('')}
+            ${STATUS_LIST.filter(s => s !== STATUS_PRODUCAO.FINALIZADA).map(s =>
+              `<option value="${s}" ${(existing?.status||STATUS_PRODUCAO.INICIADA)===s?'selected':''}>${s}</option>`
+            ).join('')}
           </select>
         </div>
         <div>
@@ -207,7 +341,7 @@ async function openProducaoModal(existing = null) {
     const nome = document.getElementById('prodNome').value.trim();
     if (!nome) { showToast({ type:'error', message:'Informe o nome.' }); return; }
 
-    const status     = document.getElementById('prodStatus').value;
+    const status      = document.getElementById('prodStatus').value;
     const pedidoIdRaw = document.getElementById('prodPedidoId').value;
 
     const data = {
@@ -225,19 +359,18 @@ async function openProducaoModal(existing = null) {
     if (existing) {
       await db.producao.update(existing.id, data);
       showToast({ message: 'Produção atualizada.' });
+      closeModal();
+      setTimeout(() => navigate('producao'), 300);
     } else {
       data.createdAt = new Date().toISOString();
       await db.producao.add(data);
-
-      // Se vinculou a um pedido, marcar como Em produção automaticamente
       if (data.pedidoId) {
         await db.pedidos.update(data.pedidoId, { status: STATUS_PEDIDO.EM_PRODUCAO });
       }
-
       showToast({ message: 'Produção iniciada!' });
+      closeModal();
+      setTimeout(() => navigate('producao'), 300);
     }
-    closeModal();
-    setTimeout(() => navigate('producao'), 300);
   });
 }
 
@@ -261,6 +394,13 @@ window.addEventListener('click', async (e) => {
 
   if (e.target.closest('.advance-status-btn') && id) {
     const newStatus = e.target.closest('.advance-status-btn').dataset.status;
+
+    // Finalizar → abre modal de consumo de materiais
+    if (newStatus === STATUS_PRODUCAO.FINALIZADA) {
+      finalizarProducao(id);
+      return;
+    }
+
     await db.producao.update(id, { status: newStatus, progresso: STATUS_PROGRESS[newStatus]||0 });
     showToast({ message: `Status: ${newStatus}` });
     setTimeout(() => navigate('producao'), 250);
