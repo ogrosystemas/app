@@ -2,6 +2,131 @@ import { db, fmtBRL, fmtDate, TIPO_FINANCEIRO } from '../database/db.js';
 import { showToast } from '../components/toast.js';
 import { navigate  } from '../core/router.js';
 
+// ============================================
+// DADOS DOS ÚLTIMOS N MESES
+// ============================================
+
+function buildChartData(registros, meses = 6) {
+  const hoje   = new Date();
+  const labels = [];
+  const rec    = [];
+  const desp   = [];
+
+  for (let i = meses - 1; i >= 0; i--) {
+    const d    = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+    const ano  = d.getFullYear();
+    const mes  = d.getMonth();
+    const label= d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })
+                  .replace('.', '').replace(' de ', '/');
+
+    const doMes = registros.filter(r => {
+      if (!r.createdAt) return false;
+      const rd = new Date(r.createdAt);
+      return rd.getFullYear() === ano && rd.getMonth() === mes;
+    });
+
+    labels.push(label);
+    rec.push( doMes.filter(r => r.tipo === TIPO_FINANCEIRO.RECEITA).reduce((s,r) => s + Number(r.valor||0), 0));
+    desp.push(doMes.filter(r => r.tipo === TIPO_FINANCEIRO.DESPESA).reduce((s,r) => s + Number(r.valor||0), 0));
+  }
+
+  return { labels, rec, desp };
+}
+
+// ============================================
+// RENDERIZA O GRÁFICO (chamado após HTML no DOM)
+// ============================================
+
+function renderChart(registros) {
+  const canvas = document.getElementById('finChart');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  const { labels, rec, desp } = buildChartData(registros, 6);
+
+  // Destrói instância anterior se existir (ao navegar de volta)
+  if (canvas._chartInstance) {
+    canvas._chartInstance.destroy();
+  }
+
+  const ctx = canvas.getContext('2d');
+
+  canvas._chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Receitas',
+          data: rec,
+          backgroundColor: 'rgba(52,211,153,.75)',
+          borderColor:     'rgba(52,211,153,1)',
+          borderWidth: 1,
+          borderRadius: 6,
+          borderSkipped: false,
+        },
+        {
+          label: 'Despesas',
+          data: desp,
+          backgroundColor: 'rgba(248,113,113,.65)',
+          borderColor:     'rgba(248,113,113,1)',
+          borderWidth: 1,
+          borderRadius: 6,
+          borderSkipped: false,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          labels: {
+            color: '#94a3b8',
+            font:  { size: 12, family: 'Inter, system-ui, sans-serif' },
+            boxWidth: 12,
+            boxHeight: 12,
+            borderRadius: 4,
+          },
+        },
+        tooltip: {
+          backgroundColor: 'rgba(4,9,26,.95)',
+          borderColor:     'rgba(255,255,255,.1)',
+          borderWidth: 1,
+          titleColor: '#f8fafc',
+          bodyColor:  '#94a3b8',
+          padding: 12,
+          callbacks: {
+            label: (ctx) => ` ${ctx.dataset.label}: ${fmtBRL(ctx.parsed.y)}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid:  { color: 'rgba(255,255,255,.04)' },
+          ticks: { color: '#64748b', font: { size: 11 } },
+        },
+        y: {
+          grid:  { color: 'rgba(255,255,255,.06)' },
+          ticks: {
+            color: '#64748b',
+            font:  { size: 11 },
+            callback: (v) => {
+              if (v >= 1000) return 'R$' + (v/1000).toFixed(0) + 'k';
+              return 'R$' + v;
+            },
+          },
+          beginAtZero: true,
+        },
+      },
+    },
+  });
+}
+
+// ============================================
+// PAGE
+// ============================================
+
 export async function financeiroPage() {
 
   const registros = await db.financeiro.orderBy('createdAt').reverse().toArray();
@@ -13,6 +138,9 @@ export async function financeiroPage() {
 
   const badgeClass = (tipo) => tipo === TIPO_FINANCEIRO.RECEITA ? 'badge-green' : 'badge-red';
   const signal     = (tipo) => tipo === TIPO_FINANCEIRO.RECEITA ? '+' : '-';
+
+  // Agendar renderização do gráfico após o HTML estar no DOM
+  setTimeout(() => renderChart(registros), 50);
 
   return `
     <section class="pb-4">
@@ -40,10 +168,32 @@ export async function financeiroPage() {
         </div>
       </div>
 
+      <!-- GRÁFICO -->
+      <div class="card" style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <h2 style="font-size:17px;font-weight:800">Últimos 6 meses</h2>
+          <div style="display:flex;gap:12px">
+            <span style="font-size:12px;color:#34d399;display:flex;align-items:center;gap:5px">
+              <span style="width:10px;height:10px;background:#34d399;border-radius:3px;display:inline-block"></span>Receitas
+            </span>
+            <span style="font-size:12px;color:#f87171;display:flex;align-items:center;gap:5px">
+              <span style="width:10px;height:10px;background:#f87171;border-radius:3px;display:inline-block"></span>Despesas
+            </span>
+          </div>
+        </div>
+        <div style="position:relative;height:220px">
+          <canvas id="finChart"></canvas>
+        </div>
+        ${registros.length === 0 ? `
+          <p style="text-align:center;color:var(--muted);font-size:13px;margin-top:12px">
+            Nenhum lançamento ainda — o gráfico aparece conforme você registra.
+          </p>
+        ` : ''}
+      </div>
+
       <!-- NOVO LANÇAMENTO -->
       <div class="card" style="margin-bottom:20px">
         <h2 style="font-size:17px;font-weight:800;margin-bottom:18px">Novo lançamento</h2>
-
         <form id="financeiroForm">
           <label>Tipo</label>
           <select id="tipo">
@@ -93,6 +243,10 @@ export async function financeiroPage() {
   `;
 }
 
+// ============================================
+// SALVAR LANÇAMENTO
+// ============================================
+
 window.addEventListener('submit', async (e) => {
   if (e.target.id !== 'financeiroForm') return;
   e.preventDefault();
@@ -106,7 +260,11 @@ window.addEventListener('submit', async (e) => {
   if (!descricao) { showToast({ type:'error', message:'Informe a descrição.' }); return; }
   if (!valor || valor <= 0) { showToast({ type:'error', message:'Informe um valor válido.' }); return; }
 
-  await db.financeiro.add({ tipo, descricao, categoria, valor, vencimento, status:'pendente', createdAt: new Date().toISOString() });
+  await db.financeiro.add({
+    tipo, descricao, categoria, valor, vencimento,
+    status: 'pendente',
+    createdAt: new Date().toISOString()
+  });
 
   showToast({ message: tipo === TIPO_FINANCEIRO.RECEITA ? 'Receita lançada!' : 'Despesa lançada!' });
   setTimeout(() => navigate('financeiro'), 400);
