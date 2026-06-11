@@ -136,18 +136,18 @@ export async function dashboardPage() {
             color:var(--muted);cursor:pointer;white-space:nowrap
           ">${mostrarTotal ? 'Ver mês atual' : 'Ver total'}</button>
         </div>
-        <div style="display:flex;gap:24px;align-items:flex-end">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
           <div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:2px">Receitas</div>
-            <div style="font-size:22px;font-weight:900;color:#34d399">${fmtBRL(receitas)}</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Receitas</div>
+            <div style="font-size:clamp(14px,3.5vw,20px);font-weight:900;color:#34d399;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtBRL(receitas)}</div>
           </div>
           <div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:2px">Despesas</div>
-            <div style="font-size:22px;font-weight:900;color:#f87171">${fmtBRL(despesas)}</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Despesas</div>
+            <div style="font-size:clamp(14px,3.5vw,20px);font-weight:900;color:#f87171;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtBRL(despesas)}</div>
           </div>
-          <div style="margin-left:auto;text-align:right">
-            <div style="font-size:11px;color:var(--muted);margin-bottom:2px">Saldo</div>
-            <div style="font-size:22px;font-weight:900;color:${saldoColor}">${fmtBRL(saldo)}</div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Saldo</div>
+            <div style="font-size:clamp(14px,3.5vw,20px);font-weight:900;color:${saldoColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtBRL(saldo)}</div>
           </div>
         </div>
       </div>
