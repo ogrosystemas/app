@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cutelaria-os-202606121343';
+const CACHE_NAME = 'cutelaria-os-202606121350';
 
 const STATIC = [
   './',

@@ -63,11 +63,11 @@ export async function configuracoesPage() {
           Restaurar
         </h2>
         <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Importe um backup salvo anteriormente.</p>
-        <label for="restoreBackupInput" style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-md);padding:13px 16px;cursor:pointer;font-weight:600;font-size:14px">
-          <i class="ph ph-upload-simple" style="width:16px;height:16px;color:var(--accent)"></i>
+        <label style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-md);padding:13px 16px;cursor:pointer;font-weight:600;font-size:14px">
+          <i class="ph ph-upload-simple" style="font-size:18px;color:var(--accent)"></i>
           Selecionar arquivo .json
+          <input id="restoreBackupInput" type="file" accept=".json" style="display:none" />
         </label>
-        <input id="restoreBackupInput" type="file" accept=".json" style="position:absolute;opacity:0;pointer-events:none" />
       </div>
 
     </section>
