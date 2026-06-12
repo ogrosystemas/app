@@ -442,6 +442,25 @@ label {
   to   { opacity: 1; transform: scale(1); }
 }
 
+
+/* =============================================
+   INPUT DE QUANTIDADE — usado nos modais de
+   materiais previstos e baixa de estoque
+============================================= */
+
+input.input-qty {
+  width: 96px;
+  margin-bottom: 0;
+  text-align: right;
+  padding: 10px 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+@media (max-width: 400px) {
+  input.input-qty { width: 80px; }
+}
+
 /* =============================================
    SCROLLBAR
 ============================================= */

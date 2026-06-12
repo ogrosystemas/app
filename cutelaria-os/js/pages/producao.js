@@ -237,7 +237,7 @@ async function openConsumoModal(producaoId, producaoNome, materiaisPrevistos, on
                   data-id="${m.id}" data-atual="${m.estoqueAtual||0}" data-unidade="${unidade}"
                   min="0" step="${MEDIDA_CONFIG[m.tipoMedida]?.passo || 1}"
                   placeholder="0" value="${previsto}"
-                  style="width:80px;margin-bottom:0;text-align:right;padding:8px 10px;font-size:14px;${temReserva ? 'border-color:rgba(249,115,22,.4)' : ''}" />
+                  class="input-qty" style="${temReserva ? 'border-color:rgba(249,115,22,.4)' : ''}" />
                 <span style="font-size:12px;color:var(--muted);width:32px">${unidade}</span>
               </div>
             </div>
@@ -341,7 +341,7 @@ async function openProducaoModal(existing = null) {
                 <input type="number" class="reserva-input" data-material-id="${m.id}"
                   min="0" step="${MEDIDA_CONFIG[m.tipoMedida]?.passo || 1}"
                   placeholder="0" value="${reservado}"
-                  style="width:80px;margin-bottom:0;text-align:right;padding:8px 10px;font-size:14px" />
+                  class="input-qty" />
                 <span style="font-size:12px;color:var(--muted);width:32px">${unidade}</span>
               </div>
             </div>
