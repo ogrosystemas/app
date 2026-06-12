@@ -76,7 +76,7 @@ i.ph[style*="width: 22px"] { font-size: 24px; }
 html { scroll-behavior: smooth; }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
   background:
     radial-gradient(circle at top, rgba(30,41,59,.5), transparent 45%),
     var(--bg);
@@ -190,18 +190,19 @@ input,
 select,
 textarea {
   width: 100%;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,0.04);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 15px;
-  padding: 13px 16px;
-  margin-bottom: 12px;
-  outline: none;
-  transition: all .2s ease;
-  -webkit-appearance: none;
-  appearance: none;
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--border) !important;
+  background: rgba(255,255,255,0.04) !important;
+  color: var(--text) !important;
+  font-family: inherit !important;
+  font-size: 15px !important;
+  padding: 13px 16px !important;
+  margin-bottom: 12px !important;
+  outline: none !important;
+  transition: all .2s ease !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  box-sizing: border-box !important;
 }
 
 input:focus,
