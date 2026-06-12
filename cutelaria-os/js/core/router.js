@@ -27,7 +27,7 @@ export async function navigate(route = 'dashboard') {
   if (!document.getElementById('pageContent')) {
     app.innerHTML = `
       <main>
-        <div id="pageContent" class="min-h-screen pb-36"></div>
+        <div id="pageContent" style="min-height:100vh;padding-bottom:144px"></div>
         ${renderNavbar(route)}
       </main>
     `;

@@ -7,7 +7,7 @@ export async function configuracoesPage() {
   const settings = await db.settings.toCollection().first();
 
   return `
-    <section class="pb-4">
+    <section>
       <div class="page-header">
         <div>
           <h1>Configurações</h1>

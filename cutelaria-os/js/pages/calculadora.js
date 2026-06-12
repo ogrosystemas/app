@@ -13,7 +13,7 @@ export async function calculadoraPage() {
   const defaultHourCost = settings?.custoHora || 50;
 
   return `
-    <section class="pb-4">
+    <section>
       <div class="page-header">
         <div>
           <h1>Calculadora</h1>

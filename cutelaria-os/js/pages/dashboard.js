@@ -77,7 +77,7 @@ export async function dashboardPage() {
   };
 
   return `
-    <section class="pb-4">
+    <section>
 
       <div style="margin-bottom:28px">
         <p style="color:var(--muted);font-size:14px;margin-bottom:4px">${nomeOficina}</p>

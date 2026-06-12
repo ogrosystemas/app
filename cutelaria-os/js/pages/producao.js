@@ -144,7 +144,7 @@ export async function producaoPage() {
   };
 
   return `
-    <section class="pb-4">
+    <section>
       <div class="page-header">
         <div>
           <h1>Produção</h1>
