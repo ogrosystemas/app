@@ -31,7 +31,6 @@ export async function navigate(route = 'dashboard') {
         ${renderNavbar(route)}
       </main>
     `;
-    if (window.lucide) lucide.createIcons();
   }
 
   updateNavbarActive(route);
@@ -51,7 +50,6 @@ export async function navigate(route = 'dashboard') {
 
   try {
     content.innerHTML = await page();
-    if (window.lucide) lucide.createIcons();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (err) {
     console.error(err);

@@ -52,8 +52,6 @@ export function openModal({ title = 'Modal', content = '', size = 'md' }) {
   document.body.appendChild(modal);
   activeModal = modal;
 
-  if (window.lucide) lucide.createIcons();
-
   document.getElementById('closeModalButton').addEventListener('click', closeModal);
   modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 }

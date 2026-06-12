@@ -34,7 +34,7 @@ export function showToast(opts) {
 
   toast.innerHTML = `
     <div style="width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:${isSuccess?'rgba(16,185,129,.2)':'rgba(239,68,68,.2)'}">
-      <i data-lucide="${isSuccess?'check':'x'}" style="width:16px;height:16px;color:${isSuccess?'#34d399':'#f87171'}"></i>
+      <i class="ph ph-${isSuccess?'check':'x'}" style="width:16px;height:16px;color:${isSuccess?'#34d399':'#f87171'}"></i>
     </div>
     <div style="flex:1">
       <strong style="font-size:13px;color:${isSuccess?'#34d399':'#f87171'}">${isSuccess?'Sucesso':'Erro'}</strong>
@@ -43,7 +43,6 @@ export function showToast(opts) {
   `;
 
   document.body.appendChild(toast);
-  if (window.lucide) lucide.createIcons();
 
   clearTimeout(toastTimeout);
   toastTimeout = setTimeout(() => {

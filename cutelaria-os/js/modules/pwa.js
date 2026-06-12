@@ -167,12 +167,11 @@ function createInstallButton() {
   });
 
   btn.innerHTML = `
-    <i data-lucide="smartphone" style="width:18px;height:18px"></i>
+    <i class="ph ph-device-mobile" style="width:18px;height:18px"></i>
     Instalar App
   `;
 
   document.body.appendChild(btn);
-  if (window.lucide) lucide.createIcons();
 
   btn.addEventListener('click', async () => {
     if (!deferredInstallPrompt) return;

@@ -18,7 +18,7 @@ export async function configuracoesPage() {
       <!-- OFICINA -->
       <div class="card" style="margin-bottom:16px">
         <h2 style="font-size:16px;font-weight:800;margin-bottom:18px">
-          <i data-lucide="user" style="width:16px;height:16px;vertical-align:-2px;margin-right:6px"></i>
+          <i class="ph ph-user" style="width:16px;height:16px;vertical-align:-2px;margin-right:6px"></i>
           Minha Oficina
         </h2>
         <form id="settingsForm" class="grid-stack">
@@ -47,24 +47,24 @@ export async function configuracoesPage() {
       <!-- BACKUP -->
       <div class="card" style="margin-bottom:16px">
         <h2 style="font-size:16px;font-weight:800;margin-bottom:8px">
-          <i data-lucide="download" style="width:16px;height:16px;vertical-align:-2px;margin-right:6px"></i>
+          <i class="ph ph-download-simple" style="width:16px;height:16px;vertical-align:-2px;margin-right:6px"></i>
           Backup
         </h2>
         <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Exporte todos os dados da oficina como arquivo JSON.</p>
         <button id="exportBackupButton" class="btn btn-ghost btn-full">
-          <i data-lucide="download" style="width:16px;height:16px"></i> Exportar backup
+          <i class="ph ph-download-simple" style="width:16px;height:16px"></i> Exportar backup
         </button>
       </div>
 
       <!-- RESTAURAR -->
       <div class="card">
         <h2 style="font-size:16px;font-weight:800;margin-bottom:8px">
-          <i data-lucide="upload" style="width:16px;height:16px;vertical-align:-2px;margin-right:6px"></i>
+          <i class="ph ph-upload-simple" style="width:16px;height:16px;vertical-align:-2px;margin-right:6px"></i>
           Restaurar
         </h2>
         <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Importe um backup salvo anteriormente.</p>
         <label for="restoreBackupInput" style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-md);padding:13px 16px;cursor:pointer;font-weight:600;font-size:14px">
-          <i data-lucide="upload" style="width:16px;height:16px;color:var(--accent)"></i>
+          <i class="ph ph-upload-simple" style="width:16px;height:16px;color:var(--accent)"></i>
           Selecionar arquivo .json
         </label>
         <input id="restoreBackupInput" type="file" accept=".json" style="position:absolute;opacity:0;pointer-events:none" />

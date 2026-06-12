@@ -46,13 +46,8 @@ export function emptyState({
         mb-6
       ">
 
-        <i
-          data-lucide="${icon}"
-          class="
-            w-12
-            h-12
-            text-orange-400
-          "
+        <i class="ph ph-${icon}"
+          style="font-size:48px;color:#fb923c"
         ></i>
 
       </div>

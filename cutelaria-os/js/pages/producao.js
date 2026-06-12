@@ -61,7 +61,7 @@ export async function producaoPage() {
 
         ${pedido ? `
           <div style="display:flex;align-items:center;gap:8px;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.2);border-radius:10px;padding:8px 12px;margin-bottom:12px">
-            <i data-lucide="shopping-bag" style="width:14px;height:14px;color:#c084fc;flex-shrink:0"></i>
+            <i class="ph ph-shopping-bag" style="width:14px;height:14px;color:#c084fc;flex-shrink:0"></i>
             <span style="font-size:13px;color:#c084fc;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
               ${pedido.nome}${pedido.cliente ? ' — ' + pedido.cliente : ''}
             </span>
@@ -117,25 +117,25 @@ export async function producaoPage() {
           </div>
           <div style="display:flex;gap:8px">
             <button class="btn btn-ghost btn-sm edit-prod-btn" data-id="${item.id}">
-              <i data-lucide="pencil" style="width:14px;height:14px"></i> Editar
+              <i class="ph ph-pencil-simple" style="width:14px;height:14px"></i> Editar
             </button>
             ${item.status === STATUS_PRODUCAO.FINALIZADA ? `
               <button class="btn btn-ghost btn-sm archive-prod-btn" data-id="${item.id}"
                 style="color:#94a3b8;border-color:rgba(148,163,184,.2)">
-                <i data-lucide="archive" style="width:14px;height:14px"></i> Arquivar
+                <i class="ph ph-tray" style="width:14px;height:14px"></i> Arquivar
               </button>
             ` : ''}
             <button class="btn btn-danger btn-sm delete-prod-btn" data-id="${item.id}" style="margin-left:auto">
-              <i data-lucide="trash-2" style="width:14px;height:14px"></i>
+              <i class="ph ph-trash" style="width:14px;height:14px"></i>
             </button>
           </div>
         ` : `
           <div style="display:flex;gap:8px">
             <button class="btn btn-ghost btn-sm unarchive-prod-btn" data-id="${item.id}">
-              <i data-lucide="archive-restore" style="width:14px;height:14px"></i> Desarquivar
+              <i class="ph ph-arrow-counter-clockwise" style="width:14px;height:14px"></i> Desarquivar
             </button>
             <button class="btn btn-danger btn-sm delete-prod-btn" data-id="${item.id}" style="margin-left:auto">
-              <i data-lucide="trash-2" style="width:14px;height:14px"></i>
+              <i class="ph ph-trash" style="width:14px;height:14px"></i>
             </button>
           </div>
         `}
@@ -178,9 +178,9 @@ export async function producaoPage() {
             background:none;border:none;padding:10px 0;cursor:pointer;
             color:var(--muted);font-size:14px;font-weight:600;font-family:inherit;
           ">
-            <i data-lucide="archive" style="width:16px;height:16px"></i>
+            <i class="ph ph-tray" style="width:16px;height:16px"></i>
             Arquivo (${arquivo.length} peça${arquivo.length!==1?'s':''})
-            <i data-lucide="chevron-down" id="arquivoProducaoChevron" style="width:16px;height:16px;margin-left:auto;transition:transform .2s"></i>
+            <i class="ph ph-caret-down" id="arquivoProducaoChevron" style="width:16px;height:16px;margin-left:auto;transition:transform .2s"></i>
           </button>
           <div id="arquivoProducaoLista" style="display:none;margin-top:8px">
             <div class="grid-stack">${arquivo.map(i => renderCard(i, true)).join('')}</div>
@@ -246,14 +246,12 @@ async function openConsumoModal(producaoId, producaoNome, materiaisPrevistos, on
         <div style="display:flex;gap:10px;margin-top:8px">
           <button type="button" id="consumoSkipBtn" class="btn btn-ghost" style="flex:1">Finalizar sem baixa</button>
           <button type="submit" class="btn btn-primary" style="flex:2">
-            <i data-lucide="check" style="width:16px;height:16px"></i> Confirmar baixa
+            <i class="ph ph-check" style="width:16px;height:16px"></i> Confirmar baixa
           </button>
         </div>
       </form>
     `
   });
-
-  if (window.lucide) lucide.createIcons();
 
   document.getElementById('consumoSkipBtn').addEventListener('click', async () => {
     closeModal(); await onConfirm([]);
@@ -328,7 +326,7 @@ async function openProducaoModal(existing = null) {
     return `
       <div style="margin-bottom:14px">
         <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:5px;text-transform:uppercase;letter-spacing:.5px">
-          <i data-lucide="${tipoIcon}" style="width:13px;height:13px"></i>${titulo}
+          <i class="ph ph-${tipoIcon}" style="width:13px;height:13px"></i>${titulo}
         </div>
         ${lista.map(m => {
           const unidade  = unidadeMaterial(m);
@@ -393,7 +391,7 @@ async function openProducaoModal(existing = null) {
             <div style="font-size:15px;font-weight:800;margin-bottom:4px">Materiais previstos</div>
             <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Informe a quantidade de cada material. Deixe em branco o que não for usar.</p>
             ${renderMaterialSelect(acos,  'Aço',  'hammer')}
-            ${renderMaterialSelect(cabos, 'Cabo', 'grip-horizontal')}
+            ${renderMaterialSelect(cabos, 'Cabo', 'dots-six')}
           </div>
         ` : `
           <div style="border-top:1px solid var(--border);padding-top:14px">
@@ -404,8 +402,6 @@ async function openProducaoModal(existing = null) {
       </form>
     `
   });
-
-  if (window.lucide) lucide.createIcons();
 
   document.getElementById('producaoForm').addEventListener('submit', async (e) => {
     e.preventDefault();

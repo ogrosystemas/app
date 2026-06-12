@@ -120,10 +120,10 @@ export async function materiaisPage() {
           <div style="flex:1"></div>
 
           <button class="btn btn-ghost btn-sm edit-material-btn" data-id="${item.id}">
-            <i data-lucide="pencil" style="width:14px;height:14px"></i>
+            <i class="ph ph-pencil-simple" style="width:14px;height:14px"></i>
           </button>
           <button class="btn btn-danger btn-sm delete-material-btn" data-id="${item.id}">
-            <i data-lucide="trash-2" style="width:14px;height:14px"></i>
+            <i class="ph ph-trash" style="width:14px;height:14px"></i>
           </button>
         </div>
       </div>
@@ -135,7 +135,7 @@ export async function materiaisPage() {
     return `
       <div style="margin-bottom:24px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-          <i data-lucide="${icone}" style="width:16px;height:16px;color:var(--accent)"></i>
+          <i class="ph ph-${icone}" style="width:16px;height:16px;color:var(--accent)"></i>
           <h2 style="font-size:15px;font-weight:700;color:var(--muted)">${titulo} <span style="color:var(--text)">(${lista.length})</span></h2>
         </div>
         <div class="grid-stack">${lista.map(renderCard).join('')}</div>
@@ -170,7 +170,7 @@ export async function materiaisPage() {
       ${criticos.length ? `
         <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:var(--radius-md);padding:14px 16px;margin-bottom:20px">
           <div style="font-weight:700;font-size:14px;color:#f87171;margin-bottom:8px">
-            <i data-lucide="alert-triangle" style="width:14px;height:14px;vertical-align:-2px;margin-right:5px"></i>Estoque crítico
+            <i class="ph ph-warning" style="width:14px;height:14px;vertical-align:-2px;margin-right:5px"></i>Estoque crítico
           </div>
           ${criticos.map(i => `
             <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-top:1px solid rgba(239,68,68,.1)">
@@ -189,9 +189,9 @@ export async function materiaisPage() {
         </div>
       ` : `
         ${renderGrupo('Aços',       acos,        'hammer')}
-        ${renderGrupo('Cabos',      cabos,       'grip-horizontal')}
+        ${renderGrupo('Cabos',      cabos,       'dots-six')}
         ${renderGrupo('Consumíveis',consumiveis, 'package')}
-        ${semTipo.length ? renderGrupo('Sem classificação', semTipo, 'help-circle') : ''}
+        ${semTipo.length ? renderGrupo('Sem classificação', semTipo, 'question') : ''}
       `}
     </section>
   `;

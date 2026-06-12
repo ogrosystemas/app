@@ -24,7 +24,7 @@ export async function calculadoraPage() {
       <!-- TEMPLATE RÁPIDO -->
       <div class="card" style="margin-bottom:16px">
         <label style="margin-bottom:10px">
-          <i data-lucide="zap" style="width:14px;height:14px;vertical-align:-2px;margin-right:5px;color:var(--accent)"></i>
+          <i class="ph ph-lightning" style="width:14px;height:14px;vertical-align:-2px;margin-right:5px;color:var(--accent)"></i>
           Template rápido
         </label>
         <select id="knifeTemplateSelect">
@@ -169,16 +169,14 @@ window.addEventListener('click', async (e) => {
       <!-- AÇÕES -->
       <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
         <button id="generatePdfButton" class="btn btn-ghost" style="flex:1">
-          <i data-lucide="file-text" style="width:16px;height:16px"></i> PDF
+          <i class="ph ph-file-text" style="width:16px;height:16px"></i> PDF
         </button>
         <button id="saveAsPedidoBtn" class="btn btn-primary" style="flex:2">
-          <i data-lucide="shopping-bag" style="width:16px;height:16px"></i> Criar pedido com este preço
+          <i class="ph ph-shopping-bag" style="width:16px;height:16px"></i> Criar pedido com este preço
         </button>
       </div>
     </div>
   `;
-
-  if (window.lucide) lucide.createIcons();
   document.getElementById('calculatorResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 });
 

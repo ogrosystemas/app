@@ -74,26 +74,26 @@ export async function pedidosPage() {
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           ${!isArquivado ? `
             <button class="btn btn-ghost btn-sm edit-pedido-btn" data-id="${item.id}">
-              <i data-lucide="pencil" style="width:14px;height:14px"></i> Editar
+              <i class="ph ph-pencil-simple" style="width:14px;height:14px"></i> Editar
             </button>
             ${item.status !== STATUS_PEDIDO.CONCLUIDO ? `
               <button class="btn btn-success btn-sm conclude-pedido-btn" data-id="${item.id}">
-                <i data-lucide="check" style="width:14px;height:14px"></i> Concluir
+                <i class="ph ph-check" style="width:14px;height:14px"></i> Concluir
               </button>
             ` : ''}
             ${podeArquivar(item) ? `
               <button class="btn btn-ghost btn-sm archive-pedido-btn" data-id="${item.id}"
                 style="color:#94a3b8;border-color:rgba(148,163,184,.2)">
-                <i data-lucide="archive" style="width:14px;height:14px"></i> Arquivar
+                <i class="ph ph-tray" style="width:14px;height:14px"></i> Arquivar
               </button>
             ` : ''}
           ` : `
             <button class="btn btn-ghost btn-sm unarchive-pedido-btn" data-id="${item.id}">
-              <i data-lucide="archive-restore" style="width:14px;height:14px"></i> Desarquivar
+              <i class="ph ph-arrow-counter-clockwise" style="width:14px;height:14px"></i> Desarquivar
             </button>
           `}
           <button class="btn btn-danger btn-sm delete-pedido-btn" data-id="${item.id}" style="margin-left:auto">
-            <i data-lucide="trash-2" style="width:14px;height:14px"></i>
+            <i class="ph ph-trash" style="width:14px;height:14px"></i>
           </button>
         </div>
       </div>
@@ -140,9 +140,9 @@ export async function pedidosPage() {
             background:none;border:none;padding:10px 0;cursor:pointer;
             color:var(--muted);font-size:14px;font-weight:600;font-family:inherit;
           ">
-            <i data-lucide="archive" style="width:16px;height:16px"></i>
+            <i class="ph ph-tray" style="width:16px;height:16px"></i>
             Arquivo (${arquivo.length} pedido${arquivo.length!==1?'s':''})
-            <i data-lucide="chevron-down" id="arquivoPedidosChevron" style="width:16px;height:16px;margin-left:auto;transition:transform .2s"></i>
+            <i class="ph ph-caret-down" id="arquivoPedidosChevron" style="width:16px;height:16px;margin-left:auto;transition:transform .2s"></i>
           </button>
           <div id="arquivoPedidosLista" style="display:none;margin-top:8px">
             <div class="grid-stack">${arquivo.map(p => renderCard(p, true)).join('')}</div>

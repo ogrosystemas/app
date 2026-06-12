@@ -3,13 +3,13 @@
 // ============================================
 
 const NAV_ITEMS = [
-  { route: 'dashboard',  icon: 'layout-dashboard', label: 'Início' },
+  { route: 'dashboard',  icon: 'squares-four', label: 'Início' },
   { route: 'producao',   icon: 'hammer',            label: 'Produção' },
   { route: 'pedidos',    icon: 'shopping-bag',      label: 'Pedidos' },
   { route: 'calculadora',icon: 'calculator',        label: 'Calcular' },
   { route: 'materiais',  icon: 'package',           label: 'Materiais' },
   { route: 'financeiro', icon: 'wallet',            label: 'Financeiro' },
-  { route: 'config',     icon: 'settings',          label: 'Config' }
+  { route: 'config',     icon: 'gear',          label: 'Config' }
 ];
 
 export function renderNavbar(current = '') {
@@ -17,7 +17,7 @@ export function renderNavbar(current = '') {
     <nav id="bottomNav">
       ${NAV_ITEMS.map(item => `
         <a href="#${item.route}" class="${current === item.route ? 'active' : ''}">
-          <i data-lucide="${item.icon}"></i>
+          <i class="ph ph-${item.icon}"></i>
           <span>${item.label}</span>
         </a>
       `).join('')}
