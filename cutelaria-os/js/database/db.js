@@ -102,6 +102,15 @@ db.version(7).stores({
   settings:  '++id,createdAt'
 });
 
+// v8 — campo arquivado em pedidos e producao (soft-delete para consulta posterior)
+db.version(8).stores({
+  producao:  '++id,nome,status,progresso,pedidoId,arquivado,createdAt',
+  materiais: '++id,nome,tipoMaterial,tipoMedida,createdAt',
+  financeiro:'++id,tipo,categoria,pedidoId,createdAt',
+  pedidos:   '++id,nome,cliente,status,arquivado,createdAt',
+  settings:  '++id,createdAt'
+});
+
 db.open().catch(err => console.error('Erro IndexedDB:', err));
 
 // ============================================
