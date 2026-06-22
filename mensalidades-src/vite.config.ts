@@ -17,12 +17,17 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      // 'autoUpdate': o Service Worker se atualiza sozinho em segundo plano,
-      // sem precisar que o usuário desinstale/reinstale o app.
-      registerType: "autoUpdate",
+      // 'prompt': o Service Worker novo fica esperando, sem assumir o controle sozinho.
+      // A UI (ver UpdateBanner.tsx) decide o momento exato de ativar a versão nova —
+      // seja por clique do usuário em "Atualizar", seja automaticamente após um pequeno
+      // tempo de espera, conforme decisão de produto (evita ficar dias numa versão velha
+      // só porque ninguém clicou, mas ainda dá controle imediato a quem quiser agir).
+      registerType: "prompt",
 
-      // injectRegister: null porque registramos o SW manualmente em main.tsx
-      // (dá mais controle sobre o momento exato do registro, útil para PWAs offline-first).
+      // injectRegister: null porque o registro do Service Worker é feito explicitamente
+      // via hook useRegisterSW (virtual:pwa-register/react), dentro de UpdateBanner.tsx —
+      // isso dá controle total sobre o ciclo de vida (quando avisar, quando aplicar a
+      // atualização) em vez de deixar o plugin injetar um script de registro genérico.
       injectRegister: null,
 
       includeAssets: ["icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png"],
@@ -77,9 +82,10 @@ export default defineConfig({
         // navegação destinada aos outros PWAs hospedados em outras subpastas do domínio.
         navigateFallbackAllowlist: [new RegExp(`^${BASE_PATH}`)],
 
-        // Ativa o SW novo imediatamente, sem esperar todas as abas antigas fecharem.
-        skipWaiting: true,
-        clientsClaim: true,
+        // skipWaiting/clientsClaim NÃO são definidos aqui de propósito: com registerType
+        // "prompt", é a chamada updateServiceWorker(true) feita pela UI (UpdateBanner.tsx)
+        // que manda o novo SW assumir o controle e recarrega a página — nunca o workbox
+        // sozinho em segundo plano.
 
         // Limpa caches de versões antigas do app automaticamente.
         cleanupOutdatedCaches: true,

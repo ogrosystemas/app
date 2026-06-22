@@ -9,6 +9,7 @@ import {
   MemberList,
   NegotiationModal,
 } from "./components/members";
+import { UpdateBanner } from "./components/pwa";
 import { SettingsModal } from "./components/settings";
 import { Button, ConfirmDialog } from "./components/ui";
 import { useConfig } from "./hooks/useConfig";
@@ -198,6 +199,8 @@ export default function App() {
           await atualizarConfig({ nomeClube, valorMensalidade });
         }}
       />
+
+      <UpdateBanner />
     </div>
   );
 }

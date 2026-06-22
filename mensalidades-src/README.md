@@ -93,3 +93,22 @@ src/
 - Menu de **ações do membro** (ícone de 3 pontos na lista): editar nome/apelido, afastar ou
   reativar, e excluir definitivamente (cadastro + todo o histórico de pagamentos, com
   confirmação explícita antes de executar).
+
+## Instalação e atualização do PWA
+
+- **Botão "Instalar"** no header (`InstallAppButton.tsx`): captura o evento nativo
+  `beforeinstallprompt` do navegador e expõe um botão sempre visível dentro do próprio app,
+  em vez de depender só da heurística do Chrome para mostrar (ou não) seu prompt automático
+  no menu. O botão desaparece sozinho depois que o app é instalado, ou se já estiver rodando
+  em modo standalone.
+- **Banner de atualização** (`UpdateBanner.tsx`): quando uma nova versão é publicada, mostra
+  "Nova versão disponível" com uma barra de progresso de 10 segundos. O usuário pode clicar em
+  "Atualizar" para aplicar na hora, ou não fazer nada — a atualização é aplicada
+  automaticamente quando a barra zera, e uma confirmação rápida "App atualizado" aparece após
+  o reload. Inclui verificação periódica (a cada hora) por novas versões enquanto o app está
+  aberto, e um fallback de `window.location.reload()` como segurança caso o sinal interno do
+  Service Worker não dispare o reload por conta própria.
+- O Service Worker é registrado explicitamente via `useRegisterSW` (de
+  `virtual:pwa-register/react`), com `registerType: "prompt"` no `vite.config.ts` — ou seja,
+  uma versão nova fica esperando até a UI decidir aplicá-la, nunca substitui a versão em uso
+  silenciosamente.
