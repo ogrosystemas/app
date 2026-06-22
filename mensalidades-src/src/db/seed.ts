@@ -1,5 +1,6 @@
 import type { MutantesDB } from "./db";
 import type { Membro, Pagamento } from "../types";
+import { NOME_CLUBE_PADRAO, VALOR_MENSALIDADE_PADRAO } from "../constants/theme.constants";
 
 /**
  * Popula o banco com dados fictícios de teste, apenas se ele estiver vazio.
@@ -26,8 +27,8 @@ export async function seedDatabase(db: MutantesDB): Promise<void> {
     if (configCount === 0) {
       await db.config.add({
         id: 1,
-        nomeClube: "Mutantes Moto Clube",
-        valorMensalidade: 50.0,
+        nomeClube: NOME_CLUBE_PADRAO,
+        valorMensalidade: VALOR_MENSALIDADE_PADRAO,
         atualizadoEm: Date.now(),
       });
     }
@@ -180,7 +181,7 @@ function criarPagamento(membroId: number, mes: number, ano: number, agora: numbe
     membroId,
     mes,
     ano,
-    valorPago: 50.0,
+    valorPago: VALOR_MENSALIDADE_PADRAO,
     dataPagamento: `${ano}-${String(mes).padStart(2, "0")}-05`,
     formaPagamento: "pix",
     criadoEm: agora,

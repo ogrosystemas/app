@@ -5,4 +5,4 @@ export const LIMITE_MESES_CRITICO = 3;
 export const NOME_CLUBE_PADRAO = "Mutantes Moto Clube";
 
 /** Valor padrão da mensalidade usado como fallback antes do carregamento da config do banco. */
-export const VALOR_MENSALIDADE_PADRAO = 50.0;
+export const VALOR_MENSALIDADE_PADRAO = 130.0;
