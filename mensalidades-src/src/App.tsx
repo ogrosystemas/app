@@ -53,10 +53,10 @@ export default function App() {
     setModal({ tipo: "nenhum" });
   }
 
-  async function handleDarBaixaRapida(membroId: number) {
+  async function handleDarBaixaRapida(membroId: number, competenciaPendente: Competencia) {
     await darBaixa({
       membroId,
-      competencia,
+      competencia: competenciaPendente,
       valorPago: config.valorMensalidade,
       formaPagamento: "pix",
     });

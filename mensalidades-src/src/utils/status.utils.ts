@@ -208,10 +208,18 @@ export function chaveCompetencia(c: Competencia): string {
 
 /**
  * Texto curto para o badge de status na lista de membros.
- * Regra de UX combinada: mostra a quantidade de meses pendentes quando > 1,
- * para já informar a gravidade do atraso sem precisar abrir o histórico.
+ *
+ * Regra de UX combinada: mostra a quantidade de meses pendentes quando > 1, para já
+ * informar a gravidade do atraso sem precisar abrir o histórico. Para membros afastados,
+ * combina o status "Afastado" com a dívida residual (se houver) — o afastamento não some
+ * com a informação de que ainda existe pendência anterior a ele.
  */
-export function textoBadgeStatus(resumo: ResumoInadimplenciaMembro): string {
+export function textoBadgeStatus(resumo: ResumoInadimplenciaMembro, afastado = false): string {
+  if (afastado) {
+    if (resumo.totalMesesPendentes === 0) return "Afastado";
+    if (resumo.totalMesesPendentes === 1) return "Afastado · Deve 1 mês";
+    return `Afastado · Deve ${resumo.totalMesesPendentes} meses`;
+  }
   if (resumo.totalMesesPendentes === 0) return "Em Dia";
   if (resumo.totalMesesPendentes === 1) return "Pendente";
   return `Pendente (${resumo.totalMesesPendentes} meses)`;

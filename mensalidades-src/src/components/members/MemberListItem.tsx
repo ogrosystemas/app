@@ -17,7 +17,11 @@ interface MemberListItemProps {
 
 /**
  * Item da lista de conferência. Comportamento por status:
- * - Afastado: badge neutro "Afastado", sem botões de cobrança (não há ação a tomar).
+ * - Afastado sem dívida: badge neutro "Afastado", sem botões de cobrança.
+ * - Afastado COM dívida residual: badge "Afastado · Deve N mês(es)" em tom de alerta — a
+ *   informação de pendência nunca fica escondida só porque o membro está afastado.
+ *   Mesmo afastado, ainda mostra o botão de regularizar a dívida (Dar Baixa/Negociar),
+ *   já que essa dívida é anterior ao afastamento e continua cobrável.
  * - Em dia: badge verde, sem botão de cobrança.
  * - Pendente em 1 mês (a competência selecionada): botão "Dar Baixa" direto.
  * - Pendente em 2+ meses (acumulado): badge informa quantidade, botão "Negociar" abre modal.
@@ -40,6 +44,8 @@ export function MemberListItem({
   const emDia = resumo.totalMesesPendentes === 0;
   const acumulado = resumo.totalMesesPendentes > 1;
   const critico = resumo.totalMesesPendentes >= LIMITE_MESES_CRITICO;
+
+  const variantBadge = emDia ? (afastado ? "neutro" : "ok") : critico ? "critico" : "alerta";
 
   return (
     <li className="flex flex-col gap-2 border-b border-graphite-800 px-4 py-3.5 last:border-b-0">
@@ -64,23 +70,17 @@ export function MemberListItem({
       </div>
 
       <div className="flex items-center justify-between gap-2">
-        {afastado ? (
-          <Badge variant="neutro" icon={<UserX size={12} />}>
-            Afastado
-          </Badge>
-        ) : (
-          <Badge variant={emDia ? "ok" : critico ? "critico" : "alerta"}>
-            {textoBadgeStatus(resumo)}
-          </Badge>
-        )}
+        <Badge variant={variantBadge} icon={afastado ? <UserX size={12} /> : undefined}>
+          {textoBadgeStatus(resumo, afastado)}
+        </Badge>
 
-        {!afastado && !emDia && !acumulado && (
+        {!emDia && !acumulado && (
           <Button size="sm" variant="success" icon={<CheckCircle2 size={14} />} onClick={onDarBaixaRapida}>
             Dar Baixa
           </Button>
         )}
 
-        {!afastado && !emDia && acumulado && (
+        {!emDia && acumulado && (
           <Button size="sm" variant="danger" icon={<Handshake size={14} />} onClick={onAbrirNegociacao}>
             Negociar
           </Button>

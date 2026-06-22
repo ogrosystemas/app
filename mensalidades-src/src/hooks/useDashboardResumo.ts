@@ -1,5 +1,8 @@
+import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo } from "react";
+import { db } from "../db/db";
 import type { Competencia } from "../types";
+import { competenciaDeDataISO, compararCompetencias } from "../utils/date.utils";
 import { membroEstaSujeitoACobranca } from "../utils/status.utils";
 import { useConfig } from "./useConfig";
 import { useInadimplencia } from "./useInadimplencia";
@@ -19,17 +22,24 @@ export interface UseDashboardResumoResult {
 
 /**
  * Hook do resumo exibido no topo do app, referente à competência selecionada.
- * "Pagou no mês" considera especificamente a competência de referência (não o acumulado);
- * o acumulado de meses anteriores é tratado por useInadimplencia/badge na lista.
  *
- * Membros afastados são excluídos das métricas a partir do mês em que se afastaram
- * (não entram em "Membros Ativos" nem em "Arrecadado Esperado"), mas continuam sendo
- * contabilizados normalmente em meses anteriores ao afastamento.
+ * "Arrecadado" é uma métrica de CAIXA, não de competência: soma o valor de TODOS os
+ * pagamentos cuja `dataPagamento` cai dentro do mês/ano selecionado no topo, não importa
+ * de qual competência (mês cobrado) cada pagamento se refere. Isso é intencional — uma
+ * negociação que quita um mês antigo + o mês atual deve aparecer inteira no caixa do mês
+ * em que o dinheiro realmente entrou, e não ter parte do valor "voltando" para um mês
+ * passado. Já "Em Dia"/"Pendentes" continuam olhando para a competência (quem deve o quê),
+ * que é tratado por useInadimplencia.
+ *
+ * Membros afastados são excluídos de "Membros Ativos"/"Em Dia"/"Pendentes" a partir do mês
+ * em que se afastaram, mas continuam contabilizados normalmente em meses anteriores a isso.
  */
 export function useDashboardResumo(competenciaReferencia: Competencia): UseDashboardResumoResult {
   const { config, carregando: carregandoConfig } = useConfig();
   const { membrosComStatus, carregando: carregandoInadimplencia } =
     useInadimplencia(competenciaReferencia);
+
+  const pagamentos = useLiveQuery(() => db.pagamentos.toArray(), []);
 
   const resumo = useMemo<DashboardResumo>(() => {
     const membrosSujeitosACobranca = membrosComStatus.filter(({ membro }) =>
@@ -39,12 +49,17 @@ export function useDashboardResumo(competenciaReferencia: Competencia): UseDashb
     const totalMembrosAtivos = membrosSujeitosACobranca.length;
 
     let totalPagaramNoMes = 0;
-    let valorArrecadadoNoMes = 0;
-
     for (const { resumo: r } of membrosSujeitosACobranca) {
-      if (r.competenciaReferenciaPaga) {
-        totalPagaramNoMes += 1;
-        valorArrecadadoNoMes += config.valorMensalidade;
+      if (r.competenciaReferenciaPaga) totalPagaramNoMes += 1;
+    }
+
+    // Arrecadado: soma de todo pagamento cuja dataPagamento cai no mês/ano selecionado,
+    // independentemente da competência (mes/ano da mensalidade) a que ele se refere.
+    let valorArrecadadoNoMes = 0;
+    for (const p of pagamentos ?? []) {
+      const competenciaDoPagamento = competenciaDeDataISO(p.dataPagamento);
+      if (compararCompetencias(competenciaDoPagamento, competenciaReferencia) === 0) {
+        valorArrecadadoNoMes += p.valorPago;
       }
     }
 
@@ -55,10 +70,10 @@ export function useDashboardResumo(competenciaReferencia: Competencia): UseDashb
       valorArrecadadoNoMes,
       valorEsperadoNoMes: totalMembrosAtivos * config.valorMensalidade,
     };
-  }, [membrosComStatus, competenciaReferencia, config.valorMensalidade]);
+  }, [membrosComStatus, pagamentos, competenciaReferencia, config.valorMensalidade]);
 
   return {
     resumo,
-    carregando: carregandoConfig || carregandoInadimplencia,
+    carregando: carregandoConfig || carregandoInadimplencia || pagamentos === undefined,
   };
 }

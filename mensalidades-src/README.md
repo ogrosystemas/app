@@ -72,15 +72,24 @@ src/
 - **Afastamento** (`Membro.status === "afastado"`): a partir da competência registrada em
   `Membro.competenciaAfastamento`, o membro para de gerar pendências novas, mas qualquer
   dívida anterior ao afastamento é mantida (não é perdoada). O membro continua visível na
-  lista, sem botões de cobrança. Reativar o membro volta a contar normalmente a partir do
-  mês da reativação — o período afastado nunca retroage como dívida.
+  lista — se ainda houver dívida residual, o badge mostra "Afastado · Deve N mês(es)" e os
+  botões de regularização (Dar Baixa/Negociar) continuam disponíveis para essa dívida
+  específica. Reativar o membro volta a contar normalmente a partir do mês da reativação —
+  o período afastado nunca retroage como dívida.
 - Status de cada competência é **derivado**, não armazenado: um mês é "pendente" se está
   dentro do ciclo do ano de referência (e antes de um eventual afastamento) e não há
   `Pagamento` registrado para ele.
 - Lista mostra inadimplência acumulada ("Pendente (N meses)") quando há mais de 1 mês em aberto.
-- Botão **Dar Baixa**: baixa rápida de 1 clique, sempre na competência selecionada no topo.
+- Botão **Dar Baixa**: baixa rápida de 1 clique, sempre na competência PENDENTE real do
+  membro (não na competência selecionada no seletor do topo) — importante para membros
+  afastados, cuja única dívida pode ser de um mês diferente do mês em exibição.
 - Botão **Negociar** (aparece quando há 2+ meses pendentes): abre modal para selecionar
   quais competências estão sendo quitadas agora, soma os valores e baixa todas em lote.
+- **"Arrecadado" é uma métrica de caixa, não de competência**: soma o valor de TODOS os
+  pagamentos cuja `dataPagamento` cai no mês/ano selecionado no topo, independentemente de
+  qual competência (mês cobrado) cada pagamento se refere. Uma negociação que quita 2 meses
+  de uma vez soma o valor total (ex: R$100) inteiro no caixa do mês em que foi feita — nunca
+  "divide" parte do valor para o mês da competência antiga. Ver `useDashboardResumo.ts`.
 - Menu de **ações do membro** (ícone de 3 pontos na lista): editar nome/apelido, afastar ou
   reativar, e excluir definitivamente (cadastro + todo o histórico de pagamentos, com
   confirmação explícita antes de executar).

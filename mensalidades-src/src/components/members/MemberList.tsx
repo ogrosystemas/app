@@ -1,13 +1,14 @@
 import { Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { MembroComStatus } from "../../hooks/useInadimplencia";
+import type { Competencia } from "../../types";
 import { EmptyState } from "../ui/EmptyState";
 import { MemberListItem } from "./MemberListItem";
 
 interface MemberListProps {
   membrosComStatus: MembroComStatus[];
   carregando: boolean;
-  onDarBaixaRapida: (membroId: number) => void;
+  onDarBaixaRapida: (membroId: number, competencia: Competencia) => void;
   onAbrirNegociacao: (membroId: number) => void;
   onAbrirHistorico: (membroId: number) => void;
   onAbrirAcoes: (membroId: number) => void;
@@ -72,7 +73,14 @@ export function MemberList({
               key={membro.id}
               membro={membro}
               resumo={resumo}
-              onDarBaixaRapida={() => onDarBaixaRapida(membro.id as number)}
+              onDarBaixaRapida={() => {
+                // Dá baixa na competência PENDENTE REAL do membro (resumo.competenciasPendentes[0]),
+                // não na competência selecionada no seletor do topo — isso garante que o botão
+                // "Dar Baixa" sempre regularize a mensalidade certa, mesmo se o membro estiver
+                // afastado e a única pendência dele for de um mês anterior ao mês em exibição.
+                const competenciaPendente = resumo.competenciasPendentes[0];
+                if (competenciaPendente) onDarBaixaRapida(membro.id as number, competenciaPendente);
+              }}
               onAbrirNegociacao={() => onAbrirNegociacao(membro.id as number)}
               onAbrirHistorico={() => onAbrirHistorico(membro.id as number)}
               onAbrirAcoes={() => onAbrirAcoes(membro.id as number)}
