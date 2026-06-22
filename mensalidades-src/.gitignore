@@ -1,0 +1,14 @@
+node_modules
+dist
+dist-ssr
+*.local
+
+.vite
+.DS_Store
+*.log
+npm-debug.log*
+
+# Artefatos de build incremental gerados pelo "tsc -b" (npm run build).
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
