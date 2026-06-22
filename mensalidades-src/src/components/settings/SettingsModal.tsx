@@ -1,4 +1,4 @@
-import { Download, FileText, Upload } from "lucide-react";
+import { Download, FileText, LogOut, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useBackup } from "../../hooks/useBackup";
 import type { ConfigClube } from "../../types";
@@ -12,15 +12,26 @@ interface SettingsModalProps {
   onFechar: () => void;
   onSalvar: (nomeClube: string, valorMensalidade: number) => Promise<void>;
   onAbrirRelatorio: () => void;
+  emailLogado: string | null;
+  onSair: () => Promise<void>;
 }
 
 /**
  * Modal de configurações gerais do clube: nome exibido no header, valor da mensalidade,
- * relatórios em PDF, e backup/restauração de dados. Alterar o valor da mensalidade NÃO
- * afeta pagamentos já registrados (cada Pagamento guarda seu próprio valorPago, congelado
- * no momento da baixa) — afeta apenas o cálculo de pendências futuras e o resumo do dashboard.
+ * relatórios em PDF, backup/restauração de dados, e a conta autenticada (com opção de
+ * sair). Alterar o valor da mensalidade NÃO afeta pagamentos já registrados (cada
+ * Pagamento guarda seu próprio valorPago, congelado no momento da baixa) — afeta
+ * apenas o cálculo de pendências futuras e o resumo do dashboard.
  */
-export function SettingsModal({ aberto, config, onFechar, onSalvar, onAbrirRelatorio }: SettingsModalProps) {
+export function SettingsModal({
+  aberto,
+  config,
+  onFechar,
+  onSalvar,
+  onAbrirRelatorio,
+  emailLogado,
+  onSair,
+}: SettingsModalProps) {
   const [nomeClube, setNomeClube] = useState(config.nomeClube);
   const [valorTexto, setValorTexto] = useState(String(config.valorMensalidade).replace(".", ","));
   const [salvando, setSalvando] = useState(false);
@@ -154,6 +165,18 @@ export function SettingsModal({ aberto, config, onFechar, onSalvar, onAbrirRelat
             pagamentos já registrados — apenas cobranças a partir de agora.
           </span>
         </Campo>
+
+        <div className="asphalt-divider pt-2">
+          <span className="mb-2 mt-2 block text-xs font-semibold uppercase tracking-wide text-graphite-400">
+            Conta
+          </span>
+          {emailLogado && (
+            <p className="mb-2 truncate text-sm text-graphite-200">{emailLogado}</p>
+          )}
+          <Button variant="secondary" fullWidth icon={<LogOut size={14} />} onClick={onSair}>
+            Sair
+          </Button>
+        </div>
 
         <div className="asphalt-divider pt-2">
           <span className="mb-2 mt-2 block text-xs font-semibold uppercase tracking-wide text-graphite-400">

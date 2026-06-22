@@ -21,6 +21,46 @@ mensalidades-src/                  ← código-fonte React (TypeScript, Vite, Ta
 COMO-PUBLICAR.md                   ← este arquivo
 ```
 
+## ⚠️ Passo obrigatório ANTES do primeiro push: configurar os Secrets do Firebase
+
+Esta versão do app usa Firebase (login com Google + banco de dados na nuvem). As chaves de
+configuração do seu projeto Firebase **não vêm dentro do código** (por segurança e boas
+práticas) — elas precisam ser cadastradas como "GitHub Secrets" no repositório, uma única
+vez, antes do workflow conseguir buildar o app corretamente.
+
+1. No GitHub, vá em **Settings** do repositório `app` → **Secrets and variables** →
+   **Actions** → **New repository secret**.
+2. Crie estes 6 secrets, um por um (nome exato à esquerda, valor à direita — os valores
+   você encontra no Firebase Console, em Configurações do projeto → Seus apps → app Web →
+   Configuração do SDK):
+
+   | Nome do secret | De onde vem |
+   |---|---|
+   | `VITE_FIREBASE_API_KEY` | `apiKey` |
+   | `VITE_FIREBASE_AUTH_DOMAIN` | `authDomain` |
+   | `VITE_FIREBASE_PROJECT_ID` | `projectId` |
+   | `VITE_FIREBASE_STORAGE_BUCKET` | `storageBucket` |
+   | `VITE_FIREBASE_MESSAGING_SENDER_ID` | `messagingSenderId` |
+   | `VITE_FIREBASE_APP_ID` | `appId` |
+
+3. Só depois desses 6 secrets criados, siga o passo a passo normal de publicação abaixo.
+
+Sem esses secrets, o workflow ainda builda e publica (não falha visivelmente), mas o app
+publicado vai dar erro de configuração do Firebase ao abrir — sempre confirme que os 6
+secrets existem antes do primeiro push desta versão.
+
+## Outro passo obrigatório: publicar as regras de segurança do Firestore
+
+O arquivo `mensalidades-src/firestore.rules` define quem pode acessar os dados do clube
+(lista de e-mails autorizados). Ele **não é aplicado automaticamente** pelo GitHub Actions —
+precisa ser publicado manualmente, uma vez (e de novo sempre que você editar a lista de
+autorizados):
+
+1. Abra o Firebase Console → seu projeto → **Firestore Database** → aba **Regras**.
+2. Copie todo o conteúdo de `mensalidades-src/firestore.rules`.
+3. Cole no editor de regras do Console, substituindo o que já estava lá.
+4. Clique em **Publicar**.
+
 ## Passo a passo (uma única vez)
 
 1. No seu repositório **`app`** (o mesmo que já hospeda os outros PWAs), copie o conteúdo
@@ -76,6 +116,10 @@ qual passo (instalar dependências, build, ou commit) e por quê. As causas mais
   verificações antes de gerar os arquivos finais).
 - Falta de permissão de escrita do Actions no repositório — verifique em Settings → Actions →
   General → Workflow permissions, que precisa estar em "Read and write permissions".
+- Se o app publicar mas mostrar erro de configuração do Firebase ao abrir (não é um erro que
+  trava o workflow, mas falha em tempo de uso): confira se os 6 GitHub Secrets do Firebase
+  estão cadastrados corretamente (ver seção acima) e se os e-mails autorizados estão
+  publicados em `firestore.rules` no Firebase Console.
 
 ## Caso precise voltar ao fluxo manual
 

@@ -54,6 +54,11 @@ export function MemberListItem({
           <div className="flex min-w-0 flex-col">
             <span className="truncate font-display text-sm font-semibold uppercase tracking-wide text-chrome-50">
               {membro.apelido}
+              {membro.patente && (
+                <span className="ml-1.5 font-body text-[11px] font-normal normal-case tracking-normal text-ember-500">
+                  · {membro.patente}
+                </span>
+              )}
             </span>
             <span className="truncate text-xs text-graphite-400">{membro.nome}</span>
           </div>

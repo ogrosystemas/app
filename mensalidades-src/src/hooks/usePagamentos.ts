@@ -1,10 +1,19 @@
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../db/db";
+import {
+  deleteDoc,
+  onSnapshot,
+  query,
+  runTransaction,
+  updateDoc,
+  where,
+} from "firebase/firestore";
+import { useEffect, useState } from "react";
+import { db } from "../firebase/config";
+import { refPagamento, refPagamentos } from "../db/refs";
 import type { Competencia, FormaPagamento, Pagamento } from "../types";
 import { hojeISO } from "../utils/date.utils";
 
 export interface DarBaixaInput {
-  membroId: number;
+  membroId: string;
   competencia: Competencia;
   valorPago: number;
   formaPagamento: FormaPagamento;
@@ -31,7 +40,7 @@ export interface UsePagamentosResult {
    * apenas para fins de registro individual; o valor agregado é o que importa para o caixa.
    */
   darBaixaEmLote: (
-    membroId: number,
+    membroId: string,
     competencias: Competencia[],
     valorTotalPago: number,
     formaPagamento: FormaPagamento,
@@ -39,10 +48,26 @@ export interface UsePagamentosResult {
   ) => Promise<void>;
 
   /** Remove a baixa de uma competência específica (estorno completo — volta a ficar pendente). */
-  removerBaixa: (membroId: number, competencia: Competencia) => Promise<void>;
+  removerBaixa: (membroId: string, competencia: Competencia) => Promise<void>;
 
   /** Edita campos de um pagamento já registrado (corrigir valor, data ou forma de pagamento). */
-  editarPagamento: (pagamentoId: number, input: EditarPagamentoInput) => Promise<void>;
+  editarPagamento: (pagamentoId: string, input: EditarPagamentoInput) => Promise<void>;
+}
+
+/**
+ * Gera um ID DETERMINÍSTICO de documento para um pagamento, a partir de
+ * membroId + competência. Isso é o que garante idempotência (nunca duas baixas
+ * para a mesma competência do mesmo membro) de forma nativa do Firestore: em vez
+ * de fazer uma query "já existe um pagamento com esse membroId+mes+ano?" antes de
+ * escrever (o que não seria seguro dentro de uma transação concorrente — duas
+ * pessoas dando baixa ao mesmo tempo poderiam ambas passar pela checagem antes de
+ * qualquer uma escrever), o próprio ID do documento já é a chave de unicidade:
+ * tentar criar o "mesmo" pagamento duas vezes sempre aponta para o mesmo
+ * documento, então a segunda tentativa apenas sobrescreve (ou é ignorada, se
+ * formos cuidadosos) em vez de duplicar.
+ */
+function idPagamento(membroId: string, competencia: Competencia): string {
+  return `${membroId}_${competencia.ano}_${competencia.mes}`;
 }
 
 /**
@@ -51,30 +76,33 @@ export interface UsePagamentosResult {
  */
 export function usePagamentos(): UsePagamentosResult {
   async function darBaixa(input: DarBaixaInput): Promise<void> {
-    const existente = await db.pagamentos
-      .where("[membroId+ano+mes]")
-      .equals([input.membroId, input.competencia.ano, input.competencia.mes])
-      .first();
+    const id = idPagamento(input.membroId, input.competencia);
+    const ref = refPagamento(id);
 
-    if (existente) {
-      // Evita duplicar baixa da mesma competência — idempotência da operação.
-      return;
-    }
+    await runTransaction(db, async (transacao) => {
+      const existente = await transacao.get(ref);
+      if (existente.exists()) {
+        // Idempotência: já existe baixa para esta competência deste membro — não duplica.
+        return;
+      }
 
-    await db.pagamentos.add({
-      membroId: input.membroId,
-      mes: input.competencia.mes,
-      ano: input.competencia.ano,
-      valorPago: input.valorPago,
-      dataPagamento: input.dataPagamento ?? hojeISO(),
-      formaPagamento: input.formaPagamento,
-      observacao: input.observacao,
-      criadoEm: Date.now(),
+      const registro: Pagamento = {
+        membroId: input.membroId,
+        mes: input.competencia.mes,
+        ano: input.competencia.ano,
+        valorPago: input.valorPago,
+        dataPagamento: input.dataPagamento ?? hojeISO(),
+        formaPagamento: input.formaPagamento,
+        criadoEm: Date.now(),
+      };
+      if (input.observacao) registro.observacao = input.observacao;
+
+      transacao.set(ref, registro);
     });
   }
 
   async function darBaixaEmLote(
-    membroId: number,
+    membroId: string,
     competencias: Competencia[],
     valorTotalPago: number,
     formaPagamento: FormaPagamento,
@@ -86,14 +114,17 @@ export function usePagamentos(): UsePagamentosResult {
     const dataPagamento = hojeISO();
     const agora = Date.now();
 
-    await db.transaction("rw", db.pagamentos, async () => {
-      for (const competencia of competencias) {
-        const existente = await db.pagamentos
-          .where("[membroId+ano+mes]")
-          .equals([membroId, competencia.ano, competencia.mes])
-          .first();
+    await runTransaction(db, async (transacao) => {
+      // Lê o estado atual de TODAS as competências envolvidas ANTES de escrever
+      // qualquer uma — exigência do Firestore (leituras sempre antes de escritas
+      // dentro de uma transação).
+      const refs = competencias.map((c) => refPagamento(idPagamento(membroId, c)));
+      const snapshots = await Promise.all(refs.map((ref) => transacao.get(ref)));
 
-        if (existente) continue; // idempotência também no lote
+      for (const [i, competencia] of competencias.entries()) {
+        const snapshot = snapshots[i];
+        const ref = refs[i];
+        if (!snapshot || !ref || snapshot.exists()) continue; // idempotência também no lote
 
         const registro: Pagamento = {
           membroId,
@@ -104,24 +135,19 @@ export function usePagamentos(): UsePagamentosResult {
           formaPagamento,
           criadoEm: agora,
         };
-        if (observacao) {
-          registro.observacao = observacao;
-        }
+        if (observacao) registro.observacao = observacao;
 
-        await db.pagamentos.add(registro);
+        transacao.set(ref, registro);
       }
     });
   }
 
-  async function removerBaixa(membroId: number, competencia: Competencia): Promise<void> {
-    await db.pagamentos
-      .where("[membroId+ano+mes]")
-      .equals([membroId, competencia.ano, competencia.mes])
-      .delete();
+  async function removerBaixa(membroId: string, competencia: Competencia): Promise<void> {
+    await deleteDoc(refPagamento(idPagamento(membroId, competencia)));
   }
 
-  async function editarPagamento(pagamentoId: number, input: EditarPagamentoInput): Promise<void> {
-    await db.pagamentos.update(pagamentoId, { ...input });
+  async function editarPagamento(pagamentoId: string, input: EditarPagamentoInput): Promise<void> {
+    await updateDoc(refPagamento(pagamentoId), { ...input });
   }
 
   return { darBaixa, darBaixaEmLote, removerBaixa, editarPagamento };
@@ -131,13 +157,23 @@ export function usePagamentos(): UsePagamentosResult {
  * Hook auxiliar reativo: retorna todos os pagamentos de um membro específico,
  * usado no modal de histórico.
  */
-export function usePagamentosDoMembro(membroId: number | undefined): Pagamento[] {
-  const pagamentos = useLiveQuery(() => {
-    if (membroId === undefined) return Promise.resolve<Pagamento[]>([]);
-    return db.pagamentos.where("membroId").equals(membroId).toArray();
+export function usePagamentosDoMembro(membroId: string | undefined): Pagamento[] {
+  const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
+
+  useEffect(() => {
+    if (membroId === undefined) {
+      setPagamentos([]);
+      return;
+    }
+
+    const consulta = query(refPagamentos(), where("membroId", "==", membroId));
+    const cancelarInscricao = onSnapshot(consulta, (snapshot) => {
+      setPagamentos(snapshot.docs.map((d) => ({ ...d.data(), id: d.id })));
+    });
+    return cancelarInscricao;
   }, [membroId]);
 
-  return pagamentos ?? [];
+  return pagamentos;
 }
 
 /** Arredonda um valor para 2 casas decimais (centavos), evitando erros de ponto flutuante. */

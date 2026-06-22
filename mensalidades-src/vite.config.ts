@@ -104,4 +104,19 @@ export default defineConfig({
     host: true,
     port: 5173,
   },
+
+  build: {
+    rollupOptions: {
+      output: {
+        // Separa o SDK do Firebase (grande, muda raramente entre deploys) do código
+        // da própria aplicação (pequeno, muda a cada deploy) em chunks distintos.
+        // Isso permite que o navegador cacheie o chunk do Firebase por mais tempo —
+        // um novo deploy que só altera lógica de negócio não invalida esse cache,
+        // já que o conteúdo (e portanto o hash) do chunk do Firebase não mudou.
+        manualChunks: {
+          firebase: ["firebase/app", "firebase/auth", "firebase/firestore"],
+        },
+      },
+    },
+  },
 });

@@ -8,10 +8,10 @@ import { MemberListItem } from "./MemberListItem";
 interface MemberListProps {
   membrosComStatus: MembroComStatus[];
   carregando: boolean;
-  onDarBaixaRapida: (membroId: number, competencia: Competencia) => void;
-  onAbrirNegociacao: (membroId: number) => void;
-  onAbrirHistorico: (membroId: number) => void;
-  onAbrirAcoes: (membroId: number) => void;
+  onDarBaixaRapida: (membroId: string, competencia: Competencia) => void;
+  onAbrirNegociacao: (membroId: string) => void;
+  onAbrirHistorico: (membroId: string) => void;
+  onAbrirAcoes: (membroId: string) => void;
 }
 
 /** Lista principal de conferência — busca local por nome/apelido. Mostra membros ativos e afastados. */
@@ -79,11 +79,11 @@ export function MemberList({
                 // "Dar Baixa" sempre regularize a mensalidade certa, mesmo se o membro estiver
                 // afastado e a única pendência dele for de um mês anterior ao mês em exibição.
                 const competenciaPendente = resumo.competenciasPendentes[0];
-                if (competenciaPendente) onDarBaixaRapida(membro.id as number, competenciaPendente);
+                if (competenciaPendente) onDarBaixaRapida(membro.id as string, competenciaPendente);
               }}
-              onAbrirNegociacao={() => onAbrirNegociacao(membro.id as number)}
-              onAbrirHistorico={() => onAbrirHistorico(membro.id as number)}
-              onAbrirAcoes={() => onAbrirAcoes(membro.id as number)}
+              onAbrirNegociacao={() => onAbrirNegociacao(membro.id as string)}
+              onAbrirHistorico={() => onAbrirHistorico(membro.id as string)}
+              onAbrirAcoes={() => onAbrirAcoes(membro.id as string)}
             />
           ))}
         </ul>

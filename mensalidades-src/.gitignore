@@ -12,3 +12,8 @@ npm-debug.log*
 *.tsbuildinfo
 vite.config.js
 vite.config.d.ts
+
+# Variáveis de ambiente com a configuração do Firebase deste projeto específico.
+# Use .env.example como referência do formato esperado.
+.env
+.env.local

@@ -24,11 +24,11 @@ export type FormaPagamento = "dinheiro" | "pix" | "transferencia" | "outro";
  * para uma competência passada é o que caracteriza a inadimplência.
  */
 export interface Pagamento {
-  /** Chave primária auto-incrementada pelo Dexie. Ausente antes de salvar. */
-  id?: number;
+  /** ID do documento no Firestore (gerado automaticamente). Ausente antes de salvar. */
+  id?: string;
 
   /** FK para Membro.id. */
-  membroId: number;
+  membroId: string;
 
   /** Mês da competência paga (1-12). */
   mes: number;

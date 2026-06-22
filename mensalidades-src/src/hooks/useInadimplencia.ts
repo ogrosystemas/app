@@ -1,6 +1,7 @@
-import { useLiveQuery } from "dexie-react-hooks";
-import { useMemo } from "react";
-import { db } from "../db/db";
+import { onSnapshot } from "firebase/firestore";
+import { useEffect, useMemo, useState } from "react";
+import { indiceDaPatente } from "../constants/patentes.constants";
+import { refMembros, refPagamentos } from "../db/refs";
 import type { Competencia, Membro, Pagamento } from "../types";
 import { calcularInadimplenciaMembro, type ResumoInadimplenciaMembro } from "../utils/status.utils";
 import { useConfig } from "./useConfig";
@@ -25,14 +26,28 @@ export interface UseInadimplenciaResult {
  * internamente (ver calcularInadimplenciaMembro), então não há necessidade de filtrar por status
  * aqui: a UI decide como exibir cada caso (ex: esconder botões de cobrança para afastados).
  *
- * Mantém-se reativo: qualquer baixa registrada via usePagamentos atualiza esta lista automaticamente.
+ * Mantém-se reativo via onSnapshot do Firestore: qualquer baixa registrada via usePagamentos
+ * (deste dispositivo OU de outro conectado ao mesmo clube) atualiza esta lista automaticamente.
  */
 export function useInadimplencia(competenciaReferencia: Competencia): UseInadimplenciaResult {
   const { config, carregando: carregandoConfig } = useConfig();
 
-  const membros = useLiveQuery(() => db.membros.toArray(), []);
+  const [membros, setMembros] = useState<Membro[] | undefined>(undefined);
+  const [pagamentos, setPagamentos] = useState<Pagamento[] | undefined>(undefined);
 
-  const pagamentos = useLiveQuery(() => db.pagamentos.toArray(), []);
+  useEffect(() => {
+    const cancelarMembros = onSnapshot(refMembros(), (snapshot) => {
+      setMembros(snapshot.docs.map((d) => ({ ...d.data(), id: d.id })));
+    });
+    return cancelarMembros;
+  }, []);
+
+  useEffect(() => {
+    const cancelarPagamentos = onSnapshot(refPagamentos(), (snapshot) => {
+      setPagamentos(snapshot.docs.map((d) => ({ ...d.data(), id: d.id })));
+    });
+    return cancelarPagamentos;
+  }, []);
 
   const membrosComStatus = useMemo<MembroComStatus[]>(() => {
     if (!membros || !pagamentos) return [];
@@ -40,7 +55,7 @@ export function useInadimplencia(competenciaReferencia: Competencia): UseInadimp
     const pagamentosPorMembro = agruparPagamentosPorMembro(pagamentos);
 
     return membros
-      .filter((m): m is Membro & { id: number } => m.id !== undefined)
+      .filter((m): m is Membro & { id: string } => m.id !== undefined)
       .map((membro) => {
         const pagamentosDoMembro = pagamentosPorMembro.get(membro.id) ?? [];
         const resumo = calcularInadimplenciaMembro(
@@ -52,10 +67,22 @@ export function useInadimplencia(competenciaReferencia: Competencia): UseInadimp
         return { membro, resumo };
       })
       .sort((a, b) => {
-        // Pendentes primeiro (maior número de meses devidos no topo), depois em dia por apelido.
+        // 1º critério: pendentes primeiro (maior número de meses devidos no topo) —
+        // nunca esconder inadimplência atrás de outro critério de ordenação.
         if (a.resumo.totalMesesPendentes !== b.resumo.totalMesesPendentes) {
           return b.resumo.totalMesesPendentes - a.resumo.totalMesesPendentes;
         }
+        // 2º critério (desempate): patente mais alta na hierarquia primeiro.
+        const indicePatenteA = indiceDaPatente(a.membro.patente);
+        const indicePatenteB = indiceDaPatente(b.membro.patente);
+        if (indicePatenteA !== indicePatenteB) {
+          // Patentes não encontradas na lista (-1) vão para o final, depois de
+          // qualquer patente reconhecida.
+          if (indicePatenteA === -1) return 1;
+          if (indicePatenteB === -1) return -1;
+          return indicePatenteA - indicePatenteB;
+        }
+        // 3º critério (desempate final): apelido em ordem alfabética.
         return a.membro.apelido.localeCompare(b.membro.apelido, "pt-BR");
       });
   }, [membros, pagamentos, competenciaReferencia, config.valorMensalidade]);
@@ -66,8 +93,8 @@ export function useInadimplencia(competenciaReferencia: Competencia): UseInadimp
   };
 }
 
-function agruparPagamentosPorMembro(pagamentos: Pagamento[]): Map<number, Pagamento[]> {
-  const mapa = new Map<number, Pagamento[]>();
+function agruparPagamentosPorMembro(pagamentos: Pagamento[]): Map<string, Pagamento[]> {
+  const mapa = new Map<string, Pagamento[]>();
   for (const p of pagamentos) {
     const lista = mapa.get(p.membroId);
     if (lista) {

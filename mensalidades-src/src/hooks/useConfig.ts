@@ -1,9 +1,8 @@
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../db/db";
+import { onSnapshot, updateDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import { refClube } from "../db/refs";
 import type { ConfigClube, EditarConfigInput } from "../types";
 import { NOME_CLUBE_PADRAO, VALOR_MENSALIDADE_PADRAO } from "../constants/theme.constants";
-
-const CONFIG_ID = 1;
 
 export interface UseConfigResult {
   /** Configuração atual do clube. Nunca é null após o primeiro load (há fallback). */
@@ -17,22 +16,30 @@ export interface UseConfigResult {
 }
 
 const configFallback: ConfigClube = {
-  id: CONFIG_ID,
   nomeClube: NOME_CLUBE_PADRAO,
   valorMensalidade: VALOR_MENSALIDADE_PADRAO,
   atualizadoEm: 0,
 };
 
 /**
- * Hook de acesso à configuração geral do clube (singleton).
- * Reativo: qualquer alteração via `atualizarConfig` propaga automaticamente
- * para todos os componentes que usam este hook (via useLiveQuery).
+ * Hook de acesso à configuração geral do clube (documento único: clubes/mutantes-mc).
+ * Reativo via onSnapshot do Firestore: qualquer alteração feita por este hook OU por
+ * outro dispositivo conectado ao mesmo clube propaga automaticamente para todos os
+ * componentes que usam este hook — inclusive offline, lendo do cache local até a
+ * sincronização real acontecer.
  */
 export function useConfig(): UseConfigResult {
-  const config = useLiveQuery(() => db.config.get(CONFIG_ID), []);
+  const [config, setConfig] = useState<ConfigClube | undefined>(undefined);
+
+  useEffect(() => {
+    const cancelarInscricao = onSnapshot(refClube(), (snapshot) => {
+      setConfig(snapshot.exists() ? snapshot.data() : undefined);
+    });
+    return cancelarInscricao;
+  }, []);
 
   async function atualizarConfig(input: EditarConfigInput): Promise<void> {
-    await db.config.update(CONFIG_ID, {
+    await updateDoc(refClube(), {
       ...input,
       atualizadoEm: Date.now(),
     });

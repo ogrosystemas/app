@@ -11,7 +11,7 @@ import {
  * Resumo agregado de inadimplência de UM membro até uma competência de referência.
  */
 export interface ResumoInadimplenciaMembro {
-  membroId: number;
+  membroId: string;
 
   /** Competências em que o membro deveria ter pago e não há registro de Pagamento. */
   competenciasPendentes: Competencia[];
@@ -78,7 +78,7 @@ export function calcularInadimplenciaMembro(
     compararCompetencias(competenciaInicioCiclo, competenciaReferencia) > 0
   ) {
     return {
-      membroId: membro.id ?? -1,
+      membroId: membro.id ?? "",
       competenciasPendentes: [],
       totalMesesPendentes: 0,
       valorTotalDevido: 0,
@@ -92,7 +92,7 @@ export function calcularInadimplenciaMembro(
   // deste ano) — neste caso não há competências esperadas neste ciclo.
   if (competenciaFimEfetivo === null || compararCompetencias(competenciaInicioCiclo, competenciaFimEfetivo) > 0) {
     return {
-      membroId: membro.id ?? -1,
+      membroId: membro.id ?? "",
       competenciasPendentes: [],
       totalMesesPendentes: 0,
       valorTotalDevido: 0,
@@ -114,7 +114,7 @@ export function calcularInadimplenciaMembro(
   const competenciaReferenciaPaga = pagas.has(chaveCompetencia(competenciaReferencia));
 
   return {
-    membroId: membro.id ?? -1,
+    membroId: membro.id ?? "",
     competenciasPendentes,
     totalMesesPendentes: competenciasPendentes.length,
     valorTotalDevido: competenciasPendentes.length * valorMensalidade,

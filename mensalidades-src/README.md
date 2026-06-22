@@ -1,8 +1,9 @@
 # Mutantes Moto Clube — App de Conferência de Mensalidades
 
-PWA offline-first para controle de mensalidades fixas do clube: cadastro de membros,
-conferência rápida de quem está em dia/pendente, baixa de pagamentos e negociação de
-inadimplência acumulada.
+PWA offline-first, com dados sincronizados na nuvem, para controle de mensalidades fixas
+do clube: cadastro de membros, conferência rápida de quem está em dia/pendente, baixa de
+pagamentos e negociação de inadimplência acumulada. Acesso restrito a contas Google
+autorizadas — ver seção "Autenticação e autorização" abaixo.
 
 > **Deploy:** este projeto é publicado em `app.ogrosystemas.com.br/mensalidades/` via
 > GitHub Pages (repositório `app`, subpasta `mensalidades/`). Veja `../COMO-PUBLICAR.md`
@@ -13,7 +14,9 @@ inadimplência acumulada.
 
 - React + TypeScript (strict, sem `any`) + Vite
 - Tailwind CSS (tema dark "moto clube": grafite/preto + laranja/vermelho)
-- Dexie.js (IndexedDB) — persistência 100% local/offline
+- **Firebase** — Authentication (login Google) + Firestore (banco de dados na nuvem, com
+  cache local persistente via IndexedDB nativo do SDK — funciona offline e sincroniza
+  automaticamente quando a conexão volta)
 - vite-plugin-pwa — Service Worker com cache do app shell
 - pdf-lib + @pdf-lib/fontkit — geração de relatórios em PDF no navegador
 - lucide-react — ícones
@@ -21,6 +24,7 @@ inadimplência acumulada.
 ## Como rodar
 
 ```bash
+cp .env.example .env   # preencha com as chaves do projeto Firebase (ver README do Firebase)
 npm install
 npm run dev       # ambiente de desenvolvimento, http://localhost:5173
 ```
@@ -34,13 +38,31 @@ npm run preview   # serve o build de produção localmente para testar o PWA off
 npm run lint       # ESLint (zero warnings configurado como meta)
 ```
 
-## Dados de teste
+## Autenticação e autorização
 
-Na primeira execução, se o banco estiver vazio, o app popula automaticamente 5 membros
-fictícios com cenários distintos (em dia, ingresso no meio do ano, inadimplência no ciclo
-atual, inadimplência multi-ano, e um membro afastado) — ver `src/db/seed.ts`. Para resetar,
-basta limpar o IndexedDB do navegador (Application > IndexedDB > mutantes-mc-db) ou
-desinstalar o PWA.
+O app exige login com Google antes de mostrar qualquer dado. Mas login (qualquer conta
+Google) e autorização (acesso aos dados do clube) são coisas diferentes:
+
+- **Login**: qualquer pessoa pode entrar com sua conta Google — isso só identifica quem
+  é, não dá acesso a nada ainda.
+- **Autorização**: as regras de segurança do Firestore (`firestore.rules`, na raiz deste
+  repositório) checam se o e-mail autenticado está numa lista fixa de e-mails autorizados.
+  Só quem está na lista consegue de fato ler/escrever os dados do clube — qualquer outra
+  conta vê a tela "Acesso não autorizado" (`AccessDeniedScreen.tsx`).
+
+Para adicionar ou remover alguém da lista de autorizados: edite a função
+`emailAutorizado()` em `firestore.rules`, depois publique as regras de novo no Firebase
+Console (Firestore Database → Regras → colar o conteúdo do arquivo → Publicar).
+
+Todos os dados (membros, pagamentos, configuração) vivem num único documento fixo do
+clube no Firestore (`clubes/mutantes-mc`) — não há suporte a múltiplos clubes.
+
+## Patentes
+
+A hierarquia de patentes/cargos do clube é definida em `src/constants/patentes.constants.ts`
+(`PATENTES_EM_ORDEM`), em ordem do cargo mais alto para o mais comum. Essa lista alimenta o
+seletor do formulário de cadastro e o critério de desempate na ordenação da lista de membros
+(ver "Regras de negócio" abaixo).
 
 ## Estrutura
 
@@ -49,17 +71,19 @@ src/
 ├── assets/
 │   └── fonts/      # Roboto-Regular.ttf (licença SIL OFL) — usada na geração de PDF
 ├── components/
+│   ├── auth/       # tela de login, tela de acesso negado
 │   ├── ui/         # Badge, Button, Modal, EmptyState, ConfirmDialog
 │   ├── dashboard/  # cards de resumo do mês
 │   ├── members/    # lista, item, cadastro/edição, histórico, negociação, ações, edição de pagamento
 │   ├── settings/   # configurações do clube, relatórios, backup/restauração
 │   ├── pwa/        # botão de instalar, banner de atualização
 │   └── layout/     # header, seletor de mês
-├── db/             # Dexie: schema, seed, backup/restauração
-├── hooks/          # lógica de dados (CRUD, cálculo de inadimplência, resumo, relatório, backup)
+├── firebase/       # inicialização do Firebase (app, auth, firestore com cache offline)
+├── db/             # referências do Firestore (refs.ts), inicialização (db.ts), backup/restauração
+├── hooks/          # lógica de dados (CRUD, autenticação, inadimplência, resumo, relatório, backup)
 ├── types/          # Membro, Pagamento, ConfigClube
 ├── utils/          # datas/competências, moeda, cálculo de status, relatório, geração de PDF
-└── constants/
+└── constants/      # patentes, tema/valores padrão
 ```
 
 ## Regras de negócio implementadas
@@ -84,6 +108,10 @@ src/
   dentro do ciclo do ano de referência (e antes de um eventual afastamento) e não há
   `Pagamento` registrado para ele.
 - Lista mostra inadimplência acumulada ("Pendente (N meses)") quando há mais de 1 mês em aberto.
+- **Patente**: cada membro tem uma patente fixa (lista em `PATENTES_EM_ORDEM`), exibida ao
+  lado do apelido na lista (ex: "FOICE · Presidente"). A ordenação da lista prioriza sempre
+  pendência (quem deve mais aparece primeiro — nunca esconde inadimplência), com patente
+  mais alta como critério de desempate, e apelido (A-Z) como desempate final.
 - Botão **Dar Baixa**: baixa rápida de 1 clique, sempre na competência PENDENTE real do
   membro (não na competência selecionada no seletor do topo) — importante para membros
   afastados, cuja única dívida pode ser de um mês diferente do mês em exibição.
@@ -111,10 +139,10 @@ Em Configurações → Backup e restauração:
 - **Importar backup**: lê um arquivo `.json` exportado anteriormente (do mesmo dispositivo
   ou de outro celular) e **mescla** com os dados já existentes — nunca substitui ou apaga
   nada. Deduplicação: um membro é considerado "já existente" se já houver um membro com o
-  mesmo par (nome, apelido); um pagamento é considerado "já existente" se já houver um
-  pagamento do mesmo membro para a mesma competência. Membros novos do arquivo recebem um
-  ID gerado localmente — nunca reaproveita o ID do arquivo, que poderia colidir com IDs já
-  usados localmente. Ver `src/db/backup.ts`.
+  mesmo par (nome, apelido); um pagamento é considerado "já existente" via o mesmo esquema
+  de ID determinístico (`membroId_ano_mes`) usado por `usePagamentos`. Membros novos do
+  arquivo recebem um novo ID de documento gerado pelo Firestore — nunca reaproveita o ID
+  do arquivo, que pode ter vindo de outro dispositivo/sessão. Ver `src/db/backup.ts`.
 
 ## Relatórios em PDF
 

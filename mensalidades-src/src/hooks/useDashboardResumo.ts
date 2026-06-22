@@ -1,7 +1,7 @@
-import { useLiveQuery } from "dexie-react-hooks";
-import { useMemo } from "react";
-import { db } from "../db/db";
-import type { Competencia } from "../types";
+import { onSnapshot } from "firebase/firestore";
+import { useEffect, useMemo, useState } from "react";
+import { refPagamentos } from "../db/refs";
+import type { Competencia, Pagamento } from "../types";
 import { competenciaDeDataISO, compararCompetencias } from "../utils/date.utils";
 import { membroEstaSujeitoACobranca } from "../utils/status.utils";
 import { useConfig } from "./useConfig";
@@ -39,7 +39,14 @@ export function useDashboardResumo(competenciaReferencia: Competencia): UseDashb
   const { membrosComStatus, carregando: carregandoInadimplencia } =
     useInadimplencia(competenciaReferencia);
 
-  const pagamentos = useLiveQuery(() => db.pagamentos.toArray(), []);
+  const [pagamentos, setPagamentos] = useState<Pagamento[] | undefined>(undefined);
+
+  useEffect(() => {
+    const cancelarInscricao = onSnapshot(refPagamentos(), (snapshot) => {
+      setPagamentos(snapshot.docs.map((d) => ({ ...d.data(), id: d.id })));
+    });
+    return cancelarInscricao;
+  }, []);
 
   const resumo = useMemo<DashboardResumo>(() => {
     const membrosSujeitosACobranca = membrosComStatus.filter(({ membro }) =>

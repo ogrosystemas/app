@@ -1,4 +1,5 @@
-import { db } from "../db/db";
+import { getDoc, getDocs } from "firebase/firestore";
+import { refClube, refMembros, refPagamentos } from "../db/refs";
 import type { FiltroRelatorio } from "../utils/relatorio.utils";
 import { gerarDadosRelatorio } from "../utils/relatorio.utils";
 import { gerarPdfRelatorio } from "../utils/pdf-relatorio.utils";
@@ -9,21 +10,24 @@ export interface UseRelatorioResult {
 }
 
 /**
- * Hook de geração de relatórios em PDF. Busca os dados atuais do banco (membros,
+ * Hook de geração de relatórios em PDF. Busca os dados atuais do Firestore (membros,
  * pagamentos, config) e delega o cálculo para relatorio.utils e a montagem do PDF
  * para pdf-relatorio.utils — mantém os componentes de UI livres dessa lógica.
  */
 export function useRelatorio(): UseRelatorioResult {
   async function gerarEBaixarRelatorio(filtro: FiltroRelatorio): Promise<void> {
-    const [membros, pagamentos, config] = await Promise.all([
-      db.membros.toArray(),
-      db.pagamentos.toArray(),
-      db.config.get(1),
+    const [configSnapshot, membrosSnapshot, pagamentosSnapshot] = await Promise.all([
+      getDoc(refClube()),
+      getDocs(refMembros()),
+      getDocs(refPagamentos()),
     ]);
 
-    if (!config) {
+    if (!configSnapshot.exists()) {
       throw new Error("Configuração do clube não encontrada.");
     }
+    const config = configSnapshot.data();
+    const membros = membrosSnapshot.docs.map((d) => ({ ...d.data(), id: d.id }));
+    const pagamentos = pagamentosSnapshot.docs.map((d) => ({ ...d.data(), id: d.id }));
 
     const dados = gerarDadosRelatorio(
       config.nomeClube,

@@ -1,11 +1,9 @@
 /**
- * Configuração geral do clube, armazenada como um único registro na tabela `config`.
- * Mantida separada para permitir reajuste do valor da mensalidade sem migração de schema.
+ * Configuração geral do clube, armazenada no próprio documento raiz do clube
+ * no Firestore (caminho fixo: clubes/mutantes-mc). Mantida como um objeto
+ * separado (não espalhada em campos soltos) para facilitar atualização parcial.
  */
 export interface ConfigClube {
-  /** Chave fixa = 1 (singleton). Garante um único registro de configuração. */
-  id?: number;
-
   /** Nome do clube, exibido no header do app. */
   nomeClube: string;
 

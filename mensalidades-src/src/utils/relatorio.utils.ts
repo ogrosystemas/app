@@ -87,7 +87,7 @@ export function gerarDadosRelatorio(
   const competenciaStatusLimitada =
     compararCompetencias(filtro.fim, hoje) > 0 ? hoje : filtro.fim;
 
-  const pagamentosPorMembro = new Map<number, Pagamento[]>();
+  const pagamentosPorMembro = new Map<string, Pagamento[]>();
   for (const p of pagamentos) {
     const lista = pagamentosPorMembro.get(p.membroId);
     if (lista) lista.push(p);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PATENTES_EM_ORDEM } from "../../constants/patentes.constants";
 import type { Membro, NovoMembroInput } from "../../types";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
@@ -11,13 +12,16 @@ interface MemberFormModalProps {
   onSalvar: (input: NovoMembroInput) => Promise<void>;
 }
 
+const PATENTE_PADRAO = PATENTES_EM_ORDEM[PATENTES_EM_ORDEM.length - 1] ?? "";
+
 const ESTADO_INICIAL: NovoMembroInput = {
   nome: "",
   apelido: "",
+  patente: PATENTE_PADRAO,
 };
 
 /**
- * Modal de cadastro/edição de membro — formulário simples: apenas nome e apelido.
+ * Modal de cadastro/edição de membro — formulário com nome, apelido e patente.
  * Data de ingresso é fixada automaticamente como hoje no cadastro (ver useMembros.criarMembro)
  * e não é editável aqui; status (ativo/afastado) tem fluxo próprio na lista de membros.
  */
@@ -33,6 +37,7 @@ export function MemberFormModal({ aberto, membroParaEditar, onFechar, onSalvar }
       setForm({
         nome: membroParaEditar.nome,
         apelido: membroParaEditar.apelido,
+        patente: membroParaEditar.patente,
       });
     } else {
       setForm(ESTADO_INICIAL);
@@ -50,6 +55,7 @@ export function MemberFormModal({ aberto, membroParaEditar, onFechar, onSalvar }
       await onSalvar({
         nome: form.nome.trim(),
         apelido: form.apelido.trim(),
+        patente: form.patente,
       });
       onFechar();
     } catch {
@@ -99,6 +105,20 @@ export function MemberFormModal({ aberto, membroParaEditar, onFechar, onSalvar }
             placeholder="Ex: Foice"
             className="w-full border border-graphite-700 bg-graphite-900 px-3 py-2 text-sm text-chrome-50 placeholder:text-graphite-400 focus:border-ember-500"
           />
+        </Campo>
+
+        <Campo label="Patente">
+          <select
+            value={form.patente}
+            onChange={(e) => setForm((f) => ({ ...f, patente: e.target.value }))}
+            className="w-full border border-graphite-700 bg-graphite-900 px-3 py-2 text-sm text-chrome-50 focus:border-ember-500"
+          >
+            {PATENTES_EM_ORDEM.map((patente) => (
+              <option key={patente} value={patente}>
+                {patente}
+              </option>
+            ))}
+          </select>
         </Campo>
       </div>
     </Modal>

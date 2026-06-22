@@ -1,4 +1,3 @@
-import { db } from "../db/db";
 import {
   baixarBackupComoArquivo,
   gerarBackup,
@@ -26,7 +25,7 @@ export interface UseBackupResult {
  */
 export function useBackup(): UseBackupResult {
   async function exportarBackup(): Promise<void> {
-    const backup = await gerarBackup(db);
+    const backup = await gerarBackup();
     baixarBackupComoArquivo(backup);
   }
 
@@ -44,7 +43,7 @@ export function useBackup(): UseBackupResult {
       throw new Error("Este arquivo não parece ser um backup do Mutantes Moto Clube.");
     }
 
-    return importarBackup(db, conteudo);
+    return importarBackup(conteudo);
   }
 
   return { exportarBackup, importarArquivo };

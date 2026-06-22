@@ -13,14 +13,22 @@ export type StatusMembro = "ativo" | "afastado";
  * Representa um integrante do Moto Clube.
  */
 export interface Membro {
-  /** Chave primária auto-incrementada pelo Dexie. Ausente antes de salvar. */
-  id?: number;
+  /** ID do documento no Firestore (gerado automaticamente). Ausente antes de salvar. */
+  id?: string;
 
   /** Nome completo do membro. */
   nome: string;
 
   /** Apelido / Alcunha usado no clube (ex: "Foice", "Sombra"). */
   apelido: string;
+
+  /**
+   * Patente/cargo do membro dentro do clube (ex: "Presidente", "Membro").
+   * Lista fixa definida em PATENTES_EM_ORDEM (constants/patentes.constants.ts),
+   * em ordem hierárquica — usada tanto no seletor do formulário quanto para
+   * ordenação/agrupamento futuro da lista por patente.
+   */
+  patente: string;
 
   /**
    * Data de ingresso no clube, em formato ISO (YYYY-MM-DD).
@@ -53,11 +61,11 @@ export interface Membro {
  * A data de ingresso é preenchida automaticamente com a data atual no momento
  * do cadastro — não é mais solicitada no formulário (ver MemberFormModal).
  */
-export type NovoMembroInput = Pick<Membro, "nome" | "apelido">;
+export type NovoMembroInput = Pick<Membro, "nome" | "apelido" | "patente">;
 
 /**
  * Payload para edição parcial de um membro existente.
  */
 export type EditarMembroInput = Partial<
-  Pick<Membro, "nome" | "apelido" | "status" | "competenciaAfastamento">
+  Pick<Membro, "nome" | "apelido" | "patente" | "status" | "competenciaAfastamento">
 >;

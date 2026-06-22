@@ -1,4 +1,6 @@
-import type { MutantesDB } from "./db";
+import { doc, getDoc, getDocs, writeBatch } from "firebase/firestore";
+import { db } from "../firebase/config";
+import { refClube, refMembros, refPagamento, refPagamentos } from "./refs";
 import type { ConfigClube, Membro, Pagamento } from "../types";
 
 /**
@@ -10,34 +12,31 @@ export interface BackupMutantesMC {
   versao: 1;
   geradoEm: string; // ISO 8601
   nomeClube: string;
-  config: Omit<ConfigClube, "id">;
+  config: ConfigClube;
   membros: Membro[]; // inclui o id original (usado só para casar com pagamentos no próprio arquivo)
   pagamentos: Pagamento[];
 }
 
-/** Gera o objeto de backup completo a partir do estado atual do banco. */
-export async function gerarBackup(db: MutantesDB): Promise<BackupMutantesMC> {
-  const [config, membros, pagamentos] = await Promise.all([
-    db.config.get(1),
-    db.membros.toArray(),
-    db.pagamentos.toArray(),
+/** Gera o objeto de backup completo a partir do estado atual do banco (Firestore). */
+export async function gerarBackup(): Promise<BackupMutantesMC> {
+  const [configSnapshot, membrosSnapshot, pagamentosSnapshot] = await Promise.all([
+    getDoc(refClube()),
+    getDocs(refMembros()),
+    getDocs(refPagamentos()),
   ]);
 
-  if (!config) {
+  if (!configSnapshot.exists()) {
     throw new Error("Configuração do clube não encontrada — não é possível gerar backup.");
   }
+  const config = configSnapshot.data();
 
   return {
     versao: 1,
     geradoEm: new Date().toISOString(),
     nomeClube: config.nomeClube,
-    config: {
-      nomeClube: config.nomeClube,
-      valorMensalidade: config.valorMensalidade,
-      atualizadoEm: config.atualizadoEm,
-    },
-    membros,
-    pagamentos,
+    config,
+    membros: membrosSnapshot.docs.map((d) => ({ ...d.data(), id: d.id })),
+    pagamentos: pagamentosSnapshot.docs.map((d) => ({ ...d.data(), id: d.id })),
   };
 }
 
@@ -86,22 +85,20 @@ export interface ResultadoImportacao {
 }
 
 /**
- * Importa um backup MESCLANDO com os dados já existentes no banco — nunca substitui ou
- * apaga nada que já estava lá. Regras de deduplicação:
+ * Importa um backup MESCLANDO com os dados já existentes no Firestore — nunca
+ * substitui ou apaga nada que já estava lá. Regras de deduplicação:
  *
  * - Membro: considerado "já existente" se já houver um membro com o mesmo par
  *   (nome, apelido) — comparação exata, sem normalização de acentos/maiúsculas, para
  *   evitar mesclar membros que o usuário realmente cadastrou como diferentes.
- *   Membros novos do backup recebem um NOVO id gerado pelo banco local (nunca reutiliza
- *   o id do arquivo, que pode colidir com ids já usados localmente).
- * - Pagamento: considerado "já existente" se já houver um pagamento do mesmo membro
- *   (após o remapeamento de id acima) para a mesma competência (ano+mês) — mesma regra
- *   de unicidade que `usePagamentos` já aplica ao dar baixa.
+ *   Membros novos do backup recebem um NOVO id de documento gerado pelo Firestore
+ *   (nunca reaproveita o id do arquivo, que pode colidir com ids já usados na nuvem,
+ *   já que vieram de outro dispositivo/sessão).
+ * - Pagamento: a checagem de duplicidade usa o mesmo esquema de ID determinístico
+ *   (`membroId_ano_mes`) usado por usePagamentos — um pagamento é "já existente" se
+ *   já houver um documento com esse ID composto no Firestore.
  */
-export async function importarBackup(
-  db: MutantesDB,
-  backup: BackupMutantesMC,
-): Promise<ResultadoImportacao> {
+export async function importarBackup(backup: BackupMutantesMC): Promise<ResultadoImportacao> {
   const resultado: ResultadoImportacao = {
     membrosAdicionados: 0,
     membrosJaExistentes: 0,
@@ -109,56 +106,71 @@ export async function importarBackup(
     pagamentosJaExistentes: 0,
   };
 
-  await db.transaction("rw", db.membros, db.pagamentos, async () => {
-    const membrosAtuais = await db.membros.toArray();
+  const membrosAtuaisSnapshot = await getDocs(refMembros());
+  const membrosAtuais = membrosAtuaisSnapshot.docs.map((d) => ({ ...d.data(), id: d.id }));
 
-    // Mapa: id do membro NO ARQUIVO DE BACKUP -> id do membro NO BANCO LOCAL (novo ou já existente).
-    const mapaIdBackupParaIdLocal = new Map<number, number>();
+  // Mapa: id do membro NO ARQUIVO DE BACKUP -> id do membro NO FIRESTORE (novo ou já existente).
+  const mapaIdBackupParaIdReal = new Map<string, string>();
 
-    for (const membroBackup of backup.membros) {
-      const jaExiste = membrosAtuais.find(
-        (m) => m.nome === membroBackup.nome && m.apelido === membroBackup.apelido,
-      );
+  const loteMembros = writeBatch(db);
+  let pendentesNoLoteMembros = 0;
 
-      if (jaExiste) {
-        resultado.membrosJaExistentes++;
-        if (membroBackup.id !== undefined && jaExiste.id !== undefined) {
-          mapaIdBackupParaIdLocal.set(membroBackup.id, jaExiste.id);
-        }
-        continue;
+  for (const membroBackup of backup.membros) {
+    const jaExiste = membrosAtuais.find(
+      (m) => m.nome === membroBackup.nome && m.apelido === membroBackup.apelido,
+    );
+
+    if (jaExiste) {
+      resultado.membrosJaExistentes++;
+      if (membroBackup.id !== undefined && jaExiste.id !== undefined) {
+        mapaIdBackupParaIdReal.set(membroBackup.id, jaExiste.id);
       }
-
-      const { id: _idAntigo, ...dadosMembro } = membroBackup;
-      const novoId = (await db.membros.add(dadosMembro)) as number;
-      resultado.membrosAdicionados++;
-      if (membroBackup.id !== undefined) {
-        mapaIdBackupParaIdLocal.set(membroBackup.id, novoId);
-      }
+      continue;
     }
 
-    for (const pagamentoBackup of backup.pagamentos) {
-      const idLocalDoMembro = mapaIdBackupParaIdLocal.get(pagamentoBackup.membroId);
-      if (idLocalDoMembro === undefined) {
-        // Pagamento referencia um membro que não pôde ser resolvido (dado inconsistente
-        // no arquivo) — pula esse registro em vez de falhar a importação inteira.
-        continue;
-      }
-
-      const jaExiste = await db.pagamentos
-        .where("[membroId+ano+mes]")
-        .equals([idLocalDoMembro, pagamentoBackup.ano, pagamentoBackup.mes])
-        .first();
-
-      if (jaExiste) {
-        resultado.pagamentosJaExistentes++;
-        continue;
-      }
-
-      const { id: _idAntigo, ...dadosPagamento } = pagamentoBackup;
-      await db.pagamentos.add({ ...dadosPagamento, membroId: idLocalDoMembro });
-      resultado.pagamentosAdicionados++;
+    const { id: idAntigo, ...dadosMembro } = membroBackup;
+    const novoRef = doc(refMembros()); // gera um novo ID de documento, sem reaproveitar o antigo
+    loteMembros.set(novoRef, dadosMembro);
+    pendentesNoLoteMembros++;
+    resultado.membrosAdicionados++;
+    if (idAntigo !== undefined) {
+      mapaIdBackupParaIdReal.set(idAntigo, novoRef.id);
     }
-  });
+  }
+
+  if (pendentesNoLoteMembros > 0) {
+    await loteMembros.commit();
+  }
+
+  const lotePagamentos = writeBatch(db);
+  let pendentesNoLotePagamentos = 0;
+
+  for (const pagamentoBackup of backup.pagamentos) {
+    const idRealDoMembro = mapaIdBackupParaIdReal.get(pagamentoBackup.membroId);
+    if (idRealDoMembro === undefined) {
+      // Pagamento referencia um membro que não pôde ser resolvido (dado inconsistente
+      // no arquivo) — pula esse registro em vez de falhar a importação inteira.
+      continue;
+    }
+
+    const idDeterministico = `${idRealDoMembro}_${pagamentoBackup.ano}_${pagamentoBackup.mes}`;
+    const refPagamentoExistente = refPagamento(idDeterministico);
+    const snapshot = await getDoc(refPagamentoExistente);
+
+    if (snapshot.exists()) {
+      resultado.pagamentosJaExistentes++;
+      continue;
+    }
+
+    const { id: _idAntigo, ...dadosPagamento } = pagamentoBackup;
+    lotePagamentos.set(refPagamentoExistente, { ...dadosPagamento, membroId: idRealDoMembro });
+    pendentesNoLotePagamentos++;
+    resultado.pagamentosAdicionados++;
+  }
+
+  if (pendentesNoLotePagamentos > 0) {
+    await lotePagamentos.commit();
+  }
 
   return resultado;
 }
