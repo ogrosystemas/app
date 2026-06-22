@@ -13,6 +13,13 @@ export interface DarBaixaInput {
   dataPagamento?: string;
 }
 
+export interface EditarPagamentoInput {
+  valorPago?: number;
+  dataPagamento?: string;
+  formaPagamento?: FormaPagamento;
+  observacao?: string;
+}
+
 export interface UsePagamentosResult {
   /** Registra a baixa de UMA competência para um membro. */
   darBaixa: (input: DarBaixaInput) => Promise<void>;
@@ -31,8 +38,11 @@ export interface UsePagamentosResult {
     observacao?: string,
   ) => Promise<void>;
 
-  /** Remove a baixa de uma competência específica (estorno/correção de lançamento). */
+  /** Remove a baixa de uma competência específica (estorno completo — volta a ficar pendente). */
   removerBaixa: (membroId: number, competencia: Competencia) => Promise<void>;
+
+  /** Edita campos de um pagamento já registrado (corrigir valor, data ou forma de pagamento). */
+  editarPagamento: (pagamentoId: number, input: EditarPagamentoInput) => Promise<void>;
 }
 
 /**
@@ -110,7 +120,11 @@ export function usePagamentos(): UsePagamentosResult {
       .delete();
   }
 
-  return { darBaixa, darBaixaEmLote, removerBaixa };
+  async function editarPagamento(pagamentoId: number, input: EditarPagamentoInput): Promise<void> {
+    await db.pagamentos.update(pagamentoId, { ...input });
+  }
+
+  return { darBaixa, darBaixaEmLote, removerBaixa, editarPagamento };
 }
 
 /**

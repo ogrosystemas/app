@@ -1,7 +1,7 @@
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, Pencil, XCircle } from "lucide-react";
 import { useMemo } from "react";
 import { usePagamentosDoMembro } from "../../hooks/usePagamentos";
-import type { Competencia, Membro } from "../../types";
+import type { Competencia, Membro, Pagamento } from "../../types";
 import { formatarMoeda } from "../../utils/currency.utils";
 import { competenciaAtual, formatarCompetencia, formatarDataBR } from "../../utils/date.utils";
 import { chaveCompetencia, gerarCompetenciasEsperadasHistorico } from "../../utils/status.utils";
@@ -11,14 +11,16 @@ interface MemberHistoryModalProps {
   aberto: boolean;
   membro?: Membro;
   onFechar: () => void;
+  onEditarPagamento: (pagamento: Pagamento, competencia: Competencia) => void;
 }
 
 /**
  * Modal de histórico: lista todas as competências de cobrança esperadas (respeitando o
  * ciclo anual de cada ano, desde o ano de ingresso até o ano atual), marcando visualmente
  * quais foram pagas e quais estão pendentes — inclui anos anteriores (histórico multi-ano).
+ * Linhas pagas são clicáveis e abrem o modal de edição/estorno daquele pagamento.
  */
-export function MemberHistoryModal({ aberto, membro, onFechar }: MemberHistoryModalProps) {
+export function MemberHistoryModal({ aberto, membro, onFechar, onEditarPagamento }: MemberHistoryModalProps) {
   const pagamentos = usePagamentosDoMembro(membro?.id);
 
   const linhas = useMemo(() => {
@@ -47,30 +49,43 @@ export function MemberHistoryModal({ aberto, membro, onFechar }: MemberHistoryMo
           {linhas.map(({ competencia, pagamento }) => (
             <li
               key={chaveCompetencia(competencia)}
-              className="flex items-center justify-between gap-3 border-b border-graphite-800 py-3 last:border-b-0"
+              className="border-b border-graphite-800 last:border-b-0"
             >
-              <div className="flex items-center gap-2.5">
-                {pagamento ? (
-                  <CheckCircle2 className="text-ok-500" size={18} />
-                ) : (
-                  <XCircle className="text-alert-500" size={18} />
-                )}
-                <span className="font-display text-sm font-medium uppercase tracking-wide text-chrome-50">
-                  {formatarCompetencia(competencia)}
-                </span>
-              </div>
-
               {pagamento ? (
-                <div className="text-right">
-                  <p className="text-sm text-ok-400">{formatarMoeda(pagamento.valorPago)}</p>
-                  <p className="text-[11px] text-graphite-400">
-                    {formatarDataBR(pagamento.dataPagamento)}
-                  </p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => onEditarPagamento(pagamento, competencia)}
+                  className="flex w-full items-center justify-between gap-3 py-3 text-left hover:bg-graphite-800"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <CheckCircle2 className="text-ok-500" size={18} />
+                    <span className="font-display text-sm font-medium uppercase tracking-wide text-chrome-50">
+                      {formatarCompetencia(competencia)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="text-right">
+                      <p className="text-sm text-ok-400">{formatarMoeda(pagamento.valorPago)}</p>
+                      <p className="text-[11px] text-graphite-400">
+                        {formatarDataBR(pagamento.dataPagamento)}
+                      </p>
+                    </div>
+                    <Pencil className="text-graphite-500" size={14} />
+                  </div>
+                </button>
               ) : (
-                <span className="text-xs font-semibold uppercase tracking-wide text-alert-500">
-                  Pendente
-                </span>
+                <div className="flex items-center justify-between gap-3 py-3">
+                  <div className="flex items-center gap-2.5">
+                    <XCircle className="text-alert-500" size={18} />
+                    <span className="font-display text-sm font-medium uppercase tracking-wide text-chrome-50">
+                      {formatarCompetencia(competencia)}
+                    </span>
+                  </div>
+                  <span className="text-xs font-semibold uppercase tracking-wide text-alert-500">
+                    Pendente
+                  </span>
+                </div>
               )}
             </li>
           ))}

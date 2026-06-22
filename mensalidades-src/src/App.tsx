@@ -3,6 +3,7 @@ import { useState } from "react";
 import { DashboardSummary } from "./components/dashboard";
 import { AppHeader, MonthSelector } from "./components/layout";
 import {
+  EditPaymentModal,
   MemberActionsModal,
   MemberFormModal,
   MemberHistoryModal,
@@ -10,14 +11,14 @@ import {
   NegotiationModal,
 } from "./components/members";
 import { UpdateBanner } from "./components/pwa";
-import { SettingsModal } from "./components/settings";
+import { ReportModal, SettingsModal } from "./components/settings";
 import { Button, ConfirmDialog } from "./components/ui";
 import { useConfig } from "./hooks/useConfig";
 import { useDashboardResumo } from "./hooks/useDashboardResumo";
 import { useInadimplencia } from "./hooks/useInadimplencia";
 import { useMembros } from "./hooks/useMembros";
 import { usePagamentos } from "./hooks/usePagamentos";
-import type { Competencia, FormaPagamento, Membro } from "./types";
+import type { Competencia, FormaPagamento, Membro, Pagamento } from "./types";
 import { competenciaAtual } from "./utils/date.utils";
 
 type ModalAtivo =
@@ -34,13 +35,18 @@ type ModalAtivo =
 export default function App() {
   const [competencia, setCompetencia] = useState<Competencia>(competenciaAtual());
   const [modal, setModal] = useState<ModalAtivo>({ tipo: "nenhum" });
+  const [pagamentoEmEdicao, setPagamentoEmEdicao] = useState<{
+    pagamento: Pagamento;
+    competencia: Competencia;
+  } | null>(null);
+  const [relatorioAberto, setRelatorioAberto] = useState(false);
 
   const { config, atualizarConfig } = useConfig();
   const { membros, criarMembro, editarMembro, afastarMembro, reativarMembro, excluirMembro } =
     useMembros();
   const { membrosComStatus, carregando: carregandoLista } = useInadimplencia(competencia);
   const { resumo, carregando: carregandoResumo } = useDashboardResumo(competencia);
-  const { darBaixa, darBaixaEmLote } = usePagamentos();
+  const { darBaixa, darBaixaEmLote, editarPagamento, removerBaixa } = usePagamentos();
 
   function buscarMembro(membroId: number): Membro | undefined {
     return membros.find((m) => m.id === membroId);
@@ -135,6 +141,9 @@ export default function App() {
         aberto={modal.tipo === "historico"}
         membro={membroEmFoco}
         onFechar={fechar}
+        onEditarPagamento={(pagamento, competenciaPagamento) =>
+          setPagamentoEmEdicao({ pagamento, competencia: competenciaPagamento })
+        }
       />
 
       <NegotiationModal
@@ -197,6 +206,29 @@ export default function App() {
         onFechar={fechar}
         onSalvar={async (nomeClube, valorMensalidade) => {
           await atualizarConfig({ nomeClube, valorMensalidade });
+        }}
+        onAbrirRelatorio={() => setRelatorioAberto(true)}
+      />
+
+      <ReportModal aberto={relatorioAberto} onFechar={() => setRelatorioAberto(false)} />
+
+      <EditPaymentModal
+        aberto={pagamentoEmEdicao !== null}
+        pagamento={pagamentoEmEdicao?.pagamento}
+        competencia={pagamentoEmEdicao?.competencia}
+        apelidoMembro={membroEmFoco?.apelido}
+        onFechar={() => setPagamentoEmEdicao(null)}
+        onSalvar={async (valorPago, dataPagamento, formaPagamento) => {
+          if (pagamentoEmEdicao?.pagamento.id === undefined) return;
+          await editarPagamento(pagamentoEmEdicao.pagamento.id, {
+            valorPago,
+            dataPagamento,
+            formaPagamento,
+          });
+        }}
+        onEstornar={async () => {
+          if (!pagamentoEmEdicao) return;
+          await removerBaixa(pagamentoEmEdicao.pagamento.membroId, pagamentoEmEdicao.competencia);
         }}
       />
 

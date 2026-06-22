@@ -15,6 +15,7 @@ inadimplência acumulada.
 - Tailwind CSS (tema dark "moto clube": grafite/preto + laranja/vermelho)
 - Dexie.js (IndexedDB) — persistência 100% local/offline
 - vite-plugin-pwa — Service Worker com cache do app shell
+- pdf-lib + @pdf-lib/fontkit — geração de relatórios em PDF no navegador
 - lucide-react — ícones
 
 ## Como rodar
@@ -45,16 +46,19 @@ desinstalar o PWA.
 
 ```
 src/
+├── assets/
+│   └── fonts/      # Roboto-Regular.ttf (licença SIL OFL) — usada na geração de PDF
 ├── components/
 │   ├── ui/         # Badge, Button, Modal, EmptyState, ConfirmDialog
 │   ├── dashboard/  # cards de resumo do mês
-│   ├── members/    # lista, item, cadastro/edição, histórico, negociação, ações
-│   ├── settings/   # configurações do clube (nome, valor da mensalidade)
+│   ├── members/    # lista, item, cadastro/edição, histórico, negociação, ações, edição de pagamento
+│   ├── settings/   # configurações do clube, relatórios, backup/restauração
+│   ├── pwa/        # botão de instalar, banner de atualização
 │   └── layout/     # header, seletor de mês
-├── db/             # Dexie: schema + seed
-├── hooks/          # lógica de dados (CRUD, cálculo de inadimplência, resumo)
+├── db/             # Dexie: schema, seed, backup/restauração
+├── hooks/          # lógica de dados (CRUD, cálculo de inadimplência, resumo, relatório, backup)
 ├── types/          # Membro, Pagamento, ConfigClube
-├── utils/          # datas/competências, moeda, cálculo de status
+├── utils/          # datas/competências, moeda, cálculo de status, relatório, geração de PDF
 └── constants/
 ```
 
@@ -93,6 +97,45 @@ src/
 - Menu de **ações do membro** (ícone de 3 pontos na lista): editar nome/apelido, afastar ou
   reativar, e excluir definitivamente (cadastro + todo o histórico de pagamentos, com
   confirmação explícita antes de executar).
+- **Edição e estorno de pagamento**: no histórico do membro, qualquer linha já paga é
+  clicável e abre um modal para corrigir valor/data/forma de pagamento, ou estornar
+  (excluir) o registro por completo — a competência volta a ficar pendente. Ver
+  `EditPaymentModal.tsx` e `usePagamentos.editarPagamento`/`removerBaixa`.
+
+## Backup e restauração
+
+Em Configurações → Backup e restauração:
+
+- **Exportar backup**: gera um arquivo `.json` com todos os membros, pagamentos e a
+  configuração do clube, e dispara o download no navegador.
+- **Importar backup**: lê um arquivo `.json` exportado anteriormente (do mesmo dispositivo
+  ou de outro celular) e **mescla** com os dados já existentes — nunca substitui ou apaga
+  nada. Deduplicação: um membro é considerado "já existente" se já houver um membro com o
+  mesmo par (nome, apelido); um pagamento é considerado "já existente" se já houver um
+  pagamento do mesmo membro para a mesma competência. Membros novos do arquivo recebem um
+  ID gerado localmente — nunca reaproveita o ID do arquivo, que poderia colidir com IDs já
+  usados localmente. Ver `src/db/backup.ts`.
+
+## Relatórios em PDF
+
+Em Configurações → Relatórios → Gerar relatório em PDF. Três tipos de filtro disponíveis:
+
+- **Mês**: situação de um único mês (ex: Junho/2026).
+- **Período**: intervalo customizado entre duas competências (ex: Março/2026 a Maio/2026).
+- **Ano**: ano completo (Janeiro a Dezembro).
+
+O relatório lista cada membro com seu status (Em dia / Pendente — com quantidade de meses
+devidos / Afastado), e o valor total arrecadado no período (mesma métrica de "caixa" do
+dashboard: soma pagamentos pela `dataPagamento`, não pela competência paga). Importante: o
+cálculo de status nunca considera meses **futuros** como pendência — um relatório anual
+gerado em Junho não acusa Julho-Dezembro como dívida, mesmo que o filtro vá até Dezembro.
+
+A geração do PDF acontece inteiramente no navegador (`pdf-lib` + `@pdf-lib/fontkit`), sem
+nenhum servidor envolvido. Usa uma fonte TrueType embutida (Roboto, licença SIL OFL — ver
+`src/assets/fonts/OFL-Roboto.txt`) em vez das fontes padrão do pdf-lib, que não suportam
+acentos do português. `pdf-lib` e `fontkit` são carregados via `import()` dinâmico — só
+entram no bundle quando o usuário de fato pede um relatório, mantendo o carregamento normal
+do app leve.
 
 ## Instalação e atualização do PWA
 
