@@ -124,3 +124,22 @@ export function hojeISO(): string {
   const dia = String(hoje.getDate()).padStart(2, "0");
   return `${ano}-${mes}-${dia}`;
 }
+
+/**
+ * Converte uma competência no formato "YYYY-MM" (usado em Membro.competenciaAfastamento)
+ * para o tipo Competencia. Retorna null se a string for inválida ou vazia.
+ */
+export function competenciaDeStringAnoMes(valor: string | undefined): Competencia | null {
+  if (!valor) return null;
+  const [anoStr, mesStr] = valor.split("-");
+  const ano = Number(anoStr);
+  const mes = Number(mesStr);
+  if (!ano || !mes || mes < 1 || mes > 12) return null;
+  return { mes, ano };
+}
+
+/** Formata a competência atual como string "YYYY-MM", para gravar em Membro.competenciaAfastamento. */
+export function competenciaAtualComoStringAnoMes(): string {
+  const { mes, ano } = competenciaAtual();
+  return `${ano}-${String(mes).padStart(2, "0")}`;
+}

@@ -10,15 +10,17 @@ interface MemberListProps {
   onDarBaixaRapida: (membroId: number) => void;
   onAbrirNegociacao: (membroId: number) => void;
   onAbrirHistorico: (membroId: number) => void;
+  onAbrirAcoes: (membroId: number) => void;
 }
 
-/** Lista principal de conferência — busca local por nome/apelido, sem filtro de status (mostra todos ativos). */
+/** Lista principal de conferência — busca local por nome/apelido. Mostra membros ativos e afastados. */
 export function MemberList({
   membrosComStatus,
   carregando,
   onDarBaixaRapida,
   onAbrirNegociacao,
   onAbrirHistorico,
+  onAbrirAcoes,
 }: MemberListProps) {
   const [busca, setBusca] = useState("");
 
@@ -73,6 +75,7 @@ export function MemberList({
               onDarBaixaRapida={() => onDarBaixaRapida(membro.id as number)}
               onAbrirNegociacao={() => onAbrirNegociacao(membro.id as number)}
               onAbrirHistorico={() => onAbrirHistorico(membro.id as number)}
+              onAbrirAcoes={() => onAbrirAcoes(membro.id as number)}
             />
           ))}
         </ul>

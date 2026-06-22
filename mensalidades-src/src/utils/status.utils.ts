@@ -1,7 +1,9 @@
 import type { Competencia, Membro, Pagamento } from "../types";
 import {
   compararCompetencias,
+  competenciaAnterior,
   competenciaDeDataISO,
+  competenciaDeStringAnoMes,
   gerarIntervaloCompetencias,
 } from "./date.utils";
 
@@ -50,6 +52,12 @@ function inicioCicloDoAno(competenciaIngresso: Competencia, ano: number): Compet
  * Calcula, para um único membro, todas as competências pendentes dentro do CICLO ANUAL
  * do ano da competência de referência, cruzando com os pagamentos já registrados.
  *
+ * Se o membro estiver afastado (`status === "afastado"`) e a competência de afastamento
+ * já tiver chegado ou passado em relação à referência, o cálculo "para no tempo": a última
+ * competência considerada cobrável é a imediatamente anterior à do afastamento. Competências
+ * anteriores ao afastamento que ainda estejam pendentes continuam aparecendo normalmente
+ * (a dívida não é perdoada) — apenas nenhuma competência nova é gerada a partir dali.
+ *
  * Como o ano de referência define o ciclo, esta função também serve para consultar
  * anos anteriores (histórico multi-ano): basta passar uma competenciaReferencia de
  * um ano passado para obter as pendências daquele ciclo especificamente.
@@ -78,9 +86,23 @@ export function calcularInadimplenciaMembro(
     };
   }
 
+  const competenciaFimEfetivo = limitarPorAfastamento(membro, competenciaReferencia);
+
+  // O afastamento pode "zerar" o intervalo (ex: afastado desde antes do início do ciclo
+  // deste ano) — neste caso não há competências esperadas neste ciclo.
+  if (competenciaFimEfetivo === null || compararCompetencias(competenciaInicioCiclo, competenciaFimEfetivo) > 0) {
+    return {
+      membroId: membro.id ?? -1,
+      competenciasPendentes: [],
+      totalMesesPendentes: 0,
+      valorTotalDevido: 0,
+      competenciaReferenciaPaga: false,
+    };
+  }
+
   const todasCompetenciasEsperadas = gerarIntervaloCompetencias(
     competenciaInicioCiclo,
-    competenciaReferencia,
+    competenciaFimEfetivo,
   );
 
   const pagas = new Set(pagamentosDoMembro.map((p) => chaveCompetencia(p)));
@@ -101,31 +123,82 @@ export function calcularInadimplenciaMembro(
 }
 
 /**
+ * Aplica o efeito do afastamento sobre o fim do intervalo de cobrança.
+ *
+ * Se o membro não está afastado, ou está afastado mas a competência de afastamento
+ * ainda não chegou em relação à referência (ex: referência é um mês ANTES do afastamento —
+ * caso de consulta de histórico passado), o fim do intervalo é a própria referência.
+ *
+ * Se já está afastado a partir de uma competência igual ou anterior à referência, o fim
+ * do intervalo retrocede para a competência imediatamente anterior à do afastamento.
+ */
+function limitarPorAfastamento(membro: Membro, competenciaReferencia: Competencia): Competencia | null {
+  if (membro.status !== "afastado") return competenciaReferencia;
+
+  const competenciaAfastamento = competenciaDeStringAnoMes(membro.competenciaAfastamento);
+  if (competenciaAfastamento === null) return competenciaReferencia;
+
+  if (compararCompetencias(competenciaAfastamento, competenciaReferencia) > 0) {
+    // Afastamento é no futuro em relação à referência consultada (ex: consultando um
+    // mês anterior ao afastamento) — cobrança normal até a própria referência.
+    return competenciaReferencia;
+  }
+
+  return competenciaAnterior(competenciaAfastamento);
+}
+
+/**
  * Gera todas as competências de cobrança esperadas de um membro, percorrendo CADA ANO
  * desde o ano de ingresso até o ano da competência final (inclusive), respeitando o
  * ciclo anual de cada ano (Janeiro-Dezembro, exceto o ano de ingresso que pode começar
- * mais tarde). Usado no histórico multi-ano: mostra exatamente os meses que o membro
- * deveria ter pago em cada ano, sem "inventar" pendência de anos antes do ingresso nem
- * de meses do ano de ingresso anteriores à entrada do membro.
+ * mais tarde) E o afastamento, se houver (não gera competências a partir da data em que
+ * o membro foi afastado). Usado no histórico multi-ano: mostra exatamente os meses que
+ * o membro deveria ter pago em cada ano, sem "inventar" pendência de períodos em que
+ * ele não estava sujeito à cobrança.
  */
 export function gerarCompetenciasEsperadasHistorico(
   membro: Membro,
   competenciaFinal: Competencia,
 ): Competencia[] {
   const competenciaIngresso = competenciaDeDataISO(membro.dataIngresso);
-  if (competenciaIngresso.ano > competenciaFinal.ano) return [];
+  const competenciaFinalEfetiva = limitarPorAfastamento(membro, competenciaFinal);
+
+  if (competenciaFinalEfetiva === null || competenciaIngresso.ano > competenciaFinalEfetiva.ano) {
+    return [];
+  }
 
   const resultado: Competencia[] = [];
-  for (let ano = competenciaIngresso.ano; ano <= competenciaFinal.ano; ano++) {
+  for (let ano = competenciaIngresso.ano; ano <= competenciaFinalEfetiva.ano; ano++) {
     const inicio = inicioCicloDoAno(competenciaIngresso, ano);
     if (inicio === null) continue;
 
-    const fimDoAno: Competencia = ano === competenciaFinal.ano ? competenciaFinal : { mes: 12, ano };
+    const fimDoAno: Competencia =
+      ano === competenciaFinalEfetiva.ano ? competenciaFinalEfetiva : { mes: 12, ano };
     if (compararCompetencias(inicio, fimDoAno) > 0) continue;
 
     resultado.push(...gerarIntervaloCompetencias(inicio, fimDoAno));
   }
   return resultado;
+}
+
+/**
+ * Verifica se um membro estava sujeito à cobrança em uma competência específica —
+ * ou seja, se ela cai dentro do período cobrável dele (considerando ingresso e afastamento).
+ * Usado para decidir se um membro deve entrar nas métricas do dashboard de um mês de
+ * referência: um membro afastado HOJE ainda contava normalmente em meses anteriores
+ * ao seu afastamento, mas não deve ser contado a partir do mês em que se afastou.
+ */
+export function membroEstaSujeitoACobranca(membro: Membro, competenciaReferencia: Competencia): boolean {
+  const competenciaIngresso = competenciaDeDataISO(membro.dataIngresso);
+  if (compararCompetencias(competenciaIngresso, competenciaReferencia) > 0) return false;
+
+  if (membro.status !== "afastado") return true;
+
+  const competenciaAfastamento = competenciaDeStringAnoMes(membro.competenciaAfastamento);
+  if (competenciaAfastamento === null) return true;
+
+  // Sujeito à cobrança apenas se a referência for ANTERIOR ao mês em que se afastou.
+  return compararCompetencias(competenciaReferencia, competenciaAfastamento) < 0;
 }
 
 /** Gera uma chave única "ano-mes" para comparação de competências em Sets/Maps. */

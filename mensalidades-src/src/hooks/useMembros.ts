@@ -1,6 +1,7 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db/db";
 import type { EditarMembroInput, Membro, NovoMembroInput } from "../types";
+import { competenciaAtualComoStringAnoMes, hojeISO } from "../utils/date.utils";
 
 export interface UseMembrosResult {
   /** Lista de todos os membros cadastrados, ordenada por apelido. Undefined enquanto carrega. */
@@ -9,14 +10,23 @@ export interface UseMembrosResult {
   /** true enquanto a leitura inicial do banco ainda não retornou. */
   carregando: boolean;
 
-  /** Cadastra um novo membro. Retorna o id gerado. */
+  /** Cadastra um novo membro. Data de ingresso é fixada como hoje. Retorna o id gerado. */
   criarMembro: (input: NovoMembroInput) => Promise<number>;
 
-  /** Atualiza campos de um membro existente. */
+  /** Atualiza campos de um membro existente (nome, apelido). */
   editarMembro: (id: number, input: EditarMembroInput) => Promise<void>;
 
-  /** Alterna o status do membro entre ativo/inativo. */
-  alternarStatusMembro: (id: number) => Promise<void>;
+  /**
+   * Marca o membro como afastado a partir do mês corrente: a partir desta competência
+   * (inclusive) ele para de gerar novas pendências, mas qualquer dívida anterior é mantida.
+   */
+  afastarMembro: (id: number) => Promise<void>;
+
+  /**
+   * Reverte o afastamento, voltando o membro a "ativo". A cobrança volta a contar
+   * normalmente a partir do mês corrente — os meses durante o afastamento não retroagem.
+   */
+  reativarMembro: (id: number) => Promise<void>;
 
   /** Remove definitivamente um membro e todo o seu histórico de pagamentos. */
   excluirMembro: (id: number) => Promise<void>;
@@ -36,6 +46,8 @@ export function useMembros(): UseMembrosResult {
     const agora = Date.now();
     const id = await db.membros.add({
       ...input,
+      dataIngresso: hojeISO(),
+      status: "ativo",
       criadoEm: agora,
       atualizadoEm: agora,
     });
@@ -51,11 +63,20 @@ export function useMembros(): UseMembrosResult {
     });
   }
 
-  async function alternarStatusMembro(id: number): Promise<void> {
-    const membro = await db.membros.get(id);
-    if (!membro) return;
-    const novoStatus = membro.status === "ativo" ? "inativo" : "ativo";
-    await db.membros.update(id, { status: novoStatus, atualizadoEm: Date.now() });
+  async function afastarMembro(id: number): Promise<void> {
+    await db.membros.update(id, {
+      status: "afastado",
+      competenciaAfastamento: competenciaAtualComoStringAnoMes(),
+      atualizadoEm: Date.now(),
+    });
+  }
+
+  async function reativarMembro(id: number): Promise<void> {
+    await db.membros.update(id, {
+      status: "ativo",
+      competenciaAfastamento: undefined,
+      atualizadoEm: Date.now(),
+    });
   }
 
   async function excluirMembro(id: number): Promise<void> {
@@ -70,7 +91,8 @@ export function useMembros(): UseMembrosResult {
     carregando: membros === undefined,
     criarMembro,
     editarMembro,
-    alternarStatusMembro,
+    afastarMembro,
+    reativarMembro,
     excluirMembro,
   };
 }

@@ -35,35 +35,52 @@ npm run lint       # ESLint (zero warnings configurado como meta)
 
 ## Dados de teste
 
-Na primeira execução, se o banco estiver vazio, o app popula automaticamente 4 membros
-fictícios com cenários distintos de pagamento (em dia, ingresso no meio do ano, inadimplência
-no ciclo atual, e inadimplência multi-ano) — ver `src/db/seed.ts`. Para resetar, basta limpar
-o IndexedDB do navegador (Application > IndexedDB > mutantes-mc-db) ou desinstalar o PWA.
+Na primeira execução, se o banco estiver vazio, o app popula automaticamente 5 membros
+fictícios com cenários distintos (em dia, ingresso no meio do ano, inadimplência no ciclo
+atual, inadimplência multi-ano, e um membro afastado) — ver `src/db/seed.ts`. Para resetar,
+basta limpar o IndexedDB do navegador (Application > IndexedDB > mutantes-mc-db) ou
+desinstalar o PWA.
 
 ## Estrutura
 
 ```
 src/
-├── components/   # UI (ui/, dashboard/, members/, layout/)
-├── db/           # Dexie: schema + seed
-├── hooks/        # lógica de dados (CRUD, cálculo de inadimplência, resumo)
-├── types/        # Membro, Pagamento, ConfigClube
-├── utils/        # datas/competências, moeda, cálculo de status
+├── components/
+│   ├── ui/         # Badge, Button, Modal, EmptyState, ConfirmDialog
+│   ├── dashboard/  # cards de resumo do mês
+│   ├── members/    # lista, item, cadastro/edição, histórico, negociação, ações
+│   ├── settings/   # configurações do clube (nome, valor da mensalidade)
+│   └── layout/     # header, seletor de mês
+├── db/             # Dexie: schema + seed
+├── hooks/          # lógica de dados (CRUD, cálculo de inadimplência, resumo)
+├── types/          # Membro, Pagamento, ConfigClube
+├── utils/          # datas/competências, moeda, cálculo de status
 └── constants/
 ```
 
 ## Regras de negócio implementadas
 
-- Mensalidade de valor único, configurável globalmente (`ConfigClube.valorMensalidade`).
+- Mensalidade de valor único, configurável em Configurações (`ConfigClube.valorMensalidade`).
+  Alterar o valor não retroage em pagamentos já registrados — cada `Pagamento` guarda seu
+  próprio `valorPago`, congelado no momento da baixa.
 - **Ciclo de cobrança anual (Janeiro-Dezembro do ano corrente)**: todo membro ativo é cobrado
   desde Janeiro até o mês atual, independentemente de há quanto tempo está no clube. A data de
   ingresso só desloca o início da cobrança dentro do próprio ano de ingresso (quem entrou em
   Abril não deve Jan-Mar daquele ano). Ver `src/utils/status.utils.ts`.
 - **Histórico multi-ano**: dívidas de anos anteriores continuam visíveis separadamente — virar
   o ano não "zera" nem mistura competências de anos diferentes.
+- **Afastamento** (`Membro.status === "afastado"`): a partir da competência registrada em
+  `Membro.competenciaAfastamento`, o membro para de gerar pendências novas, mas qualquer
+  dívida anterior ao afastamento é mantida (não é perdoada). O membro continua visível na
+  lista, sem botões de cobrança. Reativar o membro volta a contar normalmente a partir do
+  mês da reativação — o período afastado nunca retroage como dívida.
 - Status de cada competência é **derivado**, não armazenado: um mês é "pendente" se está
-  dentro do ciclo do ano de referência e não há `Pagamento` registrado para ele.
+  dentro do ciclo do ano de referência (e antes de um eventual afastamento) e não há
+  `Pagamento` registrado para ele.
 - Lista mostra inadimplência acumulada ("Pendente (N meses)") quando há mais de 1 mês em aberto.
 - Botão **Dar Baixa**: baixa rápida de 1 clique, sempre na competência selecionada no topo.
 - Botão **Negociar** (aparece quando há 2+ meses pendentes): abre modal para selecionar
   quais competências estão sendo quitadas agora, soma os valores e baixa todas em lote.
+- Menu de **ações do membro** (ícone de 3 pontos na lista): editar nome/apelido, afastar ou
+  reativar, e excluir definitivamente (cadastro + todo o histórico de pagamentos, com
+  confirmação explícita antes de executar).

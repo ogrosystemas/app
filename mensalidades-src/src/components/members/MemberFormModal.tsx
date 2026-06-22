@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Membro, NovoMembroInput, StatusMembro } from "../../types";
-import { hojeISO } from "../../utils/date.utils";
+import type { Membro, NovoMembroInput } from "../../types";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 
@@ -15,11 +14,13 @@ interface MemberFormModalProps {
 const ESTADO_INICIAL: NovoMembroInput = {
   nome: "",
   apelido: "",
-  dataIngresso: hojeISO(),
-  status: "ativo",
 };
 
-/** Modal de cadastro/edição de membro — formulário simples conforme requisito de negócio. */
+/**
+ * Modal de cadastro/edição de membro — formulário simples: apenas nome e apelido.
+ * Data de ingresso é fixada automaticamente como hoje no cadastro (ver useMembros.criarMembro)
+ * e não é editável aqui; status (ativo/afastado) tem fluxo próprio na lista de membros.
+ */
 export function MemberFormModal({ aberto, membroParaEditar, onFechar, onSalvar }: MemberFormModalProps) {
   const [form, setForm] = useState<NovoMembroInput>(ESTADO_INICIAL);
   const [salvando, setSalvando] = useState(false);
@@ -32,8 +33,6 @@ export function MemberFormModal({ aberto, membroParaEditar, onFechar, onSalvar }
       setForm({
         nome: membroParaEditar.nome,
         apelido: membroParaEditar.apelido,
-        dataIngresso: membroParaEditar.dataIngresso,
-        status: membroParaEditar.status,
       });
     } else {
       setForm(ESTADO_INICIAL);
@@ -51,8 +50,6 @@ export function MemberFormModal({ aberto, membroParaEditar, onFechar, onSalvar }
       await onSalvar({
         nome: form.nome.trim(),
         apelido: form.apelido.trim(),
-        dataIngresso: form.dataIngresso,
-        status: form.status,
       });
       onFechar();
     } catch {
@@ -90,6 +87,7 @@ export function MemberFormModal({ aberto, membroParaEditar, onFechar, onSalvar }
             onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))}
             placeholder="Ex: Carlos Eduardo Ferreira"
             className="w-full border border-graphite-700 bg-graphite-900 px-3 py-2 text-sm text-chrome-50 placeholder:text-graphite-400 focus:border-ember-500"
+            autoFocus
           />
         </Campo>
 
@@ -101,34 +99,6 @@ export function MemberFormModal({ aberto, membroParaEditar, onFechar, onSalvar }
             placeholder="Ex: Foice"
             className="w-full border border-graphite-700 bg-graphite-900 px-3 py-2 text-sm text-chrome-50 placeholder:text-graphite-400 focus:border-ember-500"
           />
-        </Campo>
-
-        <Campo label="Data de ingresso">
-          <input
-            type="date"
-            value={form.dataIngresso}
-            onChange={(e) => setForm((f) => ({ ...f, dataIngresso: e.target.value }))}
-            className="w-full border border-graphite-700 bg-graphite-900 px-3 py-2 text-sm text-chrome-50 [color-scheme:dark] focus:border-ember-500"
-          />
-        </Campo>
-
-        <Campo label="Status">
-          <div className="flex gap-2">
-            {(["ativo", "inativo"] as StatusMembro[]).map((status) => (
-              <button
-                key={status}
-                type="button"
-                onClick={() => setForm((f) => ({ ...f, status }))}
-                className={`flex-1 border px-3 py-2 text-sm font-display font-semibold uppercase tracking-wide transition-colors ${
-                  form.status === status
-                    ? "border-ember-500 bg-ember-950 text-ember-500"
-                    : "border-graphite-700 bg-graphite-900 text-graphite-400"
-                }`}
-              >
-                {status === "ativo" ? "Ativo" : "Inativo"}
-              </button>
-            ))}
-          </div>
         </Campo>
       </div>
     </Modal>

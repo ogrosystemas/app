@@ -16,6 +16,9 @@ import type { Membro, Pagamento } from "../types";
  *               devendo Nov/Dez do ANO PASSADO (dívida pontual já "fechada" no passado)
  *               e também está com pendência no ano corrente — cobre o caso de
  *               inadimplência que atravessa a virada do ano sem acumular história fictícia.
+ * 5) "Cigano" -> afastado há alguns meses: ficou devendo o mês imediatamente anterior ao
+ *               afastamento (dívida que persiste mesmo depois de afastado) e não gera
+ *               nenhuma cobrança nova desde então — cobre o caso de afastamento.
  */
 export async function seedDatabase(db: MutantesDB): Promise<void> {
   await db.transaction("rw", db.config, db.membros, db.pagamentos, async () => {
@@ -44,6 +47,13 @@ export async function seedDatabase(db: MutantesDB): Promise<void> {
     // Mês de ingresso do membro "novo" deste ano: meio do ano corrente, ou o próprio
     // mês atual caso estejamos em Jan/Fev (evita gerar uma data de ingresso no futuro).
     const mesIngressoNovato = Math.max(1, Math.min(mesAtual, Math.ceil(mesAtual / 2)));
+
+    // Competência de afastamento do "Cigano": 2 meses atrás em relação a hoje (sempre um
+    // mês plenamente no passado, nunca o mês atual nem o futuro — evita casos de borda).
+    const dataAfastamento = new Date(hoje.getFullYear(), hoje.getMonth() - 2, 1);
+    const mesAfastamentoCigano = dataAfastamento.getMonth() + 1;
+    const anoAfastamentoCigano = dataAfastamento.getFullYear();
+    const competenciaAfastamentoCigano = `${anoAfastamentoCigano}-${String(mesAfastamentoCigano).padStart(2, "0")}`;
 
     const membrosSeed: Membro[] = [
       {
@@ -78,6 +88,15 @@ export async function seedDatabase(db: MutantesDB): Promise<void> {
         criadoEm: agora,
         atualizadoEm: agora,
       },
+      {
+        nome: "José Carlos Mendes",
+        apelido: "Cigano",
+        dataIngresso: "2019-05-12", // veterano, afastado há alguns meses
+        status: "afastado",
+        competenciaAfastamento: competenciaAfastamentoCigano,
+        criadoEm: agora,
+        atualizadoEm: agora,
+      },
     ];
 
     const idsInseridos = (await db.membros.bulkAdd(membrosSeed, { allKeys: true })) as number[];
@@ -85,12 +104,14 @@ export async function seedDatabase(db: MutantesDB): Promise<void> {
     const idSombra = idsInseridos[1];
     const idCoice = idsInseridos[2];
     const idBrasa = idsInseridos[3];
+    const idCigano = idsInseridos[4];
 
     if (
       idFoice === undefined ||
       idSombra === undefined ||
       idCoice === undefined ||
-      idBrasa === undefined
+      idBrasa === undefined ||
+      idCigano === undefined
     ) {
       throw new Error("Falha ao inserir membros fictícios: IDs gerados inválidos.");
     }
@@ -130,6 +151,24 @@ export async function seedDatabase(db: MutantesDB): Promise<void> {
     }
     for (const { mes, ano } of competenciasEntre(1, anoAtual, Math.min(2, mesAtual), anoAtual)) {
       pagamentosSeed.push(criarPagamento(idBrasa, mes, ano, agora));
+    }
+
+    // Cigano: pagou Janeiro e Fevereiro do ano em que se afastou, mas ficou devendo o mês
+    // IMEDIATAMENTE ANTERIOR ao afastamento (uma dívida que persiste mesmo após se afastar —
+    // o afastamento não perdoa pendências passadas, só impede novas). Nenhuma competência a
+    // partir do mês de afastamento (inclusive) é gerada.
+    const mesAnteriorAoAfastamentoCigano = new Date(anoAfastamentoCigano, mesAfastamentoCigano - 2, 1);
+    const competenciasPagasAteAfastamento = competenciasEntre(
+      1,
+      anoAfastamentoCigano,
+      mesAnteriorAoAfastamentoCigano.getMonth() + 1,
+      mesAnteriorAoAfastamentoCigano.getFullYear(),
+    );
+    // Remove a última competência (o mês imediatamente anterior ao afastamento) da lista de
+    // pagas, propositalmente, para simular a dívida pendente que se mantém após o afastamento.
+    const competenciasPagasCigano = competenciasPagasAteAfastamento.slice(0, -1);
+    for (const { mes, ano } of competenciasPagasCigano) {
+      pagamentosSeed.push(criarPagamento(idCigano, mes, ano, agora));
     }
 
     await db.pagamentos.bulkAdd(pagamentosSeed);

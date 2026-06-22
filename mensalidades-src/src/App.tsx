@@ -3,12 +3,14 @@ import { useState } from "react";
 import { DashboardSummary } from "./components/dashboard";
 import { AppHeader, MonthSelector } from "./components/layout";
 import {
+  MemberActionsModal,
   MemberFormModal,
   MemberHistoryModal,
   MemberList,
   NegotiationModal,
 } from "./components/members";
-import { Button } from "./components/ui";
+import { SettingsModal } from "./components/settings";
+import { Button, ConfirmDialog } from "./components/ui";
 import { useConfig } from "./hooks/useConfig";
 import { useDashboardResumo } from "./hooks/useDashboardResumo";
 import { useInadimplencia } from "./hooks/useInadimplencia";
@@ -22,15 +24,19 @@ type ModalAtivo =
   | { tipo: "cadastro" }
   | { tipo: "edicao"; membro: Membro }
   | { tipo: "historico"; membro: Membro }
-  | { tipo: "negociacao"; membro: Membro };
+  | { tipo: "negociacao"; membro: Membro }
+  | { tipo: "acoes"; membro: Membro }
+  | { tipo: "confirmar-exclusao"; membro: Membro }
+  | { tipo: "configuracoes" };
 
 /** Componente raiz: orquestra estado de competência selecionada e qual modal está aberto. */
 export default function App() {
   const [competencia, setCompetencia] = useState<Competencia>(competenciaAtual());
   const [modal, setModal] = useState<ModalAtivo>({ tipo: "nenhum" });
 
-  const { config } = useConfig();
-  const { membros, criarMembro } = useMembros();
+  const { config, atualizarConfig } = useConfig();
+  const { membros, criarMembro, editarMembro, afastarMembro, reativarMembro, excluirMembro } =
+    useMembros();
   const { membrosComStatus, carregando: carregandoLista } = useInadimplencia(competencia);
   const { resumo, carregando: carregandoResumo } = useDashboardResumo(competencia);
   const { darBaixa, darBaixaEmLote } = usePagamentos();
@@ -41,6 +47,10 @@ export default function App() {
 
   function buscarResumo(membroId: number) {
     return membrosComStatus.find((item) => item.membro.id === membroId)?.resumo;
+  }
+
+  function fechar() {
+    setModal({ tipo: "nenhum" });
   }
 
   async function handleDarBaixaRapida(membroId: number) {
@@ -63,12 +73,20 @@ export default function App() {
   }
 
   const membroEmFoco =
-    modal.tipo === "historico" || modal.tipo === "negociacao" ? modal.membro : undefined;
+    modal.tipo === "historico" ||
+    modal.tipo === "negociacao" ||
+    modal.tipo === "acoes" ||
+    modal.tipo === "confirmar-exclusao"
+      ? modal.membro
+      : undefined;
   const resumoEmFoco = membroEmFoco?.id !== undefined ? buscarResumo(membroEmFoco.id) : undefined;
 
   return (
     <div className="flex min-h-screen flex-col bg-graphite-950">
-      <AppHeader nomeClube={config.nomeClube} />
+      <AppHeader
+        nomeClube={config.nomeClube}
+        onAbrirConfiguracoes={() => setModal({ tipo: "configuracoes" })}
+      />
       <MonthSelector competencia={competencia} onAlterar={setCompetencia} />
       <DashboardSummary resumo={resumo} carregando={carregandoResumo} />
 
@@ -93,21 +111,29 @@ export default function App() {
           const membro = buscarMembro(membroId);
           if (membro) setModal({ tipo: "historico", membro });
         }}
+        onAbrirAcoes={(membroId) => {
+          const membro = buscarMembro(membroId);
+          if (membro) setModal({ tipo: "acoes", membro });
+        }}
       />
 
       <MemberFormModal
         aberto={modal.tipo === "cadastro" || modal.tipo === "edicao"}
         membroParaEditar={modal.tipo === "edicao" ? modal.membro : undefined}
-        onFechar={() => setModal({ tipo: "nenhum" })}
+        onFechar={fechar}
         onSalvar={async (input) => {
-          await criarMembro(input);
+          if (modal.tipo === "edicao" && modal.membro.id !== undefined) {
+            await editarMembro(modal.membro.id, input);
+          } else {
+            await criarMembro(input);
+          }
         }}
       />
 
       <MemberHistoryModal
         aberto={modal.tipo === "historico"}
         membro={membroEmFoco}
-        onFechar={() => setModal({ tipo: "nenhum" })}
+        onFechar={fechar}
       />
 
       <NegotiationModal
@@ -115,7 +141,7 @@ export default function App() {
         membro={membroEmFoco}
         resumo={resumoEmFoco}
         valorMensalidade={config.valorMensalidade}
-        onFechar={() => setModal({ tipo: "nenhum" })}
+        onFechar={fechar}
         onConfirmar={async (competencias, valorTotalPago, formaPagamento, observacao) => {
           if (membroEmFoco?.id === undefined) return;
           await handleConfirmarNegociacao(
@@ -125,6 +151,51 @@ export default function App() {
             formaPagamento,
             observacao,
           );
+        }}
+      />
+
+      <MemberActionsModal
+        aberto={modal.tipo === "acoes"}
+        membro={membroEmFoco}
+        onFechar={fechar}
+        onEditar={() => {
+          if (membroEmFoco) setModal({ tipo: "edicao", membro: membroEmFoco });
+        }}
+        onAfastar={async () => {
+          if (membroEmFoco?.id !== undefined) await afastarMembro(membroEmFoco.id);
+          fechar();
+        }}
+        onReativar={async () => {
+          if (membroEmFoco?.id !== undefined) await reativarMembro(membroEmFoco.id);
+          fechar();
+        }}
+        onExcluir={() => {
+          if (membroEmFoco) setModal({ tipo: "confirmar-exclusao", membro: membroEmFoco });
+        }}
+      />
+
+      <ConfirmDialog
+        aberto={modal.tipo === "confirmar-exclusao"}
+        titulo="Excluir membro"
+        mensagem={
+          membroEmFoco
+            ? `Tem certeza que deseja excluir "${membroEmFoco.apelido}"? Isso remove o cadastro e todo o histórico de pagamentos permanentemente. Esta ação não pode ser desfeita.`
+            : ""
+        }
+        textoConfirmar="Excluir"
+        onCancelar={fechar}
+        onConfirmar={async () => {
+          if (membroEmFoco?.id !== undefined) await excluirMembro(membroEmFoco.id);
+          fechar();
+        }}
+      />
+
+      <SettingsModal
+        aberto={modal.tipo === "configuracoes"}
+        config={config}
+        onFechar={fechar}
+        onSalvar={async (nomeClube, valorMensalidade) => {
+          await atualizarConfig({ nomeClube, valorMensalidade });
         }}
       />
     </div>

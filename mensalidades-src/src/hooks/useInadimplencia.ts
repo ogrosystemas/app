@@ -20,15 +20,17 @@ export interface UseInadimplenciaResult {
 
 /**
  * Hook central de conferência: para uma competência de referência (mês/ano selecionado no topo),
- * retorna cada membro ativo já cruzado com seu resumo de inadimplência (pendências acumuladas
- * desde o ingresso até a competência de referência).
+ * retorna cada membro (ativo ou afastado) já cruzado com seu resumo de inadimplência. Membros
+ * afastados continuam na lista — o cálculo de pendência já considera a data de afastamento
+ * internamente (ver calcularInadimplenciaMembro), então não há necessidade de filtrar por status
+ * aqui: a UI decide como exibir cada caso (ex: esconder botões de cobrança para afastados).
  *
  * Mantém-se reativo: qualquer baixa registrada via usePagamentos atualiza esta lista automaticamente.
  */
 export function useInadimplencia(competenciaReferencia: Competencia): UseInadimplenciaResult {
   const { config, carregando: carregandoConfig } = useConfig();
 
-  const membros = useLiveQuery(() => db.membros.where("status").equals("ativo").toArray(), []);
+  const membros = useLiveQuery(() => db.membros.toArray(), []);
 
   const pagamentos = useLiveQuery(() => db.pagamentos.toArray(), []);
 
