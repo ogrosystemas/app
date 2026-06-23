@@ -205,6 +205,18 @@ Pontos importantes:
   diferente do nome do clube e valor da mensalidade, não são editáveis pelo app, já que
   envolvem dados bancários reais.
 
+### Bug real já corrigido aqui (não repetir)
+
+**Chave de telefone exige o formato internacional `+55DDDNNNNNNNNN` dentro do QR Code.**
+Mesmo que você só digite o DDD+número ao *cadastrar* a chave no app do banco, o Manual
+Operacional do DICT (Banco Central) exige que, dentro do *payload* do BR Code, uma chave
+de telefone venha com `+55` na frente. Usar o número "puro" (sem o `+55`) gerava um QR Code
+estruturalmente válido (passava por toda a validação de CRC e decodificação TLV), mas o
+app do banco rejeitava a chave silenciosamente — confirmado na prática com o C6, que
+retornava "não foi possível completar a solicitação" antes mesmo de mostrar os dados da
+cobrança. `PIX_CHAVE` já está no formato correto (`+5547996018551`) — não remova o `+55`
+se for trocar a chave do clube no futuro.
+
 ## Backup e restauração
 
 Em Configurações → Backup e restauração:
