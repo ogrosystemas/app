@@ -1,4 +1,4 @@
-import { Bell, CheckCircle2, Handshake, MoreVertical, UserX } from "lucide-react";
+import { Bell, CheckCircle2, Handshake, MoreVertical, QrCode, UserX } from "lucide-react";
 import type { Membro } from "../../types";
 import type { ResumoInadimplenciaMembro } from "../../utils/status.utils";
 import { textoBadgeStatus } from "../../utils/status.utils";
@@ -15,6 +15,8 @@ interface MemberListItemProps {
   onAbrirNegociacao: () => void;
   onAbrirHistorico: () => void;
   onAbrirAcoes: () => void;
+  /** Abre o modal de cobrança via Pix para a competência pendente mais antiga do membro. */
+  onAbrirPix: () => void;
 }
 
 /**
@@ -30,6 +32,8 @@ interface MemberListItemProps {
  * - Ícone de sino: aparece quando o próprio membro (via área de consulta restrita)
  *   avisou informalmente que vai pagar alguma competência ainda pendente — é só um
  *   lembrete visual, não altera nenhum cálculo de status.
+ * - Ícone de Pix: ao lado das ações de cobrança quando há pendência — abre o QR Code
+ *   de cobrança para o admin mandar/mostrar ao membro (ver PixPaymentModal).
  *
  * Layout em duas linhas: nome/apelido sempre na linha de cima (nunca trunca por causa de
  * badges largos), status e ações na linha de baixo, ocupando a largura toda do card.
@@ -45,6 +49,7 @@ export function MemberListItem({
   onAbrirNegociacao,
   onAbrirHistorico,
   onAbrirAcoes,
+  onAbrirPix,
 }: MemberListItemProps) {
   const afastado = membro.status === "afastado";
   const emDia = resumo.totalMesesPendentes === 0;
@@ -91,6 +96,18 @@ export function MemberListItem({
             </span>
           )}
         </div>
+
+        {!emDia && (
+          <button
+            type="button"
+            onClick={onAbrirPix}
+            aria-label={`Gerar Pix para ${membro.apelido}`}
+            title="Gerar Pix"
+            className="shrink-0 rounded-sm p-1.5 text-ember-500 hover:bg-ember-950"
+          >
+            <QrCode size={16} />
+          </button>
+        )}
 
         {!emDia && !acumulado && (
           <Button size="sm" variant="success" icon={<CheckCircle2 size={14} />} onClick={onDarBaixaRapida}>

@@ -14,6 +14,7 @@ interface MemberListProps {
   onAbrirNegociacao: (membroId: string) => void;
   onAbrirHistorico: (membroId: string) => void;
   onAbrirAcoes: (membroId: string) => void;
+  onAbrirPix: (membroId: string, competencia: Competencia) => void;
 }
 
 /** Lista principal de conferência — busca local por nome/apelido. Mostra membros ativos e afastados. */
@@ -25,6 +26,7 @@ export function MemberList({
   onAbrirNegociacao,
   onAbrirHistorico,
   onAbrirAcoes,
+  onAbrirPix,
 }: MemberListProps) {
   const [busca, setBusca] = useState("");
 
@@ -107,6 +109,10 @@ export function MemberList({
               onAbrirNegociacao={() => onAbrirNegociacao(membro.id as string)}
               onAbrirHistorico={() => onAbrirHistorico(membro.id as string)}
               onAbrirAcoes={() => onAbrirAcoes(membro.id as string)}
+              onAbrirPix={() => {
+                const competenciaPendente = resumo.competenciasPendentes[0];
+                if (competenciaPendente) onAbrirPix(membro.id as string, competenciaPendente);
+              }}
             />
           ))}
         </ul>

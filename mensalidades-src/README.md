@@ -19,6 +19,7 @@ autorizadas — ver seção "Autenticação e autorização" abaixo.
   automaticamente quando a conexão volta)
 - vite-plugin-pwa — Service Worker com cache do app shell
 - pdf-lib + @pdf-lib/fontkit — geração de relatórios em PDF no navegador
+- qrcode.react — geração de QR Code Pix (payload BR Code montado localmente, sem API externa)
 - lucide-react — ícones
 
 ## Como rodar
@@ -176,6 +177,33 @@ src/
   administrador (ícone de sino ao lado do badge, na lista principal). O aviso é removido
   automaticamente quando a baixa real daquela competência é registrada. Ver
   `useAvisos.ts`.
+
+## Cobrança via Pix
+
+Tanto o administrador (ícone de QR Code na lista principal) quanto o próprio integrante
+(botão de QR Code ao lado de cada competência pendente, na área de consulta restrita)
+podem gerar um Pix dinâmico já com valor, chave e identificação preenchidos — quem for
+pagar só precisa escanear o QR Code ou copiar o código no app do banco, sem digitar nada.
+
+Pontos importantes:
+
+- **Gerado 100% no navegador**, sem nenhuma API externa de pagamento: o "Pix Copia e
+  Cola" é apenas um texto estruturado no padrão BR Code (EMV QRCPS) do Banco Central — ver
+  `src/utils/pix.utils.ts`. A implementação do CRC16 (checksum final do payload) foi
+  validada contra o valor de referência oficial do CRC16-CCITT-FALSE (a string
+  `"123456789"` deve produzir `0xE5CC`) e contra um ciclo completo de geração → QR Code →
+  decodificação, confirmando que o conteúdo lido de volta é idêntico ao original.
+- **Não há confirmação automática de pagamento.** Isso é um Pix estático/dinâmico simples
+  (sem integração com a API do Banco Central), então o app nunca sabe se o Pix foi pago —
+  a baixa no sistema continua sendo manual, feita pelo administrador depois de confirmar o
+  recebimento na própria conta bancária (ver `EditPaymentModal`/`usePagamentos.darBaixa`).
+- **Valor**: o integrante só gera Pix do valor de 1 mensalidade (a competência pendente
+  específica que ele está vendo); o administrador pode gerar Pix de qualquer valor (útil
+  para cobranças negociadas de múltiplos meses de uma vez).
+- A chave Pix, nome do recebedor e cidade são fixos em
+  `src/constants/theme.constants.ts` (`PIX_CHAVE`, `PIX_NOME_RECEBEDOR`, `PIX_CIDADE`) —
+  diferente do nome do clube e valor da mensalidade, não são editáveis pelo app, já que
+  envolvem dados bancários reais.
 
 ## Backup e restauração
 

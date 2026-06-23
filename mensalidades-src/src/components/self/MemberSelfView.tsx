@@ -1,7 +1,8 @@
-import { Bell, CheckCircle2, LogOut, Skull, XCircle } from "lucide-react";
+import { Bell, CheckCircle2, LogOut, QrCode, Skull, XCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import { usePagamentosDoMembro } from "../../hooks/usePagamentos";
 import { useAvisos, useAvisosDoMembro, jaAvisouCompetencia } from "../../hooks/useAvisos";
+import { PixPaymentModal } from "../members/PixPaymentModal";
 import type { Competencia, Membro } from "../../types";
 import { competenciaAtual, formatarCompetencia } from "../../utils/date.utils";
 import {
@@ -21,9 +22,11 @@ interface MemberSelfViewProps {
 
 /**
  * Área restrita do integrante comum: somente leitura do próprio status e histórico,
- * sem valores em reais e sem nenhuma ação de administração. A única ação disponível
- * é o aviso informal "vou pagar [competência]" — não altera o status real, é só um
- * lembrete visível para o administrador (ver MemberActionsModal / lista principal).
+ * sem valores em reais e sem nenhuma ação de administração — com DUAS exceções pontuais:
+ * o aviso informal "vou pagar [competência]" (não altera o status real, é só um lembrete
+ * visível para o administrador) e o botão de gerar Pix para pagar a própria mensalidade
+ * pendente (único lugar desta tela em que um valor em R$ aparece, dentro do modal de
+ * pagamento — necessário para o pagamento em si, mas nunca exibido na lista/histórico).
  *
  * O status é sempre calculado em relação ao mês atual REAL (hoje) — diferente da
  * área administrativa, aqui não existe seletor de mês para navegar para o passado.
@@ -34,6 +37,7 @@ export function MemberSelfView({ membro, valorMensalidade, onSair }: MemberSelfV
   const avisos = useAvisosDoMembro(membro.id);
   const { enviarAviso } = useAvisos();
   const [enviando, setEnviando] = useState<string | null>(null);
+  const [competenciaParaPagar, setCompetenciaParaPagar] = useState<Competencia | null>(null);
 
   const resumo = useMemo(
     () => calcularInadimplenciaMembro(membro, pagamentos, competenciaHoje, valorMensalidade),
@@ -137,21 +141,34 @@ export function MemberSelfView({ membro, valorMensalidade, onSair }: MemberSelfV
                       <span className="text-xs font-semibold uppercase tracking-wide text-ok-400">
                         Pago
                       </span>
-                    ) : jaAvisou ? (
-                      <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ember-500">
-                        <Bell size={13} />
-                        Avisado
-                      </span>
                     ) : (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        icon={<Bell size={13} />}
-                        onClick={() => handleAvisar(competencia)}
-                        disabled={enviando === chave}
-                      >
-                        {enviando === chave ? "Enviando..." : "Vou pagar"}
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setCompetenciaParaPagar(competencia)}
+                          aria-label={`Pagar ${formatarCompetencia(competencia)} via Pix`}
+                          title="Pagar via Pix"
+                          className="rounded-sm p-1.5 text-ember-500 hover:bg-ember-950"
+                        >
+                          <QrCode size={16} />
+                        </button>
+                        {jaAvisou ? (
+                          <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ember-500">
+                            <Bell size={13} />
+                            Avisado
+                          </span>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            icon={<Bell size={13} />}
+                            onClick={() => handleAvisar(competencia)}
+                            disabled={enviando === chave}
+                          >
+                            {enviando === chave ? "Enviando..." : "Vou pagar"}
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </li>
                 );
@@ -160,6 +177,14 @@ export function MemberSelfView({ membro, valorMensalidade, onSair }: MemberSelfV
           )}
         </div>
       </div>
+
+      <PixPaymentModal
+        aberto={competenciaParaPagar !== null}
+        onFechar={() => setCompetenciaParaPagar(null)}
+        apelidoMembro={membro.apelido}
+        competencia={competenciaParaPagar ?? competenciaHoje}
+        valor={valorMensalidade}
+      />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import {
   MemberHistoryModal,
   MemberList,
   NegotiationModal,
+  PixPaymentModal,
 } from "./components/members";
 import { UpdateBanner } from "./components/pwa";
 import { ReportModal, SettingsModal } from "./components/settings";
@@ -30,6 +31,7 @@ type ModalAtivo =
   | { tipo: "negociacao"; membro: Membro }
   | { tipo: "acoes"; membro: Membro }
   | { tipo: "confirmar-exclusao"; membro: Membro }
+  | { tipo: "pix"; membro: Membro; competencia: Competencia }
   | { tipo: "configuracoes" };
 
 interface MainAppProps {
@@ -133,6 +135,10 @@ export function MainApp({ emailLogado, onSair }: MainAppProps) {
         onAbrirAcoes={(membroId) => {
           const membro = buscarMembro(membroId);
           if (membro) setModal({ tipo: "acoes", membro });
+        }}
+        onAbrirPix={(membroId, competenciaPix) => {
+          const membro = buscarMembro(membroId);
+          if (membro) setModal({ tipo: "pix", membro, competencia: competenciaPix });
         }}
       />
 
@@ -251,6 +257,14 @@ export function MainApp({ emailLogado, onSair }: MainAppProps) {
           if (!pagamentoEmEdicao) return;
           await removerBaixa(pagamentoEmEdicao.pagamento.membroId, pagamentoEmEdicao.competencia);
         }}
+      />
+
+      <PixPaymentModal
+        aberto={modal.tipo === "pix"}
+        onFechar={fechar}
+        apelidoMembro={modal.tipo === "pix" ? modal.membro.apelido : ""}
+        competencia={modal.tipo === "pix" ? modal.competencia : competenciaAtual()}
+        valor={config.valorMensalidade}
       />
 
       <UpdateBanner />
