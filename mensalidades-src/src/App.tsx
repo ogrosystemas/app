@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { AccessDeniedScreen, LoginScreen } from "./components/auth";
 import { MemberSelfView } from "./components/self";
-import { initDatabase } from "./db/db";
+import { initDatabase, verificarAcessoAdmin } from "./db/db";
 import { useAcessoMembro } from "./hooks/useAcessoMembro";
 import { useAuth } from "./hooks/useAuth";
 import { useConfig } from "./hooks/useConfig";
@@ -23,8 +23,12 @@ type TentativaAdmin = "verificando" | "autorizado" | "negado";
  * Fluxo de decisão, em ordem:
  * 1. Verificando sessão (useAuth.carregando) -> tela em branco/loading mínimo.
  * 2. Sem usuário logado -> LoginScreen.
- * 3. Tenta acesso de ADMINISTRADOR primeiro (initDatabase contra as regras do
- *    Firestore). Se passar -> MainApp.
+ * 3. Tenta acesso de ADMINISTRADOR primeiro (verificarAcessoAdmin — um teste
+ *    específico via leitura de LISTA da coleção de membros, que só administradores
+ *    conseguem fazer; ver comentário em db/db.ts sobre por que NÃO se pode usar
+ *    initDatabase/getDoc(refClube()) para este teste, mesmo que pareça
+ *    equivalente — um integrante comum também consegue ler a config). Se passar
+ *    -> garante a config inicial (initDatabase) e renderiza MainApp.
  * 4. Se falhar (sem permissão de admin), tenta acesso de INTEGRANTE (useAcessoMembro,
  *    que consulta acessos/{email}). Se vinculado a um membro -> MemberSelfView.
  * 5. Se nenhum dos dois -> AccessDeniedScreen.
@@ -51,12 +55,18 @@ export default function App() {
     let cancelado = false;
     setTentativaAdmin("verificando");
 
-    initDatabase()
-      .then(() => {
-        if (!cancelado) setTentativaAdmin("autorizado");
+    verificarAcessoAdmin()
+      .then(async (ehAdmin) => {
+        if (cancelado) return;
+        if (ehAdmin) {
+          await initDatabase();
+          if (!cancelado) setTentativaAdmin("autorizado");
+        } else {
+          setTentativaAdmin("negado");
+        }
       })
       .catch((erroInicializacao: unknown) => {
-        console.error("Sem acesso administrativo (tentando acesso de integrante a seguir):", erroInicializacao);
+        console.error("Falha ao verificar acesso administrativo (tentando acesso de integrante a seguir):", erroInicializacao);
         if (!cancelado) setTentativaAdmin("negado");
       });
 

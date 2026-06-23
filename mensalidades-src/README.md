@@ -75,6 +75,28 @@ Quem loga mas não está em nenhuma das duas listas vê a tela "Acesso não auto
 Todos os dados (membros, pagamentos, configuração, avisos) vivem num único documento fixo
 do clube no Firestore (`clubes/mutantes-mc`) — não há suporte a múltiplos clubes.
 
+### Dois bugs reais já corrigidos aqui (não repetir)
+
+1. **Funções de regra precisam estar DENTRO do bloco `service`/`match`.** As funções
+   `temAcessoDeIntegranteQualquer()` e `ehOProprioMembroVinculado()` usam a variável
+   `$(database)`, que só existe dentro de `match /databases/{database}/documents { ... }`.
+   Funções herdam o escopo de onde são *definidas*, não de onde são chamadas — definir
+   essas funções no nível mais externo do arquivo (fora do `service cloud.firestore`) fazia
+   qualquer `get()`/`exists()` dentro delas falhar silenciosamente. Foi exatamente esse bug
+   que causou "Acesso não autorizado" para integrantes vinculados corretamente. As funções
+   já estão no lugar certo no `firestore.rules` atual — não as mova para fora de novo.
+
+2. **`verificarAcessoAdmin()` (via `getDocs` em LISTA), não `getDoc` de documento único, é
+   o teste correto de "é administrador?".** Em `App.tsx`, o teste de admin não pode usar
+   `initDatabase()`/`getDoc(refClube())` como critério: a regra de leitura da config também
+   libera integrantes comuns (eles precisam ler o valor da mensalidade para calcular o
+   próprio status). Usar essa leitura como teste de admin fazia qualquer integrante vinculado
+   cair erroneamente no `MainApp` (visão administrativa completa, travada em loading
+   infinito por falta de outras permissões). O teste correto explora uma propriedade da
+   regra de `list`: ela só passa se *todo* documento do resultado satisfizer a condição —
+   um integrante, vinculado a só um `membroId`, nunca passa esse teste para a coleção
+   inteira de membros, mas um administrador sempre passa.
+
 ## Patentes
 
 A hierarquia de patentes/cargos do clube é definida em `src/constants/patentes.constants.ts`

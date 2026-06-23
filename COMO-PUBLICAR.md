@@ -8,12 +8,13 @@ GitHub builda o app a cada push, exatamente como já acontece com seus outros PW
 como este é um projeto React (precisa de build), o GitHub Actions faz esse passo de "build"
 antes de publicar, em vez de servir o código-fonte direto.
 
-**Nesta entrega específica**: foi adicionada uma área de consulta restrita para integrantes
-comuns — qualquer membro pode receber um e-mail vinculado (no próprio cadastro) e, ao logar
-com ele, ver somente o próprio status e histórico (sem valores, sem ações administrativas),
-além de poder avisar informalmente "vou pagar [mês]". Isso exigiu atualizar
-`firestore.rules` — veja a seção abaixo, é um passo obrigatório mesmo que você já tenha
-publicado uma versão anterior das regras.
+**Nesta entrega específica**: corrige dois bugs reais encontrados e confirmados junto com
+você no Simulador de Regras do Firebase Console — (1) a checagem de acesso de integrante
+comum falhava porque as funções de regra estavam fora do escopo certo (`$(database)` não
+existia onde elas foram definidas), e (2) um integrante vinculado caía erroneamente na tela
+de administrador (travada, vazia) por causa de um critério de teste de "é admin?" que
+também aprovava integrantes. **Republicar `firestore.rules` é obrigatório** — veja a seção
+abaixo — mesmo que você já tenha publicado uma versão anterior.
 
 ## O que tem neste zip
 

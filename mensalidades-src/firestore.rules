@@ -23,39 +23,48 @@ rules_version = '2';
 // publique de novo. Para vincular/desvincular um INTEGRANTE COMUM: isso é
 // feito dentro do próprio app (campo "E-mail de acesso" no cadastro do
 // membro) — não exige editar estas regras.
-function emailAutorizado() {
-  return request.auth != null && (
-    request.auth.token.email == 'tibabarcelos@gmail.com'
-    // Para adicionar um novo administrador, adicione uma linha assim:
-    // || request.auth.token.email == 'outrapessoa@gmail.com'
-  );
-}
-
-// true se o usuário autenticado tem um vínculo de acesso (qualquer um) registrado
-// em acessos/{email} — não diz ainda a qual membro está vinculado, só que existe
-// algum vínculo. Usado para liberar leitura da config do clube (necessária para
-// calcular o status de qualquer membro) sem expor a lista de outros membros.
 //
-// O e-mail é normalizado com .lower() antes de montar o caminho do documento,
-// pois o app sempre grava o ID do documento em acessos/{email} em minúsculas
-// (ver normalizarEmail em db/refs.ts) — sem essa normalização aqui, um token de
-// autenticação que viesse com alguma letra maiúscula no e-mail (o que não é
-// garantido pela especificação do OAuth) faria a checagem falhar incorretamente.
-function temAcessoDeIntegranteQualquer() {
-  return request.auth != null &&
-    exists(/databases/$(database)/documents/acessos/$(request.auth.token.email.lower()));
-}
-
-// true se o usuário autenticado está vinculado ESPECIFICAMENTE ao membroId informado
-// — usado para restringir leitura/criação aos dados do PRÓPRIO membro, nunca de outros.
-function ehOProprioMembroVinculado(membroId) {
-  return request.auth != null &&
-    exists(/databases/$(database)/documents/acessos/$(request.auth.token.email.lower())) &&
-    get(/databases/$(database)/documents/acessos/$(request.auth.token.email.lower())).data.membroId == membroId;
-}
-
+// IMPORTANTE: as funções abaixo precisam estar DENTRO do bloco
+// "service cloud.firestore { match /databases/{database}/documents { ... } }"
+// — não no nível mais externo do arquivo. Isso porque a variável `database`
+// só existe dentro desse match; uma função definida fora dele não tem acesso
+// a essa variável (funções herdam o escopo de onde são DEFINIDAS, não de onde
+// são chamadas), e qualquer get()/exists() que dependa de $(database) falha
+// silenciosamente nessas condições. Bug real já cometido e corrigido aqui —
+// se voltar a quebrar leitura de quem deveria ter acesso, comece checando isso.
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function emailAutorizado() {
+      return request.auth != null && (
+        request.auth.token.email == 'tibabarcelos@gmail.com'
+        // Para adicionar um novo administrador, adicione uma linha assim:
+        // || request.auth.token.email == 'outrapessoa@gmail.com'
+      );
+    }
+
+    // true se o usuário autenticado tem um vínculo de acesso (qualquer um) registrado
+    // em acessos/{email} — não diz ainda a qual membro está vinculado, só que existe
+    // algum vínculo. Usado para liberar leitura da config do clube (necessária para
+    // calcular o status de qualquer membro) sem expor a lista de outros membros.
+    //
+    // O e-mail é normalizado com .lower() antes de montar o caminho do documento,
+    // pois o app sempre grava o ID do documento em acessos/{email} em minúsculas
+    // (ver normalizarEmail em db/refs.ts) — sem essa normalização aqui, um token de
+    // autenticação que viesse com alguma letra maiúscula no e-mail (o que não é
+    // garantido pela especificação do OAuth) faria a checagem falhar incorretamente.
+    function temAcessoDeIntegranteQualquer() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/acessos/$(request.auth.token.email.lower()));
+    }
+
+    // true se o usuário autenticado está vinculado ESPECIFICAMENTE ao membroId informado
+    // — usado para restringir leitura/criação aos dados do PRÓPRIO membro, nunca de outros.
+    function ehOProprioMembroVinculado(membroId) {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/acessos/$(request.auth.token.email.lower())) &&
+        get(/databases/$(database)/documents/acessos/$(request.auth.token.email.lower())).data.membroId == membroId;
+    }
 
     match /clubes/{clubeId} {
       // Config do clube (nome, valor da mensalidade): administradores leem e
