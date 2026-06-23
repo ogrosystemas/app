@@ -103,8 +103,14 @@ export function gerarPayloadPix(dados: DadosPix): string {
   const txId = dados.txId ? paraAlfanumerico(dados.txId).slice(0, 25) || "***" : "***";
 
   // Campo 26 — Merchant Account Information (dados específicos do arranjo Pix).
+  // O GUI "br.gov.bcb.pix" é usado em MINÚSCULAS no exemplo oficial do Manual de Padrões
+  // para Iniciação do Pix (Banco Central) — usar maiúsculas ("BR.GOV.BCB.PIX") é aceito
+  // por muitos bancos (provavelmente comparação case-insensitive), mas pelo menos um banco
+  // (Banco do Brasil) rejeitou com "Parâmetros inválidos" um payload com o GUI em
+  // maiúsculas, confirmado em teste real — manter sempre minúsculas, exatamente como no
+  // manual, para máxima compatibilidade.
   const merchantAccountInfo =
-    campoTLV("00", "BR.GOV.BCB.PIX") + campoTLV("01", dados.chave);
+    campoTLV("00", "br.gov.bcb.pix") + campoTLV("01", dados.chave);
 
   // Campo 62 — Additional Data Field (contém o TxID, subcampo 05).
   const additionalDataField = campoTLV("05", txId);
