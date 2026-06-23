@@ -8,6 +8,13 @@ GitHub builda o app a cada push, exatamente como já acontece com seus outros PW
 como este é um projeto React (precisa de build), o GitHub Actions faz esse passo de "build"
 antes de publicar, em vez de servir o código-fonte direto.
 
+**Nesta entrega específica**: foi adicionada uma área de consulta restrita para integrantes
+comuns — qualquer membro pode receber um e-mail vinculado (no próprio cadastro) e, ao logar
+com ele, ver somente o próprio status e histórico (sem valores, sem ações administrativas),
+além de poder avisar informalmente "vou pagar [mês]". Isso exigiu atualizar
+`firestore.rules` — veja a seção abaixo, é um passo obrigatório mesmo que você já tenha
+publicado uma versão anterior das regras.
+
 ## O que tem neste zip
 
 ```
@@ -51,15 +58,24 @@ secrets existem antes do primeiro push desta versão.
 
 ## Outro passo obrigatório: publicar as regras de segurança do Firestore
 
-O arquivo `mensalidades-src/firestore.rules` define quem pode acessar os dados do clube
-(lista de e-mails autorizados). Ele **não é aplicado automaticamente** pelo GitHub Actions —
-precisa ser publicado manualmente, uma vez (e de novo sempre que você editar a lista de
-autorizados):
+⚠️ **Esta entrega traz `firestore.rules` atualizado** (suporte a integrantes com acesso de
+consulta restrita, além dos administradores) — mesmo que você já tenha publicado uma
+versão anterior, é necessário **republicar** o conteúdo novo.
+
+O arquivo `mensalidades-src/firestore.rules` define quem pode acessar os dados do clube:
+administradores (lista de e-mails na função `emailAutorizado()`) veem e editam tudo;
+integrantes com e-mail vinculado no próprio cadastro (campo "E-mail de acesso") veem
+apenas o próprio status, em modo consulta. Esse arquivo **não é aplicado automaticamente**
+pelo GitHub Actions — precisa ser publicado manualmente, sempre que mudar:
 
 1. Abra o Firebase Console → seu projeto → **Firestore Database** → aba **Regras**.
 2. Copie todo o conteúdo de `mensalidades-src/firestore.rules`.
 3. Cole no editor de regras do Console, substituindo o que já estava lá.
 4. Clique em **Publicar**.
+
+Para vincular um integrante a uma área de consulta, não é preciso tocar nessas regras de
+novo — basta editar o cadastro dele no app (Mais ações → Editar → campo "E-mail de
+acesso"). Só a lista de *administradores* exige editar e republicar este arquivo.
 
 ## Passo a passo (uma única vez)
 
