@@ -225,6 +225,22 @@ mas pelo menos o Banco do Brasil rejeitou com "Parâmetros inválidos" antes de 
 qualquer dado da cobrança, confirmado em teste real. Ver `gerarPayloadPix` em
 `pix.utils.ts`, que já usa o valor correto.
 
+**3. O nome do recebedor (e a cidade) usam UNDERSCORE no lugar de espaço — não espaço
+normal.** O Manual de Padrões do BCB usa espaço normal no exemplo oficial (`"Fulano de
+Tal"`), e nada na especificação proíbe espaço — mas comparar um Pix real gerado pelo
+PRÓPRIO app do Banco do Brasil revelou que ele mesmo formata o nome como
+`"TIBURCIO_PANCOTTO_DE_BARC"`, com underscore. Um payload nosso com espaço normal era
+consistentemente rejeitado pelo BB com "Parâmetros inválidos", mesmo escaneando a imagem
+do QR Code (não só Copia e Cola) — sugerindo que o parser do BB é mais estrito que a
+especificação formal nesse ponto. `paraAsciiSimples` em `pix.utils.ts` já substitui
+espaços por `_` antes de truncar o nome/cidade.
+
+⚠️ **Esta terceira correção foi validada estruturalmente (TLV, CRC, ciclo QR Code →
+decodificação) mas ainda não foi confirmada com um pagamento real até o fim** — apenas
+comparada contra um Pix genuíno do BB. Teste escaneando antes de divulgar amplamente; se
+ainda houver rejeição, pode haver mais alguma divergência de formato específica do BB
+ainda não identificada.
+
 ## Backup e restauração
 
 Em Configurações → Backup e restauração:

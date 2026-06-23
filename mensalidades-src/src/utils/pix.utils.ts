@@ -33,13 +33,23 @@ function campoTLV(id: string, valor: string): string {
 
 /**
  * Remove acentos e caracteres fora do padrão ASCII simples exigido pelo EMV
- * (nome do recebedor e cidade não podem ter acentuação).
+ * (nome do recebedor e cidade não podem ter acentuação), e substitui espaços por
+ * underscore.
+ *
+ * O substituir espaço por "_" não é uma exigência explícita do Manual de Padrões do
+ * BCB (o exemplo oficial usa espaço normal, ex: "Fulano de Tal") — mas é o que o
+ * PRÓPRIO gerador de Pix do Banco do Brasil produz na prática (confirmado comparando
+ * um Pix real gerado pelo app do BB: "TIBURCIO_PANCOTTO_DE_BARC", com underscore).
+ * Um payload com espaço normal no nome do recebedor era rejeitado pelo BB com
+ * "Parâmetros inválidos" mesmo estando estruturalmente correto segundo a
+ * especificação EMV — replicar o formato que o próprio BB gera resolve isso.
  */
 function paraAsciiSimples(texto: string): string {
   return texto
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // remove os acentos (diacríticos)
-    .replace(/[^a-zA-Z0-9 ]/g, ""); // remove qualquer símbolo restante fora de letras/números/espaço
+    .replace(/[^a-zA-Z0-9 ]/g, "") // remove qualquer símbolo restante fora de letras/números/espaço
+    .replace(/\s+/g, "_"); // substitui espaço(s) por underscore, igual ao gerador do BB
 }
 
 /** Mantém apenas caracteres alfanuméricos, exigência do campo TxID (ID 05 dentro do campo 62). */
