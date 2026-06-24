@@ -30,7 +30,17 @@ export default defineConfig({
       // atualização) em vez de deixar o plugin injetar um script de registro genérico.
       injectRegister: null,
 
-      includeAssets: ["icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png"],
+      includeAssets: [
+        "icons/icon-192.png",
+        "icons/icon-512.png",
+        "icons/icon-maskable-512.png",
+        "icons/apple-touch-icon-180.png",
+        "icons/apple-touch-icon-167.png",
+        "icons/apple-touch-icon-152.png",
+        "icons/apple-touch-icon-120.png",
+        "icons/favicon-32.png",
+        "icons/favicon-16.png",
+      ],
 
       manifest: {
         // id/scope/start_url usam o BASE_PATH: isso isola este PWA dos outros

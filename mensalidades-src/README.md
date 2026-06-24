@@ -391,3 +391,24 @@ do app leve.
   `virtual:pwa-register/react`), com `registerType: "prompt"` no `vite.config.ts` — ou seja,
   uma versão nova fica esperando até a UI decidir aplicá-la, nunca substitui a versão em uso
   silenciosamente.
+
+### Ícones (logo do clube)
+
+Gerados a partir de `icone-mensalidade-app.svg` (logo oficial: emblema lobo/caveira do
+clube + cofrinho representando "mensalidades"), em `public/icons/`:
+
+- `icon-192.png` / `icon-512.png` — ícones padrão do manifest (`purpose: "any"`).
+- `icon-maskable-512.png` — versão com fundo sólido `#0a0a0a` (mesma cor do tema do app)
+  e margem de 20% em cada lado ao redor do logo. Ícones `maskable` podem ser recortados
+  pelo sistema (Android) em formas arbitrárias (círculo, squircle); sem essa margem, o
+  cofrinho e o texto "mensalidades" — que ficam perto da borda no logo original — corriam
+  risco real de serem cortados. A margem de 20% foi validada simulando um recorte
+  circular completo antes de finalizar; uma margem menor (10%) deixava esses elementos
+  colados na borda.
+- `apple-touch-icon-{120,152,167,180}.png` e `favicon-{16,32}.png` — tamanhos dedicados
+  por dispositivo/contexto (ver `index.html`), em vez de reaproveitar o `icon-192.png`
+  genérico para tudo — evita reamostragem extra pelo navegador/SO em cada tamanho.
+
+Para gerar novos tamanhos a partir do SVG fonte (ex: se o logo for atualizado), foi usado
+`sharp` (Node) com `density: 384` na rasterização (mantém nitidez ao reduzir de 512px para
+tamanhos menores) — não há script permanente no repositório para isso, é uma tarefa pontual.
