@@ -5,7 +5,7 @@ import type { ConfigClube, EditarConfigInput } from "../types";
 import { NOME_CLUBE_PADRAO, VALOR_MENSALIDADE_PADRAO } from "../constants/theme.constants";
 
 export interface UseConfigResult {
-  /** Configuração atual do clube. Nunca é null após o primeiro load (há fallback). */
+  /** Configuração atual da sede. Nunca é null após o primeiro load (há fallback). */
   config: ConfigClube;
 
   /** true enquanto a leitura inicial do banco ainda não retornou. */
@@ -22,24 +22,27 @@ const configFallback: ConfigClube = {
 };
 
 /**
- * Hook de acesso à configuração geral do clube (documento único: clubes/mutantes-mc).
+ * Hook de acesso à configuração geral de UMA sede (documento único: clubes/{clubeId}).
  * Reativo via onSnapshot do Firestore: qualquer alteração feita por este hook OU por
- * outro dispositivo conectado ao mesmo clube propaga automaticamente para todos os
+ * outro dispositivo conectado à mesma sede propaga automaticamente para todos os
  * componentes que usam este hook — inclusive offline, lendo do cache local até a
  * sincronização real acontecer.
+ *
+ * `clubeId` identifica de qual sede é a config — nunca compartilhado entre sedes.
  */
-export function useConfig(): UseConfigResult {
+export function useConfig(clubeId: string): UseConfigResult {
   const [config, setConfig] = useState<ConfigClube | undefined>(undefined);
 
   useEffect(() => {
-    const cancelarInscricao = onSnapshot(refClube(), (snapshot) => {
+    setConfig(undefined);
+    const cancelarInscricao = onSnapshot(refClube(clubeId), (snapshot) => {
       setConfig(snapshot.exists() ? snapshot.data() : undefined);
     });
     return cancelarInscricao;
-  }, []);
+  }, [clubeId]);
 
   async function atualizarConfig(input: EditarConfigInput): Promise<void> {
-    await updateDoc(refClube(), {
+    await updateDoc(refClube(clubeId), {
       ...input,
       atualizadoEm: Date.now(),
     });

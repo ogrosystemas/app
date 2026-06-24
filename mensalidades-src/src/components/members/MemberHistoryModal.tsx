@@ -8,6 +8,7 @@ import { chaveCompetencia, gerarCompetenciasEsperadasHistorico } from "../../uti
 import { Modal } from "../ui/Modal";
 
 interface MemberHistoryModalProps {
+  clubeId: string;
   aberto: boolean;
   membro?: Membro;
   onFechar: () => void;
@@ -20,8 +21,8 @@ interface MemberHistoryModalProps {
  * quais foram pagas e quais estão pendentes — inclui anos anteriores (histórico multi-ano).
  * Linhas pagas são clicáveis e abrem o modal de edição/estorno daquele pagamento.
  */
-export function MemberHistoryModal({ aberto, membro, onFechar, onEditarPagamento }: MemberHistoryModalProps) {
-  const pagamentos = usePagamentosDoMembro(membro?.id);
+export function MemberHistoryModal({ clubeId, aberto, membro, onFechar, onEditarPagamento }: MemberHistoryModalProps) {
+  const pagamentos = usePagamentosDoMembro(clubeId, membro?.id);
 
   const linhas = useMemo(() => {
     if (!membro) return [];

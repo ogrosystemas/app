@@ -19,13 +19,13 @@ import type { EditarMembroInput, Membro, NovoMembroInput } from "../types";
 import { competenciaAtualComoStringAnoMes, hojeISO } from "../utils/date.utils";
 
 export interface UseMembrosResult {
-  /** Lista de todos os membros cadastrados, ordenada por apelido. Vazio enquanto carrega. */
+  /** Lista de todos os membros cadastrados nesta sede, ordenada por apelido. Vazio enquanto carrega. */
   membros: Membro[];
 
   /** true enquanto a leitura inicial do banco ainda não retornou. */
   carregando: boolean;
 
-  /** Cadastra um novo membro. Data de ingresso é fixada como hoje. Retorna o id gerado. */
+  /** Cadastra um novo membro nesta sede. Data de ingresso é fixada como hoje. Retorna o id gerado. */
   criarMembro: (input: NovoMembroInput) => Promise<string>;
 
   /** Atualiza campos de um membro existente (nome, apelido). */
@@ -48,26 +48,27 @@ export interface UseMembrosResult {
 }
 
 /**
- * Hook de acesso e mutação da entidade Membro.
+ * Hook de acesso e mutação da entidade Membro, sempre dentro de UMA sede (clubeId).
  * Toda a lógica de persistência fica aqui — os componentes de UI nunca falam com o
- * Firestore diretamente. Reativo via onSnapshot: muda em qualquer dispositivo
- * conectado ao mesmo clube refletem aqui automaticamente, inclusive offline (lendo
+ * Firestore diretamente. Reativo via onSnapshot: mudanças em qualquer dispositivo
+ * conectado à mesma sede refletem aqui automaticamente, inclusive offline (lendo
  * do cache local até a sincronização real acontecer).
  */
-export function useMembros(): UseMembrosResult {
+export function useMembros(clubeId: string): UseMembrosResult {
   const [membros, setMembros] = useState<Membro[] | undefined>(undefined);
 
   useEffect(() => {
-    const consulta = query(refMembros(), orderBy("apelido"));
+    setMembros(undefined);
+    const consulta = query(refMembros(clubeId), orderBy("apelido"));
     const cancelarInscricao = onSnapshot(consulta, (snapshot) => {
       setMembros(snapshot.docs.map((d) => ({ ...d.data(), id: d.id })));
     });
     return cancelarInscricao;
-  }, []);
+  }, [clubeId]);
 
   async function criarMembro(input: NovoMembroInput): Promise<string> {
     const agora = Date.now();
-    const docRef = await addDoc(refMembros(), {
+    const docRef = await addDoc(refMembros(clubeId), {
       ...input,
       dataIngresso: hojeISO(),
       status: "ativo",
@@ -83,7 +84,7 @@ export function useMembros(): UseMembrosResult {
     // firestore.rules) ANTES de gravar o membro: remove o vínculo antigo (se
     // havia um e-mail diferente) e cria o novo vínculo (se um e-mail foi informado).
     if ("emailAcesso" in input) {
-      const snapshotAtual = await getDoc(refMembro(id));
+      const snapshotAtual = await getDoc(refMembro(clubeId, id));
       const emailAntigo = snapshotAtual.exists() ? snapshotAtual.data().emailAcesso : undefined;
       const emailNovo = input.emailAcesso;
 
@@ -92,18 +93,18 @@ export function useMembros(): UseMembrosResult {
       }
 
       if (emailNovo) {
-        await setDoc(refAcesso(emailNovo), { membroId: id });
+        await setDoc(refAcesso(emailNovo), { clubeId, membroId: id });
       }
     }
 
-    await updateDoc(refMembro(id), {
+    await updateDoc(refMembro(clubeId, id), {
       ...input,
       atualizadoEm: Date.now(),
     });
   }
 
   async function afastarMembro(id: string): Promise<void> {
-    await updateDoc(refMembro(id), {
+    await updateDoc(refMembro(clubeId, id), {
       status: "afastado",
       competenciaAfastamento: competenciaAtualComoStringAnoMes(),
       atualizadoEm: Date.now(),
@@ -111,7 +112,7 @@ export function useMembros(): UseMembrosResult {
   }
 
   async function reativarMembro(id: string): Promise<void> {
-    await updateDoc(refMembro(id), {
+    await updateDoc(refMembro(clubeId, id), {
       status: "ativo",
       // deleteField() remove o campo do documento por completo no Firestore — diferente
       // de setar undefined, que não tem efeito (o SDK ignora campos undefined em updateDoc).
@@ -124,14 +125,14 @@ export function useMembros(): UseMembrosResult {
     // Antes de excluir, busca o membro para saber se há um e-mail de acesso
     // vinculado — se houver, o documento espelho em "acessos" também precisa
     // ser removido, senão ficaria "órfão" apontando para um membroId inexistente.
-    const snapshotMembro = await getDoc(refMembro(id));
+    const snapshotMembro = await getDoc(refMembro(clubeId, id));
     const emailVinculado = snapshotMembro.exists() ? snapshotMembro.data().emailAcesso : undefined;
 
     // writeBatch garante que a exclusão do membro e de todos os pagamentos dele
     // acontece atomicamente (tudo ou nada) — equivalente à transação que existia
     // na versão com Dexie.
     const pagamentosDoMembro = await getDocs(
-      query(refPagamentos(), where("membroId", "==", id)),
+      query(refPagamentos(clubeId), where("membroId", "==", id)),
     );
 
     const lote = writeBatch(db);
@@ -141,7 +142,7 @@ export function useMembros(): UseMembrosResult {
     if (emailVinculado) {
       lote.delete(refAcesso(emailVinculado));
     }
-    lote.delete(refMembro(id));
+    lote.delete(refMembro(clubeId, id));
     await lote.commit();
   }
 

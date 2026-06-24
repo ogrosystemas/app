@@ -1,29 +1,32 @@
 import { Download, FileText, LogOut, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useBackup } from "../../hooks/useBackup";
-import type { ConfigClube } from "../../types";
+import type { ConfigClube, ConfigPix } from "../../types";
 import { formatarMoeda, parseMoeda } from "../../utils/currency.utils";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 
 interface SettingsModalProps {
+  clubeId: string;
   aberto: boolean;
   config: ConfigClube;
   onFechar: () => void;
-  onSalvar: (nomeClube: string, valorMensalidade: number) => Promise<void>;
+  onSalvar: (nomeClube: string, valorMensalidade: number, pix?: ConfigPix) => Promise<void>;
   onAbrirRelatorio: () => void;
   emailLogado: string | null;
   onSair: () => Promise<void>;
 }
 
 /**
- * Modal de configurações gerais do clube: nome exibido no header, valor da mensalidade,
- * relatórios em PDF, backup/restauração de dados, e a conta autenticada (com opção de
- * sair). Alterar o valor da mensalidade NÃO afeta pagamentos já registrados (cada
- * Pagamento guarda seu próprio valorPago, congelado no momento da baixa) — afeta
- * apenas o cálculo de pendências futuras e o resumo do dashboard.
+ * Modal de configurações gerais da sede: nome exibido no header, valor da mensalidade,
+ * dados da chave Pix DESTA sede (própria, não compartilhada com outras), relatórios em
+ * PDF, backup/restauração de dados, e a conta autenticada (com opção de sair). Alterar
+ * o valor da mensalidade NÃO afeta pagamentos já registrados (cada Pagamento guarda seu
+ * próprio valorPago, congelado no momento da baixa) — afeta apenas o cálculo de
+ * pendências futuras e o resumo do dashboard.
  */
 export function SettingsModal({
+  clubeId,
   aberto,
   config,
   onFechar,
@@ -34,10 +37,13 @@ export function SettingsModal({
 }: SettingsModalProps) {
   const [nomeClube, setNomeClube] = useState(config.nomeClube);
   const [valorTexto, setValorTexto] = useState(String(config.valorMensalidade).replace(".", ","));
+  const [pixChave, setPixChave] = useState(config.pix?.chave ?? "");
+  const [pixNomeRecebedor, setPixNomeRecebedor] = useState(config.pix?.nomeRecebedor ?? "");
+  const [pixCidade, setPixCidade] = useState(config.pix?.cidade ?? "");
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
-  const { exportarBackup, importarArquivo } = useBackup();
+  const { exportarBackup, importarArquivo } = useBackup(clubeId);
   const inputArquivoRef = useRef<HTMLInputElement>(null);
   const [exportando, setExportando] = useState(false);
   const [importando, setImportando] = useState(false);
@@ -49,9 +55,12 @@ export function SettingsModal({
     if (!aberto) return;
     setNomeClube(config.nomeClube);
     setValorTexto(String(config.valorMensalidade).replace(".", ","));
+    setPixChave(config.pix?.chave ?? "");
+    setPixNomeRecebedor(config.pix?.nomeRecebedor ?? "");
+    setPixCidade(config.pix?.cidade ?? "");
     setErro(null);
     setMensagemBackup(null);
-  }, [aberto, config.nomeClube, config.valorMensalidade]);
+  }, [aberto, config.nomeClube, config.valorMensalidade, config.pix]);
 
   async function handleSalvar() {
     if (!nomeClube.trim()) {
@@ -64,10 +73,22 @@ export function SettingsModal({
       return;
     }
 
+    // O Pix é opcional como um todo (a sede pode não ter configurado ainda), mas se
+    // qualquer um dos 3 campos foi preenchido, exige todos os 3 — não tem sentido
+    // salvar uma chave sem nome/cidade (o QR Code geraria payload inválido).
+    const algumCampoPixPreenchido = pixChave.trim() || pixNomeRecebedor.trim() || pixCidade.trim();
+    if (algumCampoPixPreenchido && (!pixChave.trim() || !pixNomeRecebedor.trim() || !pixCidade.trim())) {
+      setErro("Para configurar o Pix, preencha chave, nome do recebedor e cidade — os três campos.");
+      return;
+    }
+
     setSalvando(true);
     setErro(null);
     try {
-      await onSalvar(nomeClube.trim(), valor);
+      const pix: ConfigPix | undefined = algumCampoPixPreenchido
+        ? { chave: pixChave.trim(), nomeRecebedor: pixNomeRecebedor.trim(), cidade: pixCidade.trim() }
+        : undefined;
+      await onSalvar(nomeClube.trim(), valor, pix);
       onFechar();
     } catch {
       setErro("Não foi possível salvar. Tente novamente.");
@@ -165,6 +186,46 @@ export function SettingsModal({
             pagamentos já registrados — apenas cobranças a partir de agora.
           </span>
         </Campo>
+
+        <div className="asphalt-divider pt-2">
+          <span className="mb-2 mt-2 block text-xs font-semibold uppercase tracking-wide text-graphite-400">
+            Pix desta sede
+          </span>
+          <p className="mb-2 text-xs text-graphite-400">
+            Usado para gerar os QR Codes de cobrança — exclusivo desta sede, nunca
+            compartilhado com outras.
+          </p>
+
+          <div className="flex flex-col gap-3">
+            <Campo label="Chave Pix">
+              <input
+                type="text"
+                value={pixChave}
+                onChange={(e) => setPixChave(e.target.value)}
+                placeholder="+55DDDNNNNNNNNN, CPF/CNPJ, e-mail ou chave aleatória"
+                className="w-full border border-graphite-700 bg-graphite-900 px-3 py-2 text-sm text-chrome-50 placeholder:text-graphite-400 focus:border-ember-500"
+              />
+            </Campo>
+            <Campo label="Nome do recebedor (como na conta bancária)">
+              <input
+                type="text"
+                value={pixNomeRecebedor}
+                onChange={(e) => setPixNomeRecebedor(e.target.value)}
+                placeholder="Ex: João da Silva"
+                className="w-full border border-graphite-700 bg-graphite-900 px-3 py-2 text-sm text-chrome-50 placeholder:text-graphite-400 focus:border-ember-500"
+              />
+            </Campo>
+            <Campo label="Cidade do recebedor">
+              <input
+                type="text"
+                value={pixCidade}
+                onChange={(e) => setPixCidade(e.target.value)}
+                placeholder="Ex: Joinville"
+                className="w-full border border-graphite-700 bg-graphite-900 px-3 py-2 text-sm text-chrome-50 placeholder:text-graphite-400 focus:border-ember-500"
+              />
+            </Campo>
+          </div>
+        </div>
 
         <div className="asphalt-divider pt-2">
           <span className="mb-2 mt-2 block text-xs font-semibold uppercase tracking-wide text-graphite-400">

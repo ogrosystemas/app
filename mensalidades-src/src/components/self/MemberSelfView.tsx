@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { usePagamentosDoMembro } from "../../hooks/usePagamentos";
 import { useAvisos, useAvisosDoMembro, jaAvisouCompetencia } from "../../hooks/useAvisos";
 import { PixPaymentModal } from "../members/PixPaymentModal";
-import type { Competencia, Membro } from "../../types";
+import type { Competencia, ConfigPix, Membro } from "../../types";
 import { competenciaAtual, formatarCompetencia } from "../../utils/date.utils";
 import {
   calcularInadimplenciaMembro,
@@ -15,8 +15,10 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 
 interface MemberSelfViewProps {
+  clubeId: string;
   membro: Membro;
   valorMensalidade: number;
+  pix: ConfigPix | undefined;
   onSair: () => Promise<void>;
 }
 
@@ -30,12 +32,14 @@ interface MemberSelfViewProps {
  *
  * O status é sempre calculado em relação ao mês atual REAL (hoje) — diferente da
  * área administrativa, aqui não existe seletor de mês para navegar para o passado.
+ * `clubeId` identifica a sede a que este membro pertence — todo dado lido/escrito
+ * aqui (pagamentos, avisos) fica isolado dentro dela.
  */
-export function MemberSelfView({ membro, valorMensalidade, onSair }: MemberSelfViewProps) {
+export function MemberSelfView({ clubeId, membro, valorMensalidade, pix, onSair }: MemberSelfViewProps) {
   const competenciaHoje = competenciaAtual();
-  const pagamentos = usePagamentosDoMembro(membro.id);
-  const avisos = useAvisosDoMembro(membro.id);
-  const { enviarAviso } = useAvisos();
+  const pagamentos = usePagamentosDoMembro(clubeId, membro.id);
+  const avisos = useAvisosDoMembro(clubeId, membro.id);
+  const { enviarAviso } = useAvisos(clubeId);
   const [enviando, setEnviando] = useState<string | null>(null);
   const [competenciaParaPagar, setCompetenciaParaPagar] = useState<Competencia | null>(null);
 
@@ -181,6 +185,7 @@ export function MemberSelfView({ membro, valorMensalidade, onSair }: MemberSelfV
       <PixPaymentModal
         aberto={competenciaParaPagar !== null}
         onFechar={() => setCompetenciaParaPagar(null)}
+        pix={pix}
         apelidoMembro={membro.apelido}
         competencia={competenciaParaPagar ?? competenciaHoje}
         valor={valorMensalidade}

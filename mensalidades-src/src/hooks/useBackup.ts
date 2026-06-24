@@ -23,9 +23,9 @@ export interface UseBackupResult {
  * Hook de acesso à funcionalidade de backup/restauração — mantém toda a lógica de
  * leitura de arquivo, validação e persistência fora dos componentes de UI.
  */
-export function useBackup(): UseBackupResult {
+export function useBackup(clubeId: string): UseBackupResult {
   async function exportarBackup(): Promise<void> {
-    const backup = await gerarBackup();
+    const backup = await gerarBackup(clubeId);
     baixarBackupComoArquivo(backup);
   }
 
@@ -43,7 +43,7 @@ export function useBackup(): UseBackupResult {
       throw new Error("Este arquivo não parece ser um backup do Mutantes Moto Clube.");
     }
 
-    return importarBackup(conteudo);
+    return importarBackup(clubeId, conteudo);
   }
 
   return { exportarBackup, importarArquivo };

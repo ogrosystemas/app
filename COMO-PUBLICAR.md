@@ -8,13 +8,60 @@ GitHub builda o app a cada push, exatamente como já acontece com seus outros PW
 como este é um projeto React (precisa de build), o GitHub Actions faz esse passo de "build"
 antes de publicar, em vez de servir o código-fonte direto.
 
-**Nesta entrega específica**: corrige dois bugs reais encontrados e confirmados junto com
-você no Simulador de Regras do Firebase Console — (1) a checagem de acesso de integrante
-comum falhava porque as funções de regra estavam fora do escopo certo (`$(database)` não
-existia onde elas foram definidas), e (2) um integrante vinculado caía erroneamente na tela
-de administrador (travada, vazia) por causa de um critério de teste de "é admin?" que
-também aprovava integrantes. **Republicar `firestore.rules` é obrigatório** — veja a seção
-abaixo — mesmo que você já tenha publicado uma versão anterior.
+## ⚠️ Esta entrega é uma migração GRANDE: o app passou a suportar múltiplas sedes
+
+Antes, o app tinha um único clube fixo. Agora, cada sede (matriz + subsedes) é isolada,
+com seu próprio tesoureiro, membros, pagamentos e chave Pix. Isso muda a estrutura do
+banco de dados — **é necessário migrar os dados existentes antes de usar a versão nova**,
+seguindo os passos abaixo, NESTA ORDEM:
+
+### Passo 1 — Republicar `firestore.rules` (sempre obrigatório nesta entrega)
+
+As regras mudaram para suportar três níveis (super admin / admin de sede / integrante).
+Vá em Firebase Console → Firestore Database → Regras → cole o conteúdo de
+`mensalidades-src/firestore.rules` → Publicar.
+
+### Passo 2 — Publicar o código novo (mesmo fluxo de sempre)
+
+Copie `mensalidades-src/` para dentro do seu repositório, commit, push, aguarde o deploy
+automático (aba Actions) concluir.
+
+### Passo 3 — Rodar a ferramenta de migração de dados (uma única vez)
+
+1. Acesse `https://app.ogrosystemas.com.br/mensalidades/?migrar=1` (note o `?migrar=1` no
+   final da URL — sem isso você cai no app normal).
+2. Faça login com `tibabarcelos@gmail.com` (só esse e-mail consegue rodar a ferramenta).
+3. Clique em **"Executar migração"**. Isso copia todos os dados do clube fixo antigo
+   (`clubes/mutantes-mc`) para a nova sede "Itajaí" (`clubes/itajai`), cria os metadados
+   da sede, e te promove a Super Admin (`administradores/tibabarcelos@gmail.com` com
+   `clubeId: "*"`). **Os dados antigos não são apagados** — a migração só copia.
+4. Acompanhe o log na tela até aparecer "🎉 MIGRAÇÃO CONCLUÍDA COM SUCESSO."
+
+### Passo 4 — Confirmar que tudo está certo
+
+1. Acesse o app normalmente (sem o `?migrar=1`), faça login com
+   `tibabarcelos@gmail.com`.
+2. Você deve ver a tela de **escolha de sede** (já que agora é Super Admin) — escolha
+   "Itajaí" e confirme que todos os 19 membros, pagamentos e configurações (incluindo a
+   chave Pix) estão lá, exatamente como antes.
+3. Os integrantes com acesso vinculado (ex: Corega) também devem continuar funcionando
+   normalmente — o vínculo deles foi atualizado automaticamente pela ferramenta.
+
+### Passo 5 — Remover a ferramenta de migração (depois de confirmar tudo certo)
+
+A ferramenta (`src/MigrationTool.tsx` e o trecho condicional em `src/main.tsx` que checa
+`?migrar=1`) é de uso único — depois de confirmado que a migração funcionou, peça para eu
+gerar uma versão sem ela, ou remova manualmente esses dois pontos e publique de novo. Não
+é estritamente perigoso deixá-la (ela exige login + checagem do e-mail certo + as regras
+de segurança continuam valendo), mas é uma boa prática não deixar ferramentas de uso único
+em produção depois que não são mais necessárias.
+
+### Para criar uma sede nova depois disso
+
+Como Super Admin, na tela de escolha de sede, clique em **"Nova Sede"** — preencha nome,
+ID (gerado automaticamente a partir do nome, editável), valor inicial da mensalidade, e o
+e-mail do tesoureiro responsável. Tudo é criado numa única ação, sem precisar editar nada
+no Firebase Console.
 
 ## O que tem neste zip
 

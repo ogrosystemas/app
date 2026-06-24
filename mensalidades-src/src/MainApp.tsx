@@ -35,16 +35,17 @@ type ModalAtivo =
   | { tipo: "configuracoes" };
 
 interface MainAppProps {
+  clubeId: string;
   emailLogado: string | null;
   onSair: () => Promise<void>;
 }
 
 /**
  * Conteúdo principal do app — tudo relacionado à conferência de mensalidades
- * propriamente dita. Renderizado pelo App.tsx somente depois que o usuário
- * está autenticado E autorizado a acessar os dados do clube.
+ * de UMA sede específica. Renderizado pelo App.tsx somente depois que o usuário
+ * está autenticado E autorizado a administrar a sede identificada por `clubeId`.
  */
-export function MainApp({ emailLogado, onSair }: MainAppProps) {
+export function MainApp({ clubeId, emailLogado, onSair }: MainAppProps) {
   const [competencia, setCompetencia] = useState<Competencia>(competenciaAtual());
   const [modal, setModal] = useState<ModalAtivo>({ tipo: "nenhum" });
   const [pagamentoEmEdicao, setPagamentoEmEdicao] = useState<{
@@ -53,13 +54,13 @@ export function MainApp({ emailLogado, onSair }: MainAppProps) {
   } | null>(null);
   const [relatorioAberto, setRelatorioAberto] = useState(false);
 
-  const { config, atualizarConfig } = useConfig();
+  const { config, atualizarConfig } = useConfig(clubeId);
   const { membros, criarMembro, editarMembro, afastarMembro, reativarMembro, excluirMembro } =
-    useMembros();
-  const { membrosComStatus, carregando: carregandoLista } = useInadimplencia(competencia);
-  const { resumo, carregando: carregandoResumo } = useDashboardResumo(competencia);
-  const { darBaixa, darBaixaEmLote, editarPagamento, removerBaixa } = usePagamentos();
-  const avisos = useAvisosDoClube();
+    useMembros(clubeId);
+  const { membrosComStatus, carregando: carregandoLista } = useInadimplencia(clubeId, competencia);
+  const { resumo, carregando: carregandoResumo } = useDashboardResumo(clubeId, competencia);
+  const { darBaixa, darBaixaEmLote, editarPagamento, removerBaixa } = usePagamentos(clubeId);
+  const avisos = useAvisosDoClube(clubeId);
 
   function buscarMembro(membroId: string): Membro | undefined {
     return membros.find((m) => m.id === membroId);
@@ -163,6 +164,7 @@ export function MainApp({ emailLogado, onSair }: MainAppProps) {
       />
 
       <MemberHistoryModal
+        clubeId={clubeId}
         aberto={modal.tipo === "historico"}
         membro={membroEmFoco}
         onFechar={fechar}
@@ -226,18 +228,19 @@ export function MainApp({ emailLogado, onSair }: MainAppProps) {
       />
 
       <SettingsModal
+        clubeId={clubeId}
         aberto={modal.tipo === "configuracoes"}
         config={config}
         onFechar={fechar}
-        onSalvar={async (nomeClube, valorMensalidade) => {
-          await atualizarConfig({ nomeClube, valorMensalidade });
+        onSalvar={async (nomeClube, valorMensalidade, pix) => {
+          await atualizarConfig({ nomeClube, valorMensalidade, pix });
         }}
         onAbrirRelatorio={() => setRelatorioAberto(true)}
         emailLogado={emailLogado}
         onSair={onSair}
       />
 
-      <ReportModal aberto={relatorioAberto} onFechar={() => setRelatorioAberto(false)} />
+      <ReportModal clubeId={clubeId} aberto={relatorioAberto} onFechar={() => setRelatorioAberto(false)} />
 
       <EditPaymentModal
         aberto={pagamentoEmEdicao !== null}
@@ -262,6 +265,7 @@ export function MainApp({ emailLogado, onSair }: MainAppProps) {
       <PixPaymentModal
         aberto={modal.tipo === "pix"}
         onFechar={fechar}
+        pix={config.pix}
         apelidoMembro={modal.tipo === "pix" ? modal.membro.apelido : ""}
         competencia={modal.tipo === "pix" ? modal.competencia : competenciaAtual()}
         valor={config.valorMensalidade}

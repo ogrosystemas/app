@@ -1,120 +1,183 @@
 rules_version = '2';
 
-// Regras de segurança do Firestore — Mutantes Moto Clube.
+// Regras de segurança do Firestore — Mutantes Moto Clube (multi-sede).
 //
-// Existem DOIS níveis de acesso, bem diferentes entre si:
+// O clube tem MÚLTIPLAS SEDES independentes (matriz + subsedes), cada uma
+// totalmente isolada das demais — nenhuma sede pode ler ou escrever dados de
+// outra. Existem TRÊS níveis de acesso:
 //
-// 1) ADMINISTRADOR — lista fixa de e-mails mantida aqui mesmo (função
-//    emailAutorizado() abaixo), não em um documento do banco — isso evita o
-//    problema de "a regra que protege a lista de administradores depender da
-//    própria lista de administradores". Administradores leem e escrevem tudo.
+// 1) SUPER ADMIN — administra TODAS as sedes. Vínculo registrado em
+//    `administradores/{email}` com o campo `clubeId` igual a "*" (ver
+//    SUPER_ADMIN_CLUBE_ID em db/refs.ts). Único e-mail fixo aqui no arquivo
+//    (constante abaixo) é o ponto de partida — quem tem esse acesso pode, pelo
+//    próprio app, promover outros e-mails a admin de qualquer sede.
 //
-// 2) INTEGRANTE COMUM — qualquer membro cadastrado pode, opcionalmente, ter um
-//    e-mail vinculado (campo `emailAcesso` no cadastro do membro, gerenciado
-//    pelo app). Esse vínculo é espelhado num documento em `acessos/{email}`
-//    (coleção na raiz do banco, fora do caminho do clube) que serve como
-//    "porteiro": sua mera existência e conteúdo (qual membroId) é o que a
-//    regra abaixo consulta para decidir se aquele e-mail pode ler (nunca
-//    escrever, exceto para criar os próprios avisos de pagamento) os dados
-//    de UM ÚNICO membro específico — nunca a lista inteira, nunca os dados de
-//    outros membros.
+// 2) ADMIN DE SEDE (tesoureiro) — administra SOMENTE a própria sede. Vínculo
+//    registrado em `administradores/{email}` com `clubeId` = ID daquela sede
+//    específica. Vê e edita tudo dentro de `clubes/{essaSede}/...`, mas nada de
+//    outra sede.
 //
-// Para adicionar/remover um ADMINISTRADOR: edite emailAutorizado() abaixo e
-// publique de novo. Para vincular/desvincular um INTEGRANTE COMUM: isso é
-// feito dentro do próprio app (campo "E-mail de acesso" no cadastro do
-// membro) — não exige editar estas regras.
+// 3) INTEGRANTE COMUM — e-mail vinculado a UM membro de UMA sede específica.
+//    Vínculo registrado em `acessos/{email}` com `clubeId` + `membroId`. Vê
+//    somente leitura do próprio status/histórico daquela sede.
 //
-// IMPORTANTE: as funções abaixo precisam estar DENTRO do bloco
+// Para promover o PRIMEIRO super admin: edite EMAIL_SUPER_ADMIN_INICIAL abaixo
+// e publique. Depois disso, qualquer gerenciamento de administradores (incluir
+// mais super admins, trocar tesoureiro de uma sede) pode ser feito por um super
+// admin existente através da própria coleção `administradores` no Firestore
+// (ainda não há tela no app para isso — editar direto no Console é necessário
+// só para ADICIONAR/REMOVER administradores, não para criar sedes, que já tem
+// tela própria de Super Admin no app).
+//
+// IMPORTANTE: todas as funções abaixo precisam estar DENTRO do bloco
 // "service cloud.firestore { match /databases/{database}/documents { ... } }"
-// — não no nível mais externo do arquivo. Isso porque a variável `database`
-// só existe dentro desse match; uma função definida fora dele não tem acesso
-// a essa variável (funções herdam o escopo de onde são DEFINIDAS, não de onde
-// são chamadas), e qualquer get()/exists() que dependa de $(database) falha
-// silenciosamente nessas condições. Bug real já cometido e corrigido aqui —
-// se voltar a quebrar leitura de quem deveria ter acesso, comece checando isso.
+// — não no nível mais externo do arquivo. A variável `database` só existe
+// dentro desse match; uma função definida fora dele não tem acesso a ela
+// (funções herdam o escopo de onde são DEFINIDAS, não de onde são chamadas), e
+// qualquer get()/exists() que dependa de $(database) falha silenciosamente
+// nessas condições. Bug real já cometido e corrigido numa versão anterior
+// deste arquivo — se voltar a quebrar leitura de quem deveria ter acesso,
+// comece checando isso.
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function emailAutorizado() {
-      return request.auth != null && (
-        request.auth.token.email == 'tibabarcelos@gmail.com'
-        // Para adicionar um novo administrador, adicione uma linha assim:
-        // || request.auth.token.email == 'outrapessoa@gmail.com'
-      );
+    // E-mail do primeiro super admin — ponto de partida do sistema de permissões.
+    function ehSuperAdminInicial() {
+      return request.auth != null && request.auth.token.email == 'tibabarcelos@gmail.com';
     }
 
-    // true se o usuário autenticado tem um vínculo de acesso (qualquer um) registrado
-    // em acessos/{email} — não diz ainda a qual membro está vinculado, só que existe
-    // algum vínculo. Usado para liberar leitura da config do clube (necessária para
-    // calcular o status de qualquer membro) sem expor a lista de outros membros.
-    //
-    // O e-mail é normalizado com .lower() antes de montar o caminho do documento,
-    // pois o app sempre grava o ID do documento em acessos/{email} em minúsculas
-    // (ver normalizarEmail em db/refs.ts) — sem essa normalização aqui, um token de
-    // autenticação que viesse com alguma letra maiúscula no e-mail (o que não é
-    // garantido pela especificação do OAuth) faria a checagem falhar incorretamente.
-    function temAcessoDeIntegranteQualquer() {
+    // true se o e-mail autenticado tem QUALQUER vínculo em administradores/{email}
+    // (não diz ainda se é super admin ou admin de uma sede específica).
+    function temVinculoDeAdministrador() {
       return request.auth != null &&
-        exists(/databases/$(database)/documents/acessos/$(request.auth.token.email.lower()));
+        exists(/databases/$(database)/documents/administradores/$(request.auth.token.email.lower()));
     }
 
-    // true se o usuário autenticado está vinculado ESPECIFICAMENTE ao membroId informado
-    // — usado para restringir leitura/criação aos dados do PRÓPRIO membro, nunca de outros.
-    function ehOProprioMembroVinculado(membroId) {
+    // O clubeId vinculado ao e-mail autenticado em administradores/{email} — só
+    // chamar depois de confirmar temVinculoDeAdministrador(), senão get() falha
+    // por o documento não existir.
+    function clubeIdDoAdministrador() {
+      return get(/databases/$(database)/documents/administradores/$(request.auth.token.email.lower())).data.clubeId;
+    }
+
+    // true se o e-mail autenticado é super admin (administra TODAS as sedes).
+    function ehSuperAdmin() {
+      return ehSuperAdminInicial() ||
+        (temVinculoDeAdministrador() && clubeIdDoAdministrador() == '*');
+    }
+
+    // true se o e-mail autenticado é super admin OU admin especificamente da sede
+    // identificada por clubeId — usado em toda regra de leitura/escrita dentro de
+    // clubes/{clubeId}/...
+    function ehAdminDaSede(clubeId) {
+      return ehSuperAdmin() ||
+        (temVinculoDeAdministrador() && clubeIdDoAdministrador() == clubeId);
+    }
+
+    // true se o e-mail autenticado tem um vínculo de INTEGRANTE (qualquer um,
+    // em qualquer sede) registrado em acessos/{email} — não diz ainda se é da
+    // sede/membro corretos. Usado para liberar leitura da config da sede
+    // (necessária para calcular o status do próprio membro) sem expor dados de
+    // outros membros.
+    function temAcessoDeIntegranteNaSede(clubeId) {
       return request.auth != null &&
         exists(/databases/$(database)/documents/acessos/$(request.auth.token.email.lower())) &&
+        get(/databases/$(database)/documents/acessos/$(request.auth.token.email.lower())).data.clubeId == clubeId;
+    }
+
+    // true se o e-mail autenticado está vinculado ESPECIFICAMENTE ao membroId
+    // informado, dentro da sede informada — nunca a outro membro, nunca a outra sede.
+    function ehOProprioMembroVinculado(clubeId, membroId) {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/acessos/$(request.auth.token.email.lower())) &&
+        get(/databases/$(database)/documents/acessos/$(request.auth.token.email.lower())).data.clubeId == clubeId &&
         get(/databases/$(database)/documents/acessos/$(request.auth.token.email.lower())).data.membroId == membroId;
     }
 
+    // Metadados centrais de todas as sedes — usado pela tela de Super Admin para
+    // listar/criar sedes. Só super admins têm qualquer acesso aqui: tesoureiros de
+    // sede comum nunca precisam (nem devem) saber quais outras sedes existem.
+    match /sedes/{clubeId} {
+      allow read, write: if ehSuperAdmin();
+    }
+
     match /clubes/{clubeId} {
-      // Config do clube (nome, valor da mensalidade): administradores leem e
-      // escrevem; qualquer integrante vinculado a ALGUM membro pode só LER
-      // (precisa do valorMensalidade para calcular o próprio status).
-      allow read: if emailAutorizado() || temAcessoDeIntegranteQualquer();
-      allow write: if emailAutorizado();
+      // Config da sede (nome, valor da mensalidade, dados do Pix): administradores
+      // DESSA sede (ou super admin) leem e escrevem; qualquer integrante vinculado
+      // a ALGUM membro DESSA MESMA sede pode só LER (precisa do valorMensalidade e
+      // do Pix para calcular o status e gerar cobranças).
+      allow read: if ehAdminDaSede(clubeId) || temAcessoDeIntegranteNaSede(clubeId);
+      allow write: if ehAdminDaSede(clubeId);
 
       match /membros/{membroId} {
-        // Administradores leem e escrevem qualquer membro. Um integrante comum
-        // só pode LER o próprio documento — nunca a lista inteira (uma query
-        // "list" exigiria que a regra valesse para todo membro do resultado,
-        // o que nunca acontece aqui exceto para o admin) e nunca escrever.
-        allow read: if emailAutorizado() || ehOProprioMembroVinculado(membroId);
-        allow write: if emailAutorizado();
+        // Administradores DESSA sede (ou super admin) leem e escrevem qualquer
+        // membro dela. Um integrante comum só pode LER o próprio documento — nunca
+        // a lista inteira (uma query "list" exigiria que a regra valesse para todo
+        // membro do resultado, o que nunca acontece aqui exceto para admins) e
+        // nunca escrever.
+        allow read: if ehAdminDaSede(clubeId) || ehOProprioMembroVinculado(clubeId, membroId);
+        allow write: if ehAdminDaSede(clubeId);
       }
 
       match /pagamentos/{pagamentoId} {
-        // Pagamentos: só administradores leem/escrevem. Um integrante comum
-        // consulta o próprio histórico de pagamentos através do app (que filtra
-        // por membroId), mas a regra abaixo só libera leitura quando o
-        // documento de pagamento já teve seu campo membroId carregado — como
-        // isso exige ler o próprio recurso, usamos resource.data.membroId.
-        allow read: if emailAutorizado() || ehOProprioMembroVinculado(resource.data.membroId);
-        allow write: if emailAutorizado();
+        // Pagamentos: só administradores DESSA sede (ou super admin) leem/escrevem.
+        // Um integrante comum consulta o próprio histórico através do app (que
+        // filtra por membroId), e a regra abaixo libera leitura quando o documento
+        // de pagamento pertence ao próprio membro vinculado.
+        allow read: if ehAdminDaSede(clubeId) || ehOProprioMembroVinculado(clubeId, resource.data.membroId);
+        allow write: if ehAdminDaSede(clubeId);
       }
 
       match /avisos/{avisoId} {
-        // Administradores leem e escrevem todos os avisos (para ver os lembretes
-        // de pagamento). Um integrante comum pode LER e CRIAR avisos somente em
-        // seu próprio nome — precisa de leitura para o app saber se já existe um
-        // aviso daquela competência (e mostrar "Avisado" em vez do botão "Vou
-        // pagar" de novo) — mas nunca editar/excluir, nem ler avisos de outros.
-        allow read: if emailAutorizado() || ehOProprioMembroVinculado(resource.data.membroId);
-        allow create: if emailAutorizado() || ehOProprioMembroVinculado(request.resource.data.membroId);
-        allow update, delete: if emailAutorizado();
+        // Administradores DESSA sede (ou super admin) leem e escrevem todos os
+        // avisos dela. Um integrante comum pode LER e CRIAR avisos somente em seu
+        // próprio nome — mas nunca editar/excluir, nem ler avisos de outros.
+        allow read: if ehAdminDaSede(clubeId) || ehOProprioMembroVinculado(clubeId, resource.data.membroId);
+        allow create: if ehAdminDaSede(clubeId) ||
+          ehOProprioMembroVinculado(clubeId, request.resource.data.membroId);
+        allow update, delete: if ehAdminDaSede(clubeId);
       }
     }
 
-    // Coleção "porteiro" de vínculos e-mail -> membroId. Só administradores podem
-    // escrever (vincular/desvincular alguém). Um integrante comum só pode LER o
-    // PRÓPRIO documento (nunca o de outro e-mail) — necessário para o app
-    // descobrir, no primeiro login, a qual membro aquele e-mail está vinculado.
-    // O ID do documento (variável `email`) já é gravado em minúsculas pelo app
-    // (ver normalizarEmail em db/refs.ts), por isso comparamos com
-    // request.auth.token.email.lower() em vez do valor "crú" do token.
-    match /acessos/{email} {
-      allow read: if emailAutorizado() ||
+    // Coleção "porteiro" de vínculos e-mail -> { clubeId }. Administradores de
+    // qualquer sede podem ler o PRÓPRIO vínculo (necessário no login para saber
+    // qual sede administram); só super admins podem escrever aqui (promover novos
+    // administradores) — isso inclui criar o vínculo do tesoureiro de uma sede nova
+    // (feito automaticamente pela tela de criação de sede no app, que só super
+    // admins acessam).
+    match /administradores/{email} {
+      allow read: if ehSuperAdmin() ||
         (request.auth != null && request.auth.token.email.lower() == email);
-      allow write: if emailAutorizado();
+      allow write: if ehSuperAdmin();
+    }
+
+    // Coleção "porteiro" de vínculos e-mail -> { clubeId, membroId }. Administradores
+    // DESSA sede (ou super admin) podem escrever (vincular/desvincular um integrante
+    // — feito pelo app ao editar o cadastro de um membro). Um integrante comum só
+    // pode LER o PRÓPRIO documento (nunca o de outro e-mail) — necessário para o
+    // app descobrir, no primeiro login, a qual sede e membro aquele e-mail está
+    // vinculado.
+    //
+    // A escrita é separada em create/update/delete (em vez de uma condição única
+    // combinando "resource == null" para create) por clareza: cada operação só
+    // precisa olhar para o lado relevante do dado (o que está sendo criado, ou o
+    // que já existe), nunca os dois ao mesmo tempo — evita um tipo de erro lógico
+    // sutil (verificar o lado errado do dado na condição errada) que já causou
+    // bugs difíceis de depurar numa versão anterior destas regras.
+    match /acessos/{email} {
+      allow read: if ehSuperAdmin() ||
+        (request.auth != null && request.auth.token.email.lower() == email) ||
+        (temVinculoDeAdministrador() && resource.data.clubeId == clubeIdDoAdministrador());
+
+      // Criação: o clubeId do NOVO documento (request.resource, ainda não existe
+      // resource) precisa ser uma sede que o administrador autenticado administra.
+      allow create: if ehSuperAdmin() ||
+        (temVinculoDeAdministrador() && clubeIdDoAdministrador() == request.resource.data.clubeId);
+
+      // Atualização/exclusão: o clubeId do documento EXISTENTE (resource) precisa
+      // ser uma sede que o administrador autenticado administra.
+      allow update, delete: if ehSuperAdmin() ||
+        (temVinculoDeAdministrador() && clubeIdDoAdministrador() == resource.data.clubeId);
     }
 
     // Qualquer outro caminho não previsto explicitamente acima é sempre negado —

@@ -34,19 +34,23 @@ export interface UseDashboardResumoResult {
  * Membros afastados são excluídos de "Membros Ativos"/"Em Dia"/"Pendentes" a partir do mês
  * em que se afastaram, mas continuam contabilizados normalmente em meses anteriores a isso.
  */
-export function useDashboardResumo(competenciaReferencia: Competencia): UseDashboardResumoResult {
-  const { config, carregando: carregandoConfig } = useConfig();
+export function useDashboardResumo(
+  clubeId: string,
+  competenciaReferencia: Competencia,
+): UseDashboardResumoResult {
+  const { config, carregando: carregandoConfig } = useConfig(clubeId);
   const { membrosComStatus, carregando: carregandoInadimplencia } =
-    useInadimplencia(competenciaReferencia);
+    useInadimplencia(clubeId, competenciaReferencia);
 
   const [pagamentos, setPagamentos] = useState<Pagamento[] | undefined>(undefined);
 
   useEffect(() => {
-    const cancelarInscricao = onSnapshot(refPagamentos(), (snapshot) => {
+    setPagamentos(undefined);
+    const cancelarInscricao = onSnapshot(refPagamentos(clubeId), (snapshot) => {
       setPagamentos(snapshot.docs.map((d) => ({ ...d.data(), id: d.id })));
     });
     return cancelarInscricao;
-  }, []);
+  }, [clubeId]);
 
   const resumo = useMemo<DashboardResumo>(() => {
     const membrosSujeitosACobranca = membrosComStatus.filter(({ membro }) =>

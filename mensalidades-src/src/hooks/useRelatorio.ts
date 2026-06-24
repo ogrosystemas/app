@@ -14,12 +14,12 @@ export interface UseRelatorioResult {
  * pagamentos, config) e delega o cálculo para relatorio.utils e a montagem do PDF
  * para pdf-relatorio.utils — mantém os componentes de UI livres dessa lógica.
  */
-export function useRelatorio(): UseRelatorioResult {
+export function useRelatorio(clubeId: string): UseRelatorioResult {
   async function gerarEBaixarRelatorio(filtro: FiltroRelatorio): Promise<void> {
     const [configSnapshot, membrosSnapshot, pagamentosSnapshot] = await Promise.all([
-      getDoc(refClube()),
-      getDocs(refMembros()),
-      getDocs(refPagamentos()),
+      getDoc(refClube(clubeId)),
+      getDocs(refMembros(clubeId)),
+      getDocs(refPagamentos(clubeId)),
     ]);
 
     if (!configSnapshot.exists()) {

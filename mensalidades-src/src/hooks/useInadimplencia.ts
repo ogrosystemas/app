@@ -29,25 +29,27 @@ export interface UseInadimplenciaResult {
  * Mantém-se reativo via onSnapshot do Firestore: qualquer baixa registrada via usePagamentos
  * (deste dispositivo OU de outro conectado ao mesmo clube) atualiza esta lista automaticamente.
  */
-export function useInadimplencia(competenciaReferencia: Competencia): UseInadimplenciaResult {
-  const { config, carregando: carregandoConfig } = useConfig();
+export function useInadimplencia(clubeId: string, competenciaReferencia: Competencia): UseInadimplenciaResult {
+  const { config, carregando: carregandoConfig } = useConfig(clubeId);
 
   const [membros, setMembros] = useState<Membro[] | undefined>(undefined);
   const [pagamentos, setPagamentos] = useState<Pagamento[] | undefined>(undefined);
 
   useEffect(() => {
-    const cancelarMembros = onSnapshot(refMembros(), (snapshot) => {
+    setMembros(undefined);
+    const cancelarMembros = onSnapshot(refMembros(clubeId), (snapshot) => {
       setMembros(snapshot.docs.map((d) => ({ ...d.data(), id: d.id })));
     });
     return cancelarMembros;
-  }, []);
+  }, [clubeId]);
 
   useEffect(() => {
-    const cancelarPagamentos = onSnapshot(refPagamentos(), (snapshot) => {
+    setPagamentos(undefined);
+    const cancelarPagamentos = onSnapshot(refPagamentos(clubeId), (snapshot) => {
       setPagamentos(snapshot.docs.map((d) => ({ ...d.data(), id: d.id })));
     });
     return cancelarPagamentos;
-  }, []);
+  }, [clubeId]);
 
   const membrosComStatus = useMemo<MembroComStatus[]>(() => {
     if (!membros || !pagamentos) return [];

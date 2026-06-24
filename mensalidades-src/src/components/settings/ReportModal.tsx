@@ -17,6 +17,7 @@ import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 
 interface ReportModalProps {
+  clubeId: string;
   aberto: boolean;
   onFechar: () => void;
 }
@@ -36,8 +37,8 @@ const TIPOS_FILTRO: { valor: TipoFiltroRelatorio; label: string }[] = [
  * A geração do PDF acontece inteiramente no navegador (sem servidor) — ver
  * pdf-relatorio.utils.ts.
  */
-export function ReportModal({ aberto, onFechar }: ReportModalProps) {
-  const { gerarEBaixarRelatorio } = useRelatorio();
+export function ReportModal({ clubeId, aberto, onFechar }: ReportModalProps) {
+  const { gerarEBaixarRelatorio } = useRelatorio(clubeId);
 
   const competenciaHoje = competenciaAtual();
   const [tipoFiltro, setTipoFiltro] = useState<TipoFiltroRelatorio>("mes");

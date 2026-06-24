@@ -80,10 +80,14 @@ function idPagamento(membroId: string, competencia: Competencia): string {
  * falhar silenciosamente, o aviso só fica visível por mais tempo, sem prejuízo
  * ao cálculo real de pendência (que nunca depende de avisos).
  */
-async function limparAvisoDaCompetencia(membroId: string, competencia: Competencia): Promise<void> {
+async function limparAvisoDaCompetencia(
+  clubeId: string,
+  membroId: string,
+  competencia: Competencia,
+): Promise<void> {
   const avisosDoMembro = await getDocs(
     query(
-      refAvisos(),
+      refAvisos(clubeId),
       where("membroId", "==", membroId),
       where("ano", "==", competencia.ano),
       where("mes", "==", competencia.mes),
@@ -93,13 +97,13 @@ async function limparAvisoDaCompetencia(membroId: string, competencia: Competenc
 }
 
 /**
- * Hook de acesso e mutação da entidade Pagamento.
+ * Hook de acesso e mutação da entidade Pagamento, sempre dentro de UMA sede (clubeId).
  * Centraliza toda a regra de "dar baixa", incluindo o fluxo de negociação em lote.
  */
-export function usePagamentos(): UsePagamentosResult {
+export function usePagamentos(clubeId: string): UsePagamentosResult {
   async function darBaixa(input: DarBaixaInput): Promise<void> {
     const id = idPagamento(input.membroId, input.competencia);
-    const ref = refPagamento(id);
+    const ref = refPagamento(clubeId, id);
 
     await runTransaction(db, async (transacao) => {
       const existente = await transacao.get(ref);
@@ -122,7 +126,7 @@ export function usePagamentos(): UsePagamentosResult {
       transacao.set(ref, registro);
     });
 
-    await limparAvisoDaCompetencia(input.membroId, input.competencia);
+    await limparAvisoDaCompetencia(clubeId, input.membroId, input.competencia);
   }
 
   async function darBaixaEmLote(
@@ -142,7 +146,7 @@ export function usePagamentos(): UsePagamentosResult {
       // Lê o estado atual de TODAS as competências envolvidas ANTES de escrever
       // qualquer uma — exigência do Firestore (leituras sempre antes de escritas
       // dentro de uma transação).
-      const refs = competencias.map((c) => refPagamento(idPagamento(membroId, c)));
+      const refs = competencias.map((c) => refPagamento(clubeId, idPagamento(membroId, c)));
       const snapshots = await Promise.all(refs.map((ref) => transacao.get(ref)));
 
       for (const [i, competencia] of competencias.entries()) {
@@ -165,15 +169,15 @@ export function usePagamentos(): UsePagamentosResult {
       }
     });
 
-    await Promise.all(competencias.map((c) => limparAvisoDaCompetencia(membroId, c)));
+    await Promise.all(competencias.map((c) => limparAvisoDaCompetencia(clubeId, membroId, c)));
   }
 
   async function removerBaixa(membroId: string, competencia: Competencia): Promise<void> {
-    await deleteDoc(refPagamento(idPagamento(membroId, competencia)));
+    await deleteDoc(refPagamento(clubeId, idPagamento(membroId, competencia)));
   }
 
   async function editarPagamento(pagamentoId: string, input: EditarPagamentoInput): Promise<void> {
-    await updateDoc(refPagamento(pagamentoId), { ...input });
+    await updateDoc(refPagamento(clubeId, pagamentoId), { ...input });
   }
 
   return { darBaixa, darBaixaEmLote, removerBaixa, editarPagamento };
@@ -181,9 +185,9 @@ export function usePagamentos(): UsePagamentosResult {
 
 /**
  * Hook auxiliar reativo: retorna todos os pagamentos de um membro específico,
- * usado no modal de histórico.
+ * dentro de uma sede, usado no modal de histórico.
  */
-export function usePagamentosDoMembro(membroId: string | undefined): Pagamento[] {
+export function usePagamentosDoMembro(clubeId: string, membroId: string | undefined): Pagamento[] {
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
 
   useEffect(() => {
@@ -192,12 +196,12 @@ export function usePagamentosDoMembro(membroId: string | undefined): Pagamento[]
       return;
     }
 
-    const consulta = query(refPagamentos(), where("membroId", "==", membroId));
+    const consulta = query(refPagamentos(clubeId), where("membroId", "==", membroId));
     const cancelarInscricao = onSnapshot(consulta, (snapshot) => {
       setPagamentos(snapshot.docs.map((d) => ({ ...d.data(), id: d.id })));
     });
     return cancelarInscricao;
-  }, [membroId]);
+  }, [clubeId, membroId]);
 
   return pagamentos;
 }

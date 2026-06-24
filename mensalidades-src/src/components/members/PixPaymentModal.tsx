@@ -1,16 +1,17 @@
 import { QRCodeSVG } from "qrcode.react";
-import { Check, Copy } from "lucide-react";
+import { AlertTriangle, Check, Copy } from "lucide-react";
 import { useMemo, useState } from "react";
-import { PIX_CHAVE, PIX_CIDADE, PIX_NOME_RECEBEDOR } from "../../constants/theme.constants";
 import { formatarCompetencia } from "../../utils/date.utils";
 import { formatarMoeda } from "../../utils/currency.utils";
 import { gerarPayloadPix } from "../../utils/pix.utils";
-import type { Competencia } from "../../types";
+import type { Competencia, ConfigPix } from "../../types";
 import { Modal } from "../ui/Modal";
 
 interface PixPaymentModalProps {
   aberto: boolean;
   onFechar: () => void;
+  /** Dados da chave Pix DESTA sede — ausente se o tesoureiro ainda não configurou em Configurações. */
+  pix: ConfigPix | undefined;
   /** Apelido do membro a quem se refere a cobrança — usado para montar o TxID do Pix. */
   apelidoMembro: string;
   /** Competência de referência exibida no título — para cobrança de várias, use a primeira. */
@@ -21,7 +22,7 @@ interface PixPaymentModalProps {
 
 /**
  * Modal de cobrança via Pix dinâmico: gera um QR Code (e o respectivo código "Copia e
- * Cola") com a chave Pix do clube, valor e identificação já preenchidos — o pagador só
+ * Cola") com a chave Pix DESTA sede, valor e identificação já preenchidos — o pagador só
  * precisa escanear ou colar no app do banco, sem digitar nada manualmente.
  *
  * Importante: este Pix é gerado 100% no navegador, sem nenhuma API ou serviço externo —
@@ -30,10 +31,15 @@ interface PixPaymentModalProps {
  * de que o pagamento foi feito — a baixa no sistema continua sendo manual (ver
  * EditPaymentModal / usePagamentos.darBaixa), feita pelo administrador depois de confirmar
  * o recebimento na própria conta bancária.
+ *
+ * Cada sede tem sua PRÓPRIA chave Pix (cadastrada em Configurações) — nunca compartilhada
+ * entre sedes, já que o dinheiro de cada sede cai direto na conta do tesoureiro
+ * responsável por ela.
  */
 export function PixPaymentModal({
   aberto,
   onFechar,
+  pix,
   apelidoMembro,
   competencia,
   valor,
@@ -41,16 +47,16 @@ export function PixPaymentModal({
   const [copiado, setCopiado] = useState(false);
 
   const payloadPix = useMemo(() => {
-    if (!aberto) return "";
+    if (!aberto || !pix) return "";
     const txId = `MENS${competencia.ano}${String(competencia.mes).padStart(2, "0")}${apelidoMembro}`;
     return gerarPayloadPix({
-      chave: PIX_CHAVE,
-      nomeRecebedor: PIX_NOME_RECEBEDOR,
-      cidade: PIX_CIDADE,
+      chave: pix.chave,
+      nomeRecebedor: pix.nomeRecebedor,
+      cidade: pix.cidade,
       valor,
       txId,
     });
-  }, [aberto, apelidoMembro, competencia, valor]);
+  }, [aberto, pix, apelidoMembro, competencia, valor]);
 
   async function handleCopiar() {
     try {
@@ -61,6 +67,23 @@ export function PixPaymentModal({
       // Falha silenciosa: em navegadores sem permissão de clipboard, o usuário ainda
       // pode selecionar o texto manualmente (ver <textarea> abaixo).
     }
+  }
+
+  if (!pix) {
+    return (
+      <Modal aberto={aberto} onFechar={onFechar} titulo="Pagar via Pix">
+        <div className="flex flex-col items-center gap-3 py-4 text-center">
+          <AlertTriangle className="text-alert-500" size={32} />
+          <p className="text-sm text-graphite-200">
+            Esta sede ainda não configurou a chave Pix.
+          </p>
+          <p className="text-xs text-graphite-400">
+            O administrador precisa preencher os dados do Pix em Configurações antes de
+            gerar cobranças.
+          </p>
+        </div>
+      </Modal>
+    );
   }
 
   return (
@@ -78,7 +101,7 @@ export function PixPaymentModal({
           <span className="font-display text-2xl font-bold text-ember-500">
             {formatarMoeda(valor)}
           </span>
-          <span className="text-xs text-graphite-400">Para: {PIX_NOME_RECEBEDOR}</span>
+          <span className="text-xs text-graphite-400">Para: {pix.nomeRecebedor}</span>
         </div>
 
         <button

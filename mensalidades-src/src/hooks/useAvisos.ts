@@ -13,15 +13,15 @@ export interface UseAvisosResult {
 }
 
 /**
- * Hook de mutação de avisos informais de pagamento. A leitura reativa (para o
- * admin ver todos os avisos pendentes) é feita por useAvisosDoClube; este hook
- * cuida só de criar/remover, usado tanto pela área do administrador quanto pela
- * área restrita do integrante (que só tem permissão de criar avisos do próprio
- * membroId, conforme as regras de segurança do Firestore).
+ * Hook de mutação de avisos informais de pagamento, dentro de UMA sede (clubeId).
+ * A leitura reativa (para o admin ver todos os avisos pendentes) é feita por
+ * useAvisosDoClube; este hook cuida só de criar/remover, usado tanto pela área do
+ * administrador quanto pela área restrita do integrante (que só tem permissão de
+ * criar avisos do próprio membroId, conforme as regras de segurança do Firestore).
  */
-export function useAvisos(): UseAvisosResult {
+export function useAvisos(clubeId: string): UseAvisosResult {
   async function enviarAviso(membroId: string, competencia: Competencia): Promise<void> {
-    await addDoc(refAvisos(), {
+    await addDoc(refAvisos(clubeId), {
       membroId,
       mes: competencia.mes,
       ano: competencia.ano,
@@ -30,28 +30,28 @@ export function useAvisos(): UseAvisosResult {
   }
 
   async function removerAviso(avisoId: string): Promise<void> {
-    await deleteDoc(refAviso(avisoId));
+    await deleteDoc(refAviso(clubeId, avisoId));
   }
 
   return { enviarAviso, removerAviso };
 }
 
-/** Hook reativo: todos os avisos de pagamento do clube (visão do administrador). */
-export function useAvisosDoClube(): AvisoPagamento[] {
+/** Hook reativo: todos os avisos de pagamento de uma sede (visão do administrador dela). */
+export function useAvisosDoClube(clubeId: string): AvisoPagamento[] {
   const [avisos, setAvisos] = useState<AvisoPagamento[]>([]);
 
   useEffect(() => {
-    const cancelarInscricao = onSnapshot(refAvisos(), (snapshot) => {
+    const cancelarInscricao = onSnapshot(refAvisos(clubeId), (snapshot) => {
       setAvisos(snapshot.docs.map((d) => ({ ...d.data(), id: d.id })));
     });
     return cancelarInscricao;
-  }, []);
+  }, [clubeId]);
 
   return avisos;
 }
 
-/** Hook reativo: avisos de pagamento de um membro específico (visão do próprio integrante). */
-export function useAvisosDoMembro(membroId: string | undefined): AvisoPagamento[] {
+/** Hook reativo: avisos de pagamento de um membro específico, dentro de uma sede (visão do próprio integrante). */
+export function useAvisosDoMembro(clubeId: string, membroId: string | undefined): AvisoPagamento[] {
   const [avisos, setAvisos] = useState<AvisoPagamento[]>([]);
 
   useEffect(() => {
@@ -59,12 +59,12 @@ export function useAvisosDoMembro(membroId: string | undefined): AvisoPagamento[
       setAvisos([]);
       return;
     }
-    const consulta = query(refAvisos(), where("membroId", "==", membroId));
+    const consulta = query(refAvisos(clubeId), where("membroId", "==", membroId));
     const cancelarInscricao = onSnapshot(consulta, (snapshot) => {
       setAvisos(snapshot.docs.map((d) => ({ ...d.data(), id: d.id })));
     });
     return cancelarInscricao;
-  }, [membroId]);
+  }, [clubeId, membroId]);
 
   return avisos;
 }

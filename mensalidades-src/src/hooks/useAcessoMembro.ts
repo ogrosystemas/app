@@ -6,18 +6,18 @@ import type { Membro } from "../types";
 export type ResultadoAcesso =
   | { status: "verificando" }
   | { status: "nao-vinculado" }
-  | { status: "vinculado"; membro: Membro };
+  | { status: "vinculado"; clubeId: string; membro: Membro };
 
 /**
- * Verifica se o e-mail informado está vinculado a um membro específico (acesso
- * individual de integrante comum, somente leitura — ver MemberSelfView). Usado
- * pelo App.tsx como segunda tentativa de autorização, depois que a tentativa de
- * acesso administrativo (initDatabase) já falhou.
+ * Verifica se o e-mail informado está vinculado a um membro específico, dentro de
+ * UMA sede (acesso individual de integrante comum, somente leitura — ver
+ * MemberSelfView). Usado pelo App.tsx como segunda tentativa de autorização,
+ * depois que a tentativa de acesso administrativo já falhou.
  *
  * Funciona em duas etapas: primeiro lê o documento "porteiro" em acessos/{email}
- * (que só contém o membroId vinculado), depois busca o membro correspondente.
- * Qualquer falha de permissão em qualquer uma das etapas é tratada como
- * "não vinculado" — este hook nunca lança erro para o chamador.
+ * (que contém clubeId + membroId vinculados), depois busca o membro correspondente
+ * NAQUELA sede específica. Qualquer falha de permissão em qualquer uma das etapas
+ * é tratada como "não vinculado" — este hook nunca lança erro para o chamador.
  */
 export function useAcessoMembro(email: string | null): ResultadoAcesso {
   const [resultado, setResultado] = useState<ResultadoAcesso>({ status: "verificando" });
@@ -40,8 +40,8 @@ export function useAcessoMembro(email: string | null): ResultadoAcesso {
           return;
         }
 
-        const { membroId } = acessoSnapshot.data();
-        const membroSnapshot = await getDoc(refMembro(membroId));
+        const { clubeId, membroId } = acessoSnapshot.data();
+        const membroSnapshot = await getDoc(refMembro(clubeId, membroId));
         if (!membroSnapshot.exists()) {
           if (!cancelado) setResultado({ status: "nao-vinculado" });
           return;
@@ -50,6 +50,7 @@ export function useAcessoMembro(email: string | null): ResultadoAcesso {
         if (!cancelado) {
           setResultado({
             status: "vinculado",
+            clubeId,
             membro: { ...membroSnapshot.data(), id: membroSnapshot.id },
           });
         }

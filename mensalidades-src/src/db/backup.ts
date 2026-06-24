@@ -6,7 +6,8 @@ import type { ConfigClube, Membro, Pagamento } from "../types";
 /**
  * Formato do arquivo de backup exportado. Versionado desde já (campo `versao`) para
  * permitir migração de formato no futuro sem quebrar backups antigos que o usuário
- * ainda tenha guardados.
+ * ainda tenha guardados. Sempre referente a UMA sede (clubeId) — backups nunca
+ * misturam dados de sedes diferentes.
  */
 export interface BackupMutantesMC {
   versao: 1;
@@ -17,16 +18,16 @@ export interface BackupMutantesMC {
   pagamentos: Pagamento[];
 }
 
-/** Gera o objeto de backup completo a partir do estado atual do banco (Firestore). */
-export async function gerarBackup(): Promise<BackupMutantesMC> {
+/** Gera o objeto de backup completo de UMA sede a partir do estado atual do banco (Firestore). */
+export async function gerarBackup(clubeId: string): Promise<BackupMutantesMC> {
   const [configSnapshot, membrosSnapshot, pagamentosSnapshot] = await Promise.all([
-    getDoc(refClube()),
-    getDocs(refMembros()),
-    getDocs(refPagamentos()),
+    getDoc(refClube(clubeId)),
+    getDocs(refMembros(clubeId)),
+    getDocs(refPagamentos(clubeId)),
   ]);
 
   if (!configSnapshot.exists()) {
-    throw new Error("Configuração do clube não encontrada — não é possível gerar backup.");
+    throw new Error("Configuração da sede não encontrada — não é possível gerar backup.");
   }
   const config = configSnapshot.data();
 
@@ -47,7 +48,7 @@ export function baixarBackupComoArquivo(backup: BackupMutantesMC): void {
   const url = URL.createObjectURL(blob);
 
   const dataFormatada = backup.geradoEm.slice(0, 10); // YYYY-MM-DD
-  const nomeArquivo = `backup-mutantes-mc-${dataFormatada}.json`;
+  const nomeArquivo = `backup-${normalizarNomeArquivo(backup.nomeClube)}-${dataFormatada}.json`;
 
   const link = document.createElement("a");
   link.href = url;
@@ -56,6 +57,15 @@ export function baixarBackupComoArquivo(backup: BackupMutantesMC): void {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+function normalizarNomeArquivo(texto: string): string {
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 /**
@@ -85,20 +95,21 @@ export interface ResultadoImportacao {
 }
 
 /**
- * Importa um backup MESCLANDO com os dados já existentes no Firestore — nunca
- * substitui ou apaga nada que já estava lá. Regras de deduplicação:
+ * Importa um backup MESCLANDO com os dados já existentes de UMA sede (clubeId) no
+ * Firestore — nunca substitui ou apaga nada que já estava lá, e nunca mistura dados
+ * com outra sede. Regras de deduplicação:
  *
  * - Membro: considerado "já existente" se já houver um membro com o mesmo par
- *   (nome, apelido) — comparação exata, sem normalização de acentos/maiúsculas, para
- *   evitar mesclar membros que o usuário realmente cadastrou como diferentes.
- *   Membros novos do backup recebem um NOVO id de documento gerado pelo Firestore
- *   (nunca reaproveita o id do arquivo, que pode colidir com ids já usados na nuvem,
- *   já que vieram de outro dispositivo/sessão).
+ *   (nome, apelido), dentro da MESMA sede — comparação exata, sem normalização de
+ *   acentos/maiúsculas, para evitar mesclar membros que o usuário realmente
+ *   cadastrou como diferentes. Membros novos do backup recebem um NOVO id de
+ *   documento gerado pelo Firestore (nunca reaproveita o id do arquivo, que pode
+ *   colidir com ids já usados na nuvem, já que vieram de outro dispositivo/sessão).
  * - Pagamento: a checagem de duplicidade usa o mesmo esquema de ID determinístico
  *   (`membroId_ano_mes`) usado por usePagamentos — um pagamento é "já existente" se
- *   já houver um documento com esse ID composto no Firestore.
+ *   já houver um documento com esse ID composto dentro da mesma sede no Firestore.
  */
-export async function importarBackup(backup: BackupMutantesMC): Promise<ResultadoImportacao> {
+export async function importarBackup(clubeId: string, backup: BackupMutantesMC): Promise<ResultadoImportacao> {
   const resultado: ResultadoImportacao = {
     membrosAdicionados: 0,
     membrosJaExistentes: 0,
@@ -106,7 +117,7 @@ export async function importarBackup(backup: BackupMutantesMC): Promise<Resultad
     pagamentosJaExistentes: 0,
   };
 
-  const membrosAtuaisSnapshot = await getDocs(refMembros());
+  const membrosAtuaisSnapshot = await getDocs(refMembros(clubeId));
   const membrosAtuais = membrosAtuaisSnapshot.docs.map((d) => ({ ...d.data(), id: d.id }));
 
   // Mapa: id do membro NO ARQUIVO DE BACKUP -> id do membro NO FIRESTORE (novo ou já existente).
@@ -129,7 +140,7 @@ export async function importarBackup(backup: BackupMutantesMC): Promise<Resultad
     }
 
     const { id: idAntigo, ...dadosMembro } = membroBackup;
-    const novoRef = doc(refMembros()); // gera um novo ID de documento, sem reaproveitar o antigo
+    const novoRef = doc(refMembros(clubeId)); // gera um novo ID de documento, sem reaproveitar o antigo
     loteMembros.set(novoRef, dadosMembro);
     pendentesNoLoteMembros++;
     resultado.membrosAdicionados++;
@@ -154,7 +165,7 @@ export async function importarBackup(backup: BackupMutantesMC): Promise<Resultad
     }
 
     const idDeterministico = `${idRealDoMembro}_${pagamentoBackup.ano}_${pagamentoBackup.mes}`;
-    const refPagamentoExistente = refPagamento(idDeterministico);
+    const refPagamentoExistente = refPagamento(clubeId, idDeterministico);
     const snapshot = await getDoc(refPagamentoExistente);
 
     if (snapshot.exists()) {

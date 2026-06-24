@@ -39,64 +39,88 @@ npm run preview   # serve o build de produção localmente para testar o PWA off
 npm run lint       # ESLint (zero warnings configurado como meta)
 ```
 
-## Autenticação e autorização
+## Multi-sede e autenticação/autorização
 
-O app exige login com Google antes de mostrar qualquer dado. Existem DOIS níveis de
+O Mutantes MC tem MÚLTIPLAS SEDES independentes (matriz + subsedes) — cada uma com seus
+próprios membros, pagamentos, configuração e chave Pix, totalmente isoladas das demais.
+O app exige login com Google antes de mostrar qualquer dado. Existem TRÊS níveis de
 acesso, bem diferentes entre si — login (qualquer conta Google) e autorização (o que
 aquela conta pode ver) são coisas separadas:
 
-### Administrador
+### Super Admin
 
-Lista fixa de e-mails mantida na função `emailAutorizado()` em `firestore.rules` — vê e
-edita tudo (membros, pagamentos, configurações, relatórios, backup). Para adicionar ou
-remover um administrador: edite essa função e publique as regras de novo no Firebase
-Console (Firestore Database → Regras → colar o conteúdo do arquivo → Publicar).
+Administra TODAS as sedes. Há um único e-mail fixo no código (`ehSuperAdminInicial()` em
+`firestore.rules`) que serve como ponto de partida do sistema — a partir dele, mais super
+admins (ou tesoureiros de sede) podem ser promovidos editando a coleção
+`administradores/{email}` no Firestore (campo `clubeId`: `"*"` para super admin, ou o ID
+de uma sede específica para tesoureiro). Depois do login, o Super Admin vê uma tela de
+escolha de sede (`SedeSelectionScreen.tsx`), com a opção de criar uma sede nova
+(`NewSedeModal.tsx`) — nome, valor inicial da mensalidade, e o e-mail do tesoureiro
+responsável, tudo numa única ação.
+
+### Admin de sede (tesoureiro)
+
+Administra SOMENTE a própria sede — vínculo em `administradores/{email}` com `clubeId`
+igual ao ID daquela sede. Entra direto no `MainApp` da própria sede, sem nenhuma tela de
+escolha. Vê e edita tudo dentro dela (membros, pagamentos, configurações, relatórios,
+backup, Pix) — nunca dados de outra sede.
 
 ### Integrante comum (consulta restrita)
 
 Qualquer membro cadastrado pode, opcionalmente, ter um e-mail vinculado (campo "E-mail
 de acesso" no formulário de cadastro/edição, em `MemberFormModal.tsx`). Quem logar com
-esse e-mail vê uma tela própria (`MemberSelfView.tsx`), somente leitura:
+esse e-mail vê uma tela própria (`MemberSelfView.tsx`), somente leitura, restrita à sede
+daquele membro:
 
 - Status atual (Em Dia/Pendente, sem valores em R$), sempre baseado no mês real de hoje.
 - Histórico completo (mês a mês, pago/pendente), também sem valores.
 - Botão "Vou pagar [competência]" em meses pendentes — envia um aviso informal, visível
-  só para o administrador (ícone de sino na lista principal), sem alterar nenhum status
-  real. O aviso é removido automaticamente quando a baixa real é registrada.
+  só para o administrador daquela sede (ícone de sino na lista principal), sem alterar
+  nenhum status real. O aviso é removido automaticamente quando a baixa real é registrada.
+- Botão de QR Code Pix por competência pendente — gera a cobrança com a chave Pix
+  **daquela sede específica** (nunca de outra).
 
 Esse vínculo é gerenciado inteiramente dentro do app — não exige editar `firestore.rules`
 para cada membro novo. Por baixo dos panos, o app espelha o vínculo num documento em
-`acessos/{email}` (coleção na raiz do banco, fora do caminho do clube), que as regras de
-segurança consultam para restringir a leitura desse e-mail a apenas aquele membro
-específico — nunca à lista inteira nem aos dados de outros membros.
+`acessos/{email}` (coleção na raiz do banco, contendo `clubeId` + `membroId`), que as
+regras de segurança consultam para restringir a leitura desse e-mail a apenas aquele
+membro específico, dentro daquela sede específica — nunca à lista inteira, nunca a outra
+sede.
 
-Quem loga mas não está em nenhuma das duas listas vê a tela "Acesso não autorizado"
-(`AccessDeniedScreen.tsx`).
+Quem loga mas não está vinculado a nenhuma sede de nenhuma das três formas vê a tela
+"Acesso não autorizado" (`AccessDeniedScreen.tsx`).
 
-Todos os dados (membros, pagamentos, configuração, avisos) vivem num único documento fixo
-do clube no Firestore (`clubes/mutantes-mc`) — não há suporte a múltiplos clubes.
+### Estrutura de dados no Firestore
 
-### Dois bugs reais já corrigidos aqui (não repetir)
+```
+sedes/{clubeId}                       (metadados: nome, data de criação — usado pela
+                                        tela de Super Admin para listar/criar sedes)
+clubes/{clubeId}                      (config da sede: nome, valor da mensalidade, Pix)
+clubes/{clubeId}/membros/{id}
+clubes/{clubeId}/pagamentos/{id}
+clubes/{clubeId}/avisos/{id}
+administradores/{email}               -> { clubeId }   ("*" para super admin)
+acessos/{email}                       -> { clubeId, membroId }
+```
 
-1. **Funções de regra precisam estar DENTRO do bloco `service`/`match`.** As funções
-   `temAcessoDeIntegranteQualquer()` e `ehOProprioMembroVinculado()` usam a variável
-   `$(database)`, que só existe dentro de `match /databases/{database}/documents { ... }`.
-   Funções herdam o escopo de onde são *definidas*, não de onde são chamadas — definir
-   essas funções no nível mais externo do arquivo (fora do `service cloud.firestore`) fazia
-   qualquer `get()`/`exists()` dentro delas falhar silenciosamente. Foi exatamente esse bug
-   que causou "Acesso não autorizado" para integrantes vinculados corretamente. As funções
+### Bugs reais já corrigidos aqui (não repetir)
+
+1. **Funções de regra precisam estar DENTRO do bloco `service`/`match`.** Várias funções
+   usam a variável `$(database)`, que só existe dentro de
+   `match /databases/{database}/documents { ... }`. Funções herdam o escopo de onde são
+   *definidas*, não de onde são chamadas — definir essas funções no nível mais externo do
+   arquivo (fora do `service cloud.firestore`) fazia qualquer `get()`/`exists()` dentro
+   delas falhar silenciosamente. Foi exatamente esse bug que causou "Acesso não
+   autorizado" para integrantes vinculados corretamente, numa versão anterior. As funções
    já estão no lugar certo no `firestore.rules` atual — não as mova para fora de novo.
 
-2. **`verificarAcessoAdmin()` (via `getDocs` em LISTA), não `getDoc` de documento único, é
-   o teste correto de "é administrador?".** Em `App.tsx`, o teste de admin não pode usar
-   `initDatabase()`/`getDoc(refClube())` como critério: a regra de leitura da config também
-   libera integrantes comuns (eles precisam ler o valor da mensalidade para calcular o
-   próprio status). Usar essa leitura como teste de admin fazia qualquer integrante vinculado
-   cair erroneamente no `MainApp` (visão administrativa completa, travada em loading
-   infinito por falta de outras permissões). O teste correto explora uma propriedade da
-   regra de `list`: ela só passa se *todo* documento do resultado satisfizer a condição —
-   um integrante, vinculado a só um `membroId`, nunca passa esse teste para a coleção
-   inteira de membros, mas um administrador sempre passa.
+2. **`verificarAcessoAdmin()` lê `administradores/{email}` diretamente — não usa mais
+   `getDocs` em lista como teste indireto.** Numa versão anterior (antes do modelo
+   multi-sede), o teste de "é admin?" explorava uma propriedade de `list` (só passa se
+   *todo* documento do resultado satisfizer a regra). Isso parou de ser necessário assim
+   que existe um documento explícito de vínculo (`administradores/{email}`) — ler esse
+   vínculo diretamente é mais simples e explícito, e já diz de cara se é super admin ou
+   admin de qual sede específica.
 
 ## Patentes
 
