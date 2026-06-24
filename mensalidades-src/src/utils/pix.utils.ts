@@ -33,23 +33,30 @@ function campoTLV(id: string, valor: string): string {
 
 /**
  * Remove acentos e caracteres fora do padrão ASCII simples exigido pelo EMV
- * (nome do recebedor e cidade não podem ter acentuação), e substitui espaços por
- * underscore.
+ * (nome do recebedor e cidade não podem ter acentuação). Mantém espaços normais.
  *
- * O substituir espaço por "_" não é uma exigência explícita do Manual de Padrões do
- * BCB (o exemplo oficial usa espaço normal, ex: "Fulano de Tal") — mas é o que o
- * PRÓPRIO gerador de Pix do Banco do Brasil produz na prática (confirmado comparando
- * um Pix real gerado pelo app do BB: "TIBURCIO_PANCOTTO_DE_BARC", com underscore).
- * Um payload com espaço normal no nome do recebedor era rejeitado pelo BB com
- * "Parâmetros inválidos" mesmo estando estruturalmente correto segundo a
- * especificação EMV — replicar o formato que o próprio BB gera resolve isso.
+ * HISTÓRICO IMPORTANTE — não repetir este erro: uma versão anterior desta função
+ * substituía espaços por underscore, baseada em um único payload "Copia e Cola"
+ * copiado do SITE do Banco do Brasil, que continha "TIBURCIO_PANCOTTO_DE_BARC"
+ * (com underscore). Essa generalização a partir de uma única amostra estava
+ * ERRADA: comparando depois com um Pix real gerado pelo APP OFICIAL DA CAIXA
+ * (o PSP onde a chave de fato está registrada), o nome veio com ESPAÇO NORMAL —
+ * "TIBURCIO PANCOTTO DE BARC" — exatamente como o exemplo oficial do Manual de
+ * Padrões do Banco Central também usa ("Fulano de Tal"). O underscore era uma
+ * particularidade de exibição daquele site específico do BB, não uma exigência
+ * universal do formato — usá-lo causou rejeição ("Parâmetros inválidos"/"Ocorreu
+ * um erro") em múltiplos bancos pagadores (BB, C6, Bradesco) por semanas, porque
+ * a causa real do problema era outra (não identificada até a comparação direta
+ * com o payload gerado pelo PSP real da chave). Lição: ao investigar problemas
+ * de compatibilidade Pix, comparar sempre contra um payload gerado pelo PSP
+ * ONDE A CHAVE ESTÁ REGISTRADA — não contra qualquer site/app de terceiros que
+ * gere algo "parecido".
  */
 function paraAsciiSimples(texto: string): string {
   return texto
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // remove os acentos (diacríticos)
-    .replace(/[^a-zA-Z0-9 ]/g, "") // remove qualquer símbolo restante fora de letras/números/espaço
-    .replace(/\s+/g, "_"); // substitui espaço(s) por underscore, igual ao gerador do BB
+    .replace(/[^a-zA-Z0-9 ]/g, ""); // remove qualquer símbolo restante fora de letras/números/espaço
 }
 
 /** Mantém apenas caracteres alfanuméricos, exigência do campo TxID (ID 05 dentro do campo 62). */
@@ -58,48 +65,55 @@ function paraAlfanumerico(texto: string): string {
 }
 
 /**
- * Aplica uma "rodada" do CRC16-CCITT-FALSE para um único byte, processando seus 8 bits
- * do mais significativo ao menos significativo.
+ * Tabela de lookup pré-computada para o CRC16 usado pelo Pix (polinômio 0x1021,
+ * sem reflexão de bits — formalmente "CRC-16/IBM-3740", às vezes chamado por engano
+ * de "CRC-16/CCITT-FALSE" ou só "CRC-CCITT" na documentação de mercado).
  */
-function avancarCRC16(byte: number, crcAtual: number): number {
+function gerarTabelaCRC16(): number[] {
   const POLINOMIO = 0x1021;
-  let crc = crcAtual;
-
-  for (let i = 7; i >= 0; i--) {
-    const bitMaisAltoEstaLigado = (crc & 0x8000) !== 0;
-    crc = (crc << 1) & 0xffff;
-    crc |= byte & (1 << i) ? 1 : 0;
-    if (bitMaisAltoEstaLigado) {
-      crc ^= POLINOMIO;
+  const tabela = new Array<number>(256);
+  for (let i = 0; i < 256; i++) {
+    let crc = i << 8;
+    for (let bit = 0; bit < 8; bit++) {
+      crc = crc & 0x8000 ? (crc << 1) ^ POLINOMIO : crc << 1;
       crc &= 0xffff;
     }
+    tabela[i] = crc;
   }
-
-  return crc;
+  return tabela;
 }
 
+const TABELA_CRC16 = gerarTabelaCRC16();
+
 /**
- * Calcula o CRC16-CCITT-FALSE (polinômio 0x1021, valor inicial 0xFFFF, sem reflexão) —
- * exatamente o algoritmo exigido pelo campo final (ID 63) do payload Pix.
+ * Calcula o CRC16 exigido pelo campo final (ID 63) do payload Pix — valor inicial
+ * 0xFFFF, sem XOR final, sem reflexão de bits.
  *
- * Importante: depois de processar todos os bytes da entrada, é necessário processar
- * mais 2 bytes de valor zero ("augment" de 16 bits) — essa etapa é facilmente esquecida
- * (várias implementações públicas a esquecem) e produz um CRC sutilmente errado que
- * PARECE plausível mas é rejeitado pelo app do banco. Validado aqui contra o valor de
- * referência oficial do CRC16-CCITT: a entrada "123456789" deve produzir 0xE5CC — ver
- * scripts de teste deste projeto, que confirmam exatamente esse valor.
+ * HISTÓRICO IMPORTANTE — não repetir este erro: uma versão anterior desta função
+ * processava 2 bytes extras de valor zero ("augment") ao final do cálculo, e
+ * trazia como prova de correção o fato de produzir 0xE5CC para a entrada de teste
+ * "123456789". Essa referência estava ERRADA: 0xE5CC não é o valor de teste do
+ * algoritmo que o Pix usa (CRC-16/IBM-3740) — é de uma variante diferente. O
+ * catálogo oficial de algoritmos CRC (reveng.sourceforge.io/crc-catalogue) confirma
+ * que o valor de teste correto para "123456789" é 0x29B1, exatamente o valor que
+ * muita gente (inclusive este código, numa versão anterior) descartava como
+ * "errado" por desconhecer essa confusão de nomenclatura entre variantes do CCITT.
+ * A implementação com "augment" gerava QR Codes estruturalmente bem formados (CRC
+ * internamente consistente com a própria lógica errada, então passavam até por
+ * validadores de terceiros que só verificam autoconsistência) mas o valor não
+ * batia com o que os apps de banco esperavam, causando rejeição silenciosa
+ * ("Parâmetros inválidos"/"Ocorreu um erro") sem nenhuma pista de qual campo
+ * estava errado. Confirmado definitivamente comparando contra um payload real
+ * gerado pelo app oficial da Caixa (PSP onde a chave estava registrada): o CRC
+ * correto era 0xF599, e só a implementação SEM o augment (a desta versão) produz
+ * esse valor para aquele payload exato.
  */
 function calcularCRC16(texto: string): string {
   let crc = 0xffff;
-
   for (let i = 0; i < texto.length; i++) {
-    crc = avancarCRC16(texto.charCodeAt(i), crc);
+    const byte = texto.charCodeAt(i);
+    crc = ((crc << 8) ^ TABELA_CRC16[(crc >> 8) ^ byte]!) & 0xffff;
   }
-
-  // Augment: dois bytes adicionais de valor zero, exigido pela definição formal do CRC.
-  crc = avancarCRC16(0, crc);
-  crc = avancarCRC16(0, crc);
-
   return crc.toString(16).toUpperCase().padStart(4, "0");
 }
 

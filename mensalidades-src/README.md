@@ -180,6 +180,10 @@ src/
 
 ## Cobrança via Pix
 
+✅ **Status: testado e confirmado com pagamento real** (escaneado e aceito no C6, depois
+da correção do CRC16 — ver "Bugs reais já corrigidos" abaixo para o histórico completo da
+investigação).
+
 Tanto o administrador (ícone de QR Code na lista principal) quanto o próprio integrante
 (botão de QR Code ao lado de cada competência pendente, na área de consulta restrita)
 podem gerar um Pix dinâmico já com valor, chave e identificação preenchidos — quem for
@@ -189,10 +193,9 @@ Pontos importantes:
 
 - **Gerado 100% no navegador**, sem nenhuma API externa de pagamento: o "Pix Copia e
   Cola" é apenas um texto estruturado no padrão BR Code (EMV QRCPS) do Banco Central — ver
-  `src/utils/pix.utils.ts`. A implementação do CRC16 (checksum final do payload) foi
-  validada contra o valor de referência oficial do CRC16-CCITT-FALSE (a string
-  `"123456789"` deve produzir `0xE5CC`) e contra um ciclo completo de geração → QR Code →
-  decodificação, confirmando que o conteúdo lido de volta é idêntico ao original.
+  `src/utils/pix.utils.ts`. A implementação do CRC16 foi validada byte-a-byte contra dois
+  payloads reais gerados por PSPs diferentes (app da Caixa e site do BB) — ver o histórico
+  de bugs abaixo antes de tocar nesse arquivo de novo.
 - **Não há confirmação automática de pagamento.** Isso é um Pix estático/dinâmico simples
   (sem integração com a API do Banco Central), então o app nunca sabe se o Pix foi pago —
   a baixa no sistema continua sendo manual, feita pelo administrador depois de confirmar o
@@ -225,21 +228,45 @@ mas pelo menos o Banco do Brasil rejeitou com "Parâmetros inválidos" antes de 
 qualquer dado da cobrança, confirmado em teste real. Ver `gerarPayloadPix` em
 `pix.utils.ts`, que já usa o valor correto.
 
-**3. O nome do recebedor (e a cidade) usam UNDERSCORE no lugar de espaço — não espaço
-normal.** O Manual de Padrões do BCB usa espaço normal no exemplo oficial (`"Fulano de
-Tal"`), e nada na especificação proíbe espaço — mas comparar um Pix real gerado pelo
-PRÓPRIO app do Banco do Brasil revelou que ele mesmo formata o nome como
-`"TIBURCIO_PANCOTTO_DE_BARC"`, com underscore. Um payload nosso com espaço normal era
-consistentemente rejeitado pelo BB com "Parâmetros inválidos", mesmo escaneando a imagem
-do QR Code (não só Copia e Cola) — sugerindo que o parser do BB é mais estrito que a
-especificação formal nesse ponto. `paraAsciiSimples` em `pix.utils.ts` já substitui
-espaços por `_` antes de truncar o nome/cidade.
+**3. ⚠️ CAUSA RAIZ REAL — o algoritmo de CRC16 estava matematicamente incorreto, por
+causa de uma referência de teste errada.** Esta foi a causa raiz de fato por trás de
+TODAS as rejeições ("Parâmetros inválidos" no BB, "Ocorreu um erro" no C6 e Bradesco) —
+as correções 1 e 2 acima eram válidas, mas insuficientes; uma 3ª tentativa (já revertida)
+chegou a trocar espaço por underscore no nome do recebedor, baseada num único payload
+copiado do site do BB, e essa generalização estava errada.
 
-⚠️ **Esta terceira correção foi validada estruturalmente (TLV, CRC, ciclo QR Code →
-decodificação) mas ainda não foi confirmada com um pagamento real até o fim** — apenas
-comparada contra um Pix genuíno do BB. Teste escaneando antes de divulgar amplamente; se
-ainda houver rejeição, pode haver mais alguma divergência de formato específica do BB
-ainda não identificada.
+O algoritmo de CRC16 usado pelo Pix é o **CRC-16/IBM-3740** (polinômio `0x1021`, init
+`0xFFFF`, sem reflexão, sem XOR final) — mas esse algoritmo é frequentemente confundido
+de nome com "CRC-CCITT" ou "CRC-CCITT-FALSE" na documentação de mercado, levando a
+implementações que processam 2 bytes extras de valor zero ("augment") ao final do
+cálculo. Essas implementações erradas produzem `0xE5CC` para a string de teste
+`"123456789"` — um valor que circula amplamente na internet como se fosse a referência
+"correta". **Não é.** O catálogo oficial de algoritmos CRC
+([reveng.sourceforge.io/crc-catalogue](https://reveng.sourceforge.io/crc-catalogue/16.htm))
+confirma que o valor de teste correto para essa string é `0x29B1` — o mesmo valor que a
+implementação errada (com augment) rejeitava como "claramente equivocado".
+
+Essa implementação errada gerava QR Codes **estruturalmente válidos** (autoconsistentes:
+o CRC errado batia com o resto do payload errado, então passava até por validadores de
+terceiros que só checam autoconsistência, como a Kobana) — mas o valor não correspondia
+ao que qualquer app de banco esperava, causando rejeição sem nenhuma pista sobre qual
+campo estava errado, já que estruturalmente nada estava.
+
+**Como foi descoberto, de fato**: comparando o payload do nosso app contra um Pix real
+gerado pelo APP OFICIAL DA CAIXA (o PSP onde a chave está de fato registrada) usando os
+mesmos dados (mesma chave, nome, valor). Os dois payloads ficaram byte-a-byte idênticos
+em todos os campos *exceto* o CRC final. Recalcular esse CRC com a implementação "errada"
+(augment) dava um valor diferente do real; recalcular sem o augment dava exatamente o
+valor do payload real. Essa comparação direta contra um payload de PSP confiável foi o
+que permitiu confirmar a causa — nenhuma quantidade de releitura da especificação ou
+validação por ferramentas de terceiros teria pego isso, porque o bug era autoconsistente.
+
+`calcularCRC16` em `pix.utils.ts` já usa a implementação correta (validada contra dois
+payloads reais e funcionais, gerados por dois sistemas bancários diferentes). **Se algum
+dia precisar tocar nesse código de novo: não confie em valores de teste de CRC16
+encontrados pela internet sem confirmar contra o catálogo oficial reveng.sourceforge.io —
+e, melhor ainda, valide sempre contra um payload real gerado pelo PSP onde a chave está
+registrada, não contra a especificação isolada.**
 
 ## Backup e restauração
 
