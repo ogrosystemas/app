@@ -1,4 +1,5 @@
 export * from "./useConfig";
+export * from "./useSede";
 export * from "./useMembros";
 export * from "./usePagamentos";
 export * from "./useInadimplencia";

@@ -16,6 +16,7 @@ import { ReportModal, SettingsModal } from "./components/settings";
 import { Button, ConfirmDialog } from "./components/ui";
 import { useAvisosDoClube } from "./hooks/useAvisos";
 import { useConfig } from "./hooks/useConfig";
+import { useSede } from "./hooks/useSede";
 import { useDashboardResumo } from "./hooks/useDashboardResumo";
 import { useInadimplencia } from "./hooks/useInadimplencia";
 import { useMembros } from "./hooks/useMembros";
@@ -57,6 +58,7 @@ export function MainApp({ clubeId, emailLogado, onSair, onTrocarSede }: MainAppP
   const [relatorioAberto, setRelatorioAberto] = useState(false);
 
   const { config, atualizarConfig } = useConfig(clubeId);
+  const { sede } = useSede(clubeId);
   const { membros, criarMembro, editarMembro, afastarMembro, reativarMembro, excluirMembro } =
     useMembros(clubeId);
   const { membrosComStatus, carregando: carregandoLista } = useInadimplencia(clubeId, competencia);
@@ -108,6 +110,7 @@ export function MainApp({ clubeId, emailLogado, onSair, onTrocarSede }: MainAppP
     <div className="flex min-h-screen flex-col bg-graphite-950">
       <AppHeader
         nomeClube={config.nomeClube}
+        tipoSede={sede?.tipo}
         onAbrirConfiguracoes={() => setModal({ tipo: "configuracoes" })}
       />
       <MonthSelector competencia={competencia} onAlterar={setCompetencia} />

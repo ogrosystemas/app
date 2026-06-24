@@ -86,12 +86,12 @@ export default function App() {
       .then(async (resultado) => {
         if (cancelado) return;
         if (resultado.tipo === "super-admin") {
-          setEstado({ tipo: "super-admin", clubeIdEscolhido: null });
+          if (!cancelado) setEstado({ tipo: "super-admin", clubeIdEscolhido: null });
         } else if (resultado.tipo === "admin-sede") {
           await initDatabaseDaSede(resultado.clubeId, resultado.clubeId);
           if (!cancelado) setEstado({ tipo: "admin-sede", clubeId: resultado.clubeId });
         } else {
-          setEstado({ tipo: "tentando-integrante" });
+          if (!cancelado) setEstado({ tipo: "tentando-integrante" });
         }
       })
       .catch((erroVerificacao: unknown) => {

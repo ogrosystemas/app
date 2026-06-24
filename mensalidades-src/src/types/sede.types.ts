@@ -1,4 +1,12 @@
 /**
+ * Distingue a sede matriz das subsedes — usado só para exibição (badge no
+ * header, ver AppHeader.tsx), sem nenhuma implicação de permissão: uma
+ * subsede tem exatamente o mesmo isolamento e funcionalidades que a matriz,
+ * a única diferença é o rótulo mostrado.
+ */
+export type TipoSede = "matriz" | "subsede";
+
+/**
  * Metadados de uma sede (clube), usados pela tela de Super Admin para listar e
  * criar sedes — não confundir com `ConfigClube` (que vive dentro de
  * `clubes/{clubeId}` e contém nome exibido/valor/Pix). Este tipo descreve o
@@ -11,11 +19,14 @@ export interface Sede {
   /** Nome curto da sede, para exibição na lista de sedes (ex: "Itajaí"). */
   nome: string;
 
+  /** Se esta sede é a matriz do clube ou uma subsede. */
+  tipo: TipoSede;
+
   /** Timestamp de criação (epoch ms). */
   criadoEm: number;
 }
 
-export type NovaSedeInput = Pick<Sede, "nome"> & {
+export type NovaSedeInput = Pick<Sede, "nome" | "tipo"> & {
   /** ID escolhido para a sede (minúsculas, sem espaços/acentos — usado como caminho no Firestore). */
   id: string;
   /** Valor inicial da mensalidade para esta sede. */

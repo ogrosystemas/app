@@ -95,10 +95,16 @@ service cloud.firestore {
     }
 
     // Metadados centrais de todas as sedes — usado pela tela de Super Admin para
-    // listar/criar sedes. Só super admins têm qualquer acesso aqui: tesoureiros de
-    // sede comum nunca precisam (nem devem) saber quais outras sedes existem.
+    // listar/criar sedes, e também pelo header do app (nome + badge Matriz/Subsede)
+    // em qualquer tela, inclusive para admins de uma única sede e integrantes.
+    // A ESCRITA (criar/editar/excluir sedes) continua exclusiva de super admins —
+    // só a LEITURA foi ampliada para quem tem qualquer tipo de acesso àquela sede
+    // específica, sem expor metadados de OUTRAS sedes (um admin de sede ou
+    // integrante só consegue ler o documento da própria sede, nunca a lista
+    // inteira — só super admins conseguem listar todas).
     match /sedes/{clubeId} {
-      allow read, write: if ehSuperAdmin();
+      allow read: if ehAdminDaSede(clubeId) || temAcessoDeIntegranteNaSede(clubeId);
+      allow write: if ehSuperAdmin();
     }
 
     match /clubes/{clubeId} {

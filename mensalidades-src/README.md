@@ -101,8 +101,9 @@ Quem loga mas não está vinculado a nenhuma sede de nenhuma das três formas v�
 ### Estrutura de dados no Firestore
 
 ```
-sedes/{clubeId}                       (metadados: nome, data de criação — usado pela
-                                        tela de Super Admin para listar/criar sedes)
+sedes/{clubeId}                       (metadados: nome, tipo "matriz"|"subsede", data de
+                                        criação — usado pela tela de Super Admin para
+                                        listar/criar sedes, e pelo badge no header do app)
 clubes/{clubeId}                      (config da sede: nome, valor da mensalidade, Pix)
 clubes/{clubeId}/membros/{id}
 clubes/{clubeId}/pagamentos/{id}
@@ -110,6 +111,16 @@ clubes/{clubeId}/avisos/{id}
 administradores/{email}               -> { clubeId }   ("*" para super admin)
 acessos/{email}                       -> { clubeId, membroId }
 ```
+
+A leitura de `sedes/{clubeId}` (documento único, nunca a coleção inteira em lista) é
+permitida para qualquer um com acesso àquela sede específica — administrador dela ou
+integrante vinculado a ela — não só super admin, já que o header do app (badge
+Matriz/Subsede) precisa disso em qualquer tela. A criação/edição/exclusão de sedes
+continua exclusiva de super admin. Sedes criadas antes da introdução do campo `tipo`
+(ex: a sede original de Itajaí, migrada do clube fixo anterior) não têm esse campo —
+o badge simplesmente não aparece até ele ser adicionado manualmente no Firestore
+Console (`sedes/{clubeId}` → adicionar campo `tipo`, tipo string, valor `"matriz"` ou
+`"subsede"`).
 
 ### Bugs reais já corrigidos aqui (não repetir)
 
@@ -129,6 +140,33 @@ acessos/{email}                       -> { clubeId, membroId }
    que existe um documento explícito de vínculo (`administradores/{email}`) — ler esse
    vínculo diretamente é mais simples e explícito, e já diz de cara se é super admin ou
    admin de qual sede específica.
+
+3. **`useAcessoMembro` nunca pode retornar "não vinculado" sem antes ter feito uma
+   tentativa real de leitura.** Causou "Acesso não autorizado" de forma INTERMITENTE
+   (funcionava na maioria das vezes, falhava ocasionalmente, principalmente logo depois
+   de reabrir o app) para um integrante com tudo corretamente cadastrado — confirmado com
+   3 testes diretos no Simulador de Regras (administradores, acessos, membros, todos
+   "Permitido"), o que provou que a causa não estava nas regras nem nos dados.
+
+   A causa real: o hook recebia `email: string | null` do `App.tsx`, e quando `email`
+   era `null` (o chamador ainda não tinha decidido tentar essa verificação), retornava
+   IMEDIATAMENTE `{ status: "nao-vinculado" }` — um resultado FINAL, sem nenhuma
+   tentativa de leitura ter ocorrido. Isso colide com uma particularidade documentada do
+   próprio SDK do Firebase Auth
+   ([firebase-js-sdk#7049](https://github.com/firebase/firebase-js-sdk/issues/7049)):
+   `onAuthStateChanged` pode disparar mais de uma vez em sequência rápida ao reabrir o
+   app. Entre um disparo e outro, havia uma janela onde o `App.tsx` já tinha o e-mail
+   disponível e mudava para `estado.tipo === "tentando-integrante"`, mas o resultado do
+   `useAcessoMembro` ainda refletia o "não vinculado" instantâneo de um render anterior
+   (quando `email` era `null`) — fazendo `AccessDeniedScreen` aparecer por engano, antes
+   da verificação real ter qualquer chance de rodar.
+
+   A correção (`useAcessoMembro.ts`): quando `email` é `null`, o hook agora retorna
+   `"verificando"` — nunca um resultado definitivo sem checagem real. Além disso, um
+   `ref` rastreia qual foi a verificação mais RECENTEMENTE disparada (não só a mais
+   recente a terminar), descartando resultados obsoletos de chamadas antigas que
+   terminam depois de uma chamada mais nova já ter sido disparada — mais robusto que uma
+   simples flag `cancelado` por execução do efeito.
 
 ## Patentes
 

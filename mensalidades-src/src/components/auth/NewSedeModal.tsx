@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { NovaSedeInput } from "../../types";
+import type { NovaSedeInput, TipoSede } from "../../types";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 
@@ -30,6 +30,7 @@ export function NewSedeModal({ aberto, onFechar, onCriar }: NewSedeModalProps) {
   const [nome, setNome] = useState("");
   const [id, setId] = useState("");
   const [idEditadoManualmente, setIdEditadoManualmente] = useState(false);
+  const [tipo, setTipo] = useState<TipoSede>("subsede");
   const [valorMensalidade, setValorMensalidade] = useState("130,00");
   const [emailTesoureiro, setEmailTesoureiro] = useState("");
   const [criando, setCriando] = useState(false);
@@ -64,12 +65,14 @@ export function NewSedeModal({ aberto, onFechar, onCriar }: NewSedeModalProps) {
       await onCriar({
         id: id.trim(),
         nome: nome.trim(),
+        tipo,
         valorMensalidade: valorNumerico,
         emailTesoureiro: emailTesoureiro.trim(),
       });
       setNome("");
       setId("");
       setIdEditadoManualmente(false);
+      setTipo("subsede");
       setValorMensalidade("130,00");
       setEmailTesoureiro("");
       onFechar();
@@ -100,6 +103,33 @@ export function NewSedeModal({ aberto, onFechar, onCriar }: NewSedeModalProps) {
         {erro && (
           <p className="border border-alert-600 bg-alert-950 px-3 py-2 text-sm text-alert-400">{erro}</p>
         )}
+
+        <Campo label="Tipo de sede">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setTipo("matriz")}
+              className={`flex-1 border px-3 py-2 text-sm font-semibold uppercase tracking-wide ${
+                tipo === "matriz"
+                  ? "border-ember-500 bg-ember-950 text-ember-500"
+                  : "border-graphite-700 bg-graphite-900 text-graphite-400"
+              }`}
+            >
+              Matriz
+            </button>
+            <button
+              type="button"
+              onClick={() => setTipo("subsede")}
+              className={`flex-1 border px-3 py-2 text-sm font-semibold uppercase tracking-wide ${
+                tipo === "subsede"
+                  ? "border-ember-500 bg-ember-950 text-ember-500"
+                  : "border-graphite-700 bg-graphite-900 text-graphite-400"
+              }`}
+            >
+              Subsede
+            </button>
+          </div>
+        </Campo>
 
         <Campo label="Nome da sede">
           <input

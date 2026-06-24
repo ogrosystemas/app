@@ -8,33 +8,30 @@ GitHub builda o app a cada push, exatamente como já acontece com seus outros PW
 como este é um projeto React (precisa de build), o GitHub Actions faz esse passo de "build"
 antes de publicar, em vez de servir o código-fonte direto.
 
-## Esta entrega: app multi-sede, já com a migração concluída
+## ⚠️ Esta entrega corrige um bug real de acesso intermitente — republicar regras é obrigatório
 
-O app passou a suportar múltiplas sedes (matriz + subsedes) isoladas, cada uma com seu
-próprio tesoureiro, membros, pagamentos e chave Pix. **A migração dos dados existentes de
-Itajaí já foi feita com sucesso** (19 membros, 76 pagamentos, 2 avisos, 10 vínculos de
-acesso, todos copiados para `clubes/itajai`) — esta versão do zip não inclui mais a
-ferramenta de migração, que era de uso único e já foi removida depois de confirmada.
+Um integrante recém-cadastrado em Itajaí recebia "Acesso não autorizado" de forma
+**intermitente** (funcionava na maioria das vezes, falhava ocasionalmente — principalmente
+logo depois de reabrir o app). Investigamos juntos com o Simulador de Regras do Firebase
+Console e confirmamos que as regras e os dados estavam corretos; a causa real estava no
+código do app (uma janela de tempo onde o resultado da verificação de acesso podia ficar
+desatualizado por uma fração de segundo, mostrando a tela errada por engano). Corrigido em
+`useAcessoMembro.ts` — ver detalhes no README, seção "Bugs reais já corrigidos".
 
-Esta entrega é só a publicação dessa versão final, sem a ferramenta — siga o passo a
-passo normal abaixo. Se você ainda não tinha rodado a migração antes desta entrega, fale
-comigo antes de publicar.
+Esta entrega também adiciona a opção de classificar cada sede como **Matriz** ou
+**Subsede** na criação (mostrado como um badge no header do app) — isso muda a regra de
+leitura da coleção `sedes`, então **republicar `firestore.rules` é obrigatório**, mesmo
+que você já tenha publicado uma versão anterior.
 
-### Como criar uma sede nova (subsede)
+### Sede de Itajaí precisa do campo "tipo" adicionado manualmente
 
-Como Super Admin, depois do login, você vê a tela de **escolha de sede** — clique em
-**"Nova Sede"** e preencha:
-- Nome da sede (ex: "Joinville")
-- ID (gerado automaticamente a partir do nome, editável — usado internamente, não pode
-  mudar depois de criada)
-- Valor inicial da mensalidade
-- E-mail do tesoureiro responsável (essa conta Google já entra automaticamente como
-  administradora SÓ dessa sede)
+Como a sede de Itajaí foi criada antes desta funcionalidade existir, ela não tem o campo
+`tipo` ainda. Para o badge aparecer também nela:
+1. Firebase Console → Firestore → Dados → coleção `sedes` → documento `itajai`.
+2. Adicionar campo: nome `tipo`, tipo `string`, valor `subsede` (ou `matriz`, se for o caso).
 
-Tudo é criado numa única ação — sede, configuração inicial e vínculo do tesoureiro — sem
-precisar editar nada no Firebase Console. O tesoureiro, ao logar pela primeira vez, já
-cai direto na própria sede, sem ver a tela de escolha (essa tela só aparece para você,
-Super Admin).
+Sedes criadas a partir de agora pela tela "Nova Sede" já recebem esse campo automaticamente
+— esse passo manual é só para a sede que já existia antes.
 
 ## O que tem neste zip
 

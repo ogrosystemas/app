@@ -87,6 +87,7 @@ export async function criarSede(input: NovaSedeInput): Promise<void> {
 
   await setDoc(refSede(input.id), {
     nome: input.nome,
+    tipo: input.tipo,
     criadoEm: agora,
   });
 
