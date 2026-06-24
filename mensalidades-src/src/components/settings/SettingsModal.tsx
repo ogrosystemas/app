@@ -1,4 +1,4 @@
-import { Download, FileText, LogOut, Upload } from "lucide-react";
+import { Building2, Download, FileText, LogOut, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useBackup } from "../../hooks/useBackup";
 import type { ConfigClube, ConfigPix } from "../../types";
@@ -15,6 +15,8 @@ interface SettingsModalProps {
   onAbrirRelatorio: () => void;
   emailLogado: string | null;
   onSair: () => Promise<void>;
+  /** Presente somente para Super Admin — mostra o botão "Trocar sede". */
+  onTrocarSede?: () => void;
 }
 
 /**
@@ -34,6 +36,7 @@ export function SettingsModal({
   onAbrirRelatorio,
   emailLogado,
   onSair,
+  onTrocarSede,
 }: SettingsModalProps) {
   const [nomeClube, setNomeClube] = useState(config.nomeClube);
   const [valorTexto, setValorTexto] = useState(String(config.valorMensalidade).replace(".", ","));
@@ -233,6 +236,17 @@ export function SettingsModal({
           </span>
           {emailLogado && (
             <p className="mb-2 truncate text-sm text-graphite-200">{emailLogado}</p>
+          )}
+          {onTrocarSede && (
+            <Button
+              variant="secondary"
+              fullWidth
+              icon={<Building2 size={14} />}
+              onClick={onTrocarSede}
+              className="mb-2"
+            >
+              Trocar sede
+            </Button>
           )}
           <Button variant="secondary" fullWidth icon={<LogOut size={14} />} onClick={onSair}>
             Sair

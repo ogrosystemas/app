@@ -38,6 +38,8 @@ interface MainAppProps {
   clubeId: string;
   emailLogado: string | null;
   onSair: () => Promise<void>;
+  /** Presente somente para Super Admin — volta à tela de escolha de sede sem deslogar. */
+  onTrocarSede?: () => void;
 }
 
 /**
@@ -45,7 +47,7 @@ interface MainAppProps {
  * de UMA sede específica. Renderizado pelo App.tsx somente depois que o usuário
  * está autenticado E autorizado a administrar a sede identificada por `clubeId`.
  */
-export function MainApp({ clubeId, emailLogado, onSair }: MainAppProps) {
+export function MainApp({ clubeId, emailLogado, onSair, onTrocarSede }: MainAppProps) {
   const [competencia, setCompetencia] = useState<Competencia>(competenciaAtual());
   const [modal, setModal] = useState<ModalAtivo>({ tipo: "nenhum" });
   const [pagamentoEmEdicao, setPagamentoEmEdicao] = useState<{
@@ -238,6 +240,7 @@ export function MainApp({ clubeId, emailLogado, onSair }: MainAppProps) {
         onAbrirRelatorio={() => setRelatorioAberto(true)}
         emailLogado={emailLogado}
         onSair={onSair}
+        onTrocarSede={onTrocarSede}
       />
 
       <ReportModal clubeId={clubeId} aberto={relatorioAberto} onFechar={() => setRelatorioAberto(false)} />

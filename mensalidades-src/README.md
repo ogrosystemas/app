@@ -58,6 +58,14 @@ escolha de sede (`SedeSelectionScreen.tsx`), com a opção de criar uma sede nov
 (`NewSedeModal.tsx`) — nome, valor inicial da mensalidade, e o e-mail do tesoureiro
 responsável, tudo numa única ação.
 
+A sede escolhida é lembrada entre sessões (`localStorage`, ver
+`utils/sede-preferencia.utils.ts`): da segunda vez em diante, o app abre direto na última
+sede escolhida, sem mostrar a tela de seleção de novo — útil para quem administra sempre
+a mesma sede no dia a dia, mesmo sendo Super Admin. Um botão **"Trocar sede"** dentro de
+Configurações volta para a tela de escolha quando necessário (ex: para dar suporte a
+outra sede pontualmente), sem deslogar da conta Google. Se a sede lembrada for removida
+ou o `localStorage` estiver vazio/bloqueado, a tela de escolha aparece normalmente.
+
 ### Admin de sede (tesoureiro)
 
 Administra SOMENTE a própria sede — vínculo em `administradores/{email}` com `clubeId`

@@ -12,6 +12,7 @@ import { useAuth } from "./hooks/useAuth";
 import { useConfig } from "./hooks/useConfig";
 import { MainApp } from "./MainApp";
 import type { NovaSedeInput, Sede } from "./types";
+import { lerUltimaSedeEscolhida, salvarUltimaSedeEscolhida } from "./utils/sede-preferencia.utils";
 
 type EstadoAcesso =
   | { tipo: "verificando" }
@@ -54,6 +55,12 @@ export default function App() {
   const [sedes, setSedes] = useState<Sede[]>([]);
   const [carregandoSedes, setCarregandoSedes] = useState(false);
   const [modalNovaSedeAberto, setModalNovaSedeAberto] = useState(false);
+  // Controla se a tela de escolha de sede deve tentar aplicar automaticamente a
+  // última sede lembrada (localStorage) — true ao logar pela primeira vez nesta
+  // sessão; false depois que o usuário clica explicitamente em "Trocar sede",
+  // para que a tela de escolha realmente apareça e espere uma nova escolha, em
+  // vez de pular direto de volta para a mesma sede de antes.
+  const [aplicarSedeLembrada, setAplicarSedeLembrada] = useState(true);
 
   const acessoMembro = useAcessoMembro(
     estado.tipo === "tentando-integrante" ? (usuario?.email ?? null) : null,
@@ -104,7 +111,19 @@ export default function App() {
     setCarregandoSedes(true);
     listarSedes()
       .then((lista) => {
-        if (!cancelado) setSedes(lista);
+        if (cancelado) return;
+        setSedes(lista);
+
+        // Se há uma sede lembrada de uma sessão anterior E ela ainda existe na
+        // lista atual E o usuário não pediu explicitamente para trocar de sede
+        // agora, pula direto para ela — evita ter que escolher de novo a cada
+        // vez que o app é reaberto. Se a sede lembrada não existir mais (foi
+        // removida, ou o localStorage está com um ID inválido/antigo), ou se o
+        // usuário clicou em "Trocar sede", a tela de escolha aparece normalmente.
+        const ultimaSede = lerUltimaSedeEscolhida();
+        if (aplicarSedeLembrada && ultimaSede && lista.some((sede) => sede.id === ultimaSede)) {
+          setEstado({ tipo: "super-admin", clubeIdEscolhido: ultimaSede });
+        }
       })
       .finally(() => {
         if (!cancelado) setCarregandoSedes(false);
@@ -113,7 +132,7 @@ export default function App() {
     return () => {
       cancelado = true;
     };
-  }, [estado]);
+  }, [estado, aplicarSedeLembrada]);
 
   async function handleEntrar() {
     setEntrando(true);
@@ -149,7 +168,11 @@ export default function App() {
           <SedeSelectionScreen
             sedes={sedes}
             carregando={carregandoSedes}
-            onEscolherSede={(clubeId) => setEstado({ tipo: "super-admin", clubeIdEscolhido: clubeId })}
+            onEscolherSede={(clubeId) => {
+              salvarUltimaSedeEscolhida(clubeId);
+              setAplicarSedeLembrada(true);
+              setEstado({ tipo: "super-admin", clubeIdEscolhido: clubeId });
+            }}
             onCriarNovaSede={() => setModalNovaSedeAberto(true)}
             onSair={sair}
           />
@@ -165,9 +188,14 @@ export default function App() {
       <MainApp
         clubeId={estado.clubeIdEscolhido}
         emailLogado={usuario.email}
-        onSair={async () => {
-          // Super admin "sai" da sede escolhida (volta para a seleção), não da conta —
-          // sair de fato da conta Google é feito a partir da própria SedeSelectionScreen.
+        onSair={sair}
+        onTrocarSede={() => {
+          // Volta para a tela de escolha de sede, sem deslogar da conta Google.
+          // Desativa a aplicação automática da sede lembrada — senão a tela de
+          // escolha "pularia" de volta para a mesma sede instantaneamente, sem
+          // dar chance de escolher outra. A lembrança no localStorage continua
+          // intacta (só é sobrescrita se uma nova sede for escolhida abaixo).
+          setAplicarSedeLembrada(false);
           setEstado({ tipo: "super-admin", clubeIdEscolhido: null });
         }}
       />
