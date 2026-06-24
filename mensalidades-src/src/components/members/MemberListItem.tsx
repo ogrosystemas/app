@@ -86,40 +86,44 @@ export function MemberListItem({
       </div>
 
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
           <Badge variant={variantBadge} icon={afastado ? <UserX size={12} /> : undefined}>
             {textoBadgeStatus(resumo, afastado)}
           </Badge>
           {temAvisoPendente && (
-            <span title="Avisou que vai pagar" className="text-ember-500">
+            <span title="Avisou que vai pagar" className="shrink-0 text-ember-500">
               <Bell size={15} />
             </span>
           )}
         </div>
 
-        {!emDia && (
-          <button
-            type="button"
-            onClick={onAbrirPix}
-            aria-label={`Gerar Pix para ${membro.apelido}`}
-            title="Gerar Pix"
-            className="shrink-0 rounded-sm p-1.5 text-ember-500 hover:bg-ember-950"
-          >
-            <QrCode size={16} />
-          </button>
-        )}
+        <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex w-8 shrink-0 items-center justify-center">
+            {!emDia && (
+              <button
+                type="button"
+                onClick={onAbrirPix}
+                aria-label={`Gerar Pix para ${membro.apelido}`}
+                title="Gerar Pix"
+                className="rounded-sm p-1.5 text-ember-500 hover:bg-ember-950"
+              >
+                <QrCode size={16} />
+              </button>
+            )}
+          </div>
 
-        {!emDia && !acumulado && (
-          <Button size="sm" variant="success" icon={<CheckCircle2 size={14} />} onClick={onDarBaixaRapida}>
-            Dar Baixa
-          </Button>
-        )}
+          {!emDia && !acumulado && (
+            <Button size="sm" variant="success" icon={<CheckCircle2 size={14} />} onClick={onDarBaixaRapida}>
+              Dar Baixa
+            </Button>
+          )}
 
-        {!emDia && acumulado && (
-          <Button size="sm" variant="danger" icon={<Handshake size={14} />} onClick={onAbrirNegociacao}>
-            Negociar
-          </Button>
-        )}
+          {!emDia && acumulado && (
+            <Button size="sm" variant="danger" icon={<Handshake size={14} />} onClick={onAbrirNegociacao}>
+              Negociar
+            </Button>
+          )}
+        </div>
       </div>
     </li>
   );
