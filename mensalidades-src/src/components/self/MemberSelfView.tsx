@@ -5,6 +5,7 @@ import { useAvisos, useAvisosDoMembro, jaAvisouCompetencia } from "../../hooks/u
 import { PixPaymentModal } from "../members/PixPaymentModal";
 import { AdvancePaymentModal } from "./AdvancePaymentModal";
 import { NotificationToggle } from "../shared/NotificationToggle";
+import { ForegroundNotificationToast } from "../pwa";
 import type { Competencia, ConfigPix, Membro } from "../../types";
 import { competenciaAtual, formatarCompetencia } from "../../utils/date.utils";
 import {
@@ -87,6 +88,7 @@ export function MemberSelfView({
 
   return (
     <div className="flex min-h-screen flex-col bg-graphite-950">
+      <ForegroundNotificationToast />
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-graphite-700 bg-graphite-950/95 px-4 py-3 backdrop-blur-sm">
         <div className="flex items-center gap-2.5">
           <Skull className="text-ember-500" size={24} strokeWidth={2} />
