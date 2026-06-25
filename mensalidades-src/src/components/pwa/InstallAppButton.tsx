@@ -1,4 +1,4 @@
-import { Download, Share } from "lucide-react";
+import { Download, MoreVertical, Share } from "lucide-react";
 import { useEffect, useState } from "react";
 import { estaInstaladoComoPWA, isIOS } from "../../utils/platform.utils";
 
@@ -12,6 +12,25 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 /**
+ * Tempo de espera, em ms, antes de mostrar a instrução manual de fallback em
+ * Android/Desktop (Chrome/Edge) quando `beforeinstallprompt` não dispara.
+ *
+ * IMPORTANTE — não é mais um bug de código a partir daqui, é comportamento
+ * documentado do próprio Chrome: a partir de uma certa versão, o navegador
+ * passou a usar um modelo de ML (sinais incluindo histórico de visitas ao
+ * site nos últimos 14 dias) para decidir SE e QUANDO mostra o prompt
+ * automático — não depende só de passar os critérios técnicos de
+ * instalabilidade (manifest válido, Service Worker ativo, HTTPS), que este
+ * app já cumpre. Ver: developer.chrome.com/blog/how_chrome_helps_users_install_the_apps_they_value
+ *
+ * Por isso, depois deste tempo sem o evento disparar, mostramos a instrução
+ * manual pelo menu do navegador (sempre disponível, independente do ML) em
+ * vez de deixar o botão simplesmente não aparecer — uma pessoa numa primeira
+ * visita não tem 14 dias de histórico para esperar.
+ */
+const ESPERA_FALLBACK_MANUAL_MS = 4000;
+
+/**
  * Botão "Instalar App" que vive dentro da própria interface (ex: no header), em vez de
  * depender só do Chrome decidir mostrar (ou não) o ícone de instalação no menu/barra de
  * endereço. O navegador dispara o evento `beforeinstallprompt` por iniciativa própria —
@@ -20,20 +39,24 @@ interface BeforeInstallPromptEvent extends Event {
  * em vez de depender do timing/heurística do navegador para mostrar sua própria UI.
  *
  * Comportamento:
- * - Antes do evento disparar (ou se o navegador não suportar/já tiver decidido não
- *   oferecer instalação): o botão simplesmente não aparece. Não há like fallback aqui —
- *   "Adicionar à tela inicial" continua sempre disponível no menu do navegador,
- *   independentemente deste componente.
+ * - iOS: sempre mostra a instrução manual (Compartilhar → Adicionar à Tela de Início),
+ *   já que `beforeinstallprompt` nunca existe no WebKit.
+ * - Android/Desktop (Chrome/Edge): se o evento disparar, mostra o botão "Instalar" de
+ *   verdade (clique já abre o prompt nativo). Se não disparar dentro de
+ *   ESPERA_FALLBACK_MANUAL_MS, mostra a instrução manual pelo menu do navegador — o
+ *   Chrome moderno pode não disparar o prompt automático mesmo em sites 100%
+ *   instaláveis, dependendo do seu modelo de ML interno (ver comentário acima).
  * - Depois que o app já está instalado (evento `appinstalled` ou modo standalone
  *   detectado): o botão desaparece, pois não faz sentido oferecer instalar de novo.
  */
 export function InstallAppButton() {
   const [eventoInstalacao, setEventoInstalacao] = useState<BeforeInstallPromptEvent | null>(null);
   const [jaInstalado, setJaInstalado] = useState(false);
-  // No iOS, `beforeinstallprompt` nunca dispara (não existe no WebKit) — por
-  // isso mostramos uma instrução estática própria ali, em vez de depender do
-  // mesmo fluxo de evento usado em Chrome/Edge/Android.
   const [mostrarInstrucaoIOS, setMostrarInstrucaoIOS] = useState(false);
+  // true depois de ESPERA_FALLBACK_MANUAL_MS sem o beforeinstallprompt disparar —
+  // ver comentário de ESPERA_FALLBACK_MANUAL_MS para o motivo de isso ser
+  // necessário e não um bug a corrigir de outra forma.
+  const [mostrarInstrucaoManualFallback, setMostrarInstrucaoManualFallback] = useState(false);
 
   useEffect(() => {
     // Detecta se o app já está rodando em modo instalado (standalone), nesse caso
@@ -56,29 +79,48 @@ export function InstallAppButton() {
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("appinstalled", handleAppInstalled);
 
+    const timeoutFallback = setTimeout(() => {
+      setMostrarInstrucaoManualFallback(true);
+    }, ESPERA_FALLBACK_MANUAL_MS);
+
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("appinstalled", handleAppInstalled);
+      clearTimeout(timeoutFallback);
     };
   }, []);
 
   if (jaInstalado) return null;
 
   if (mostrarInstrucaoIOS) {
-    return <InstrucaoInstalarIOS />;
+    return <InstrucaoInstalar variante="ios" />;
   }
 
-  if (!eventoInstalacao) return null;
+  if (eventoInstalacao) {
+    return <BotaoInstalarNativo evento={eventoInstalacao} onInstalado={() => setJaInstalado(true)} />;
+  }
 
+  if (mostrarInstrucaoManualFallback) {
+    return <InstrucaoInstalar variante="menu-navegador" />;
+  }
+
+  return null;
+}
+
+/** Botão real, que dispara o `prompt()` nativo do navegador — usado quando `beforeinstallprompt` disparou de verdade. */
+function BotaoInstalarNativo({
+  evento,
+  onInstalado,
+}: {
+  evento: BeforeInstallPromptEvent;
+  onInstalado: () => void;
+}) {
   async function handleInstalar() {
-    if (!eventoInstalacao) return;
-    await eventoInstalacao.prompt();
-    const escolha = await eventoInstalacao.userChoice;
+    await evento.prompt();
+    const escolha = await evento.userChoice;
     if (escolha.outcome === "accepted") {
-      setJaInstalado(true);
+      onInstalado();
     }
-    // O evento só pode ser usado uma vez — descarta independentemente do resultado.
-    setEventoInstalacao(null);
   }
 
   return (
@@ -98,19 +140,18 @@ export function InstallAppButton() {
 }
 
 /**
- * Substitui o InstallAppButton no iOS — onde não existe `beforeinstallprompt`
- * nem qualquer outra API que permita disparar a instalação por código, ou
- * mesmo detectar que ela aconteceu (diferente de Android, sem evento
- * `appinstalled` no Safari). A única forma de instalar no iOS é a própria
- * pessoa tocar em Compartilhar → Adicionar à Tela de Início, manualmente —
- * este componente só explica esse passo, sem tentar automatizar o que a
- * Apple não permite automatizar.
+ * Instrução manual de instalação — duas variantes de conteúdo, mesma casca
+ * visual (botão + popover):
+ * - "ios": Compartilhar → Adicionar à Tela de Início (única forma no Safari).
+ * - "menu-navegador": menu de três pontos → "Instalar [nome do app]..." —
+ *   caminho que SEMPRE funciona em Chrome/Edge desktop e Android, mesmo
+ *   quando o prompt automático (beforeinstallprompt) não dispara por
+ *   decisão do modelo de ML do navegador (ver ESPERA_FALLBACK_MANUAL_MS).
  *
- * Um clique abre/fecha um popover com a instrução; não fecha sozinho, porque
- * a pessoa pode precisar de tempo para ler e seguir os passos no próprio
- * Safari antes de voltar.
+ * Um clique abre/fecha o popover; não fecha sozinho, porque a pessoa pode
+ * precisar de tempo para ler e seguir os passos antes de voltar.
  */
-function InstrucaoInstalarIOS() {
+function InstrucaoInstalar({ variante }: { variante: "ios" | "menu-navegador" }) {
   const [aberto, setAberto] = useState(false);
 
   return (
@@ -129,14 +170,24 @@ function InstrucaoInstalarIOS() {
       </button>
       {aberto && (
         <div className="absolute right-0 top-full z-50 mt-2 w-64 border border-graphite-700 bg-graphite-900 p-3 text-left shadow-patch">
-          <p className="mb-2 text-xs leading-relaxed text-graphite-200">
-            Para instalar no iPhone/iPad: toque no ícone{" "}
-            <Share size={12} className="inline align-text-bottom text-ember-500" /> (Compartilhar) na
-            barra do Safari, depois em <strong>"Adicionar à Tela de Início"</strong>.
-          </p>
-          <p className="text-xs leading-relaxed text-graphite-400">
-            Notificações push só funcionam depois de instalado assim — abrir pelo Safari não é suficiente.
-          </p>
+          {variante === "ios" ? (
+            <>
+              <p className="mb-2 text-xs leading-relaxed text-graphite-200">
+                Para instalar no iPhone/iPad: toque no ícone{" "}
+                <Share size={12} className="inline align-text-bottom text-ember-500" /> (Compartilhar) na
+                barra do Safari, depois em <strong>"Adicionar à Tela de Início"</strong>.
+              </p>
+              <p className="text-xs leading-relaxed text-graphite-400">
+                Notificações push só funcionam depois de instalado assim — abrir pelo Safari não é
+                suficiente.
+              </p>
+            </>
+          ) : (
+            <p className="text-xs leading-relaxed text-graphite-200">
+              Toque no menu <MoreVertical size={12} className="inline align-text-bottom text-ember-500" />{" "}
+              (três pontinhos) do navegador e depois em <strong>"Instalar Mutantes Moto Clube..."</strong>.
+            </p>
+          )}
         </div>
       )}
     </div>
