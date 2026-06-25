@@ -55,9 +55,9 @@ vez, antes do workflow conseguir buildar o app corretamente.
 
 1. No GitHub, vá em **Settings** do repositório `app` → **Secrets and variables** →
    **Actions** → **New repository secret**.
-2. Crie estes 6 secrets, um por um (nome exato à esquerda, valor à direita — os valores
+2. Crie estes secrets, um por um (nome exato à esquerda, valor à direita — os valores
    você encontra no Firebase Console, em Configurações do projeto → Seus apps → app Web →
-   Configuração do SDK):
+   Configuração do SDK, exceto o último, que vem da aba Cloud Messaging):
 
    | Nome do secret | De onde vem |
    |---|---|
@@ -67,8 +67,9 @@ vez, antes do workflow conseguir buildar o app corretamente.
    | `VITE_FIREBASE_STORAGE_BUCKET` | `storageBucket` |
    | `VITE_FIREBASE_MESSAGING_SENDER_ID` | `messagingSenderId` |
    | `VITE_FIREBASE_APP_ID` | `appId` |
+   | `VITE_FIREBASE_VAPID_KEY` | Configurações do projeto → Cloud Messaging → Web Push certificates → Gerar par de chaves |
 
-3. Só depois desses 6 secrets criados, siga o passo a passo normal de publicação abaixo.
+3. Só depois desses secrets criados, siga o passo a passo normal de publicação abaixo.
 
 Sem esses secrets, o workflow ainda builda e publica (não falha visivelmente), mas o app
 publicado vai dar erro de configuração do Firebase ao abrir — sempre confirme que os 6
@@ -151,7 +152,7 @@ qual passo (instalar dependências, build, ou commit) e por quê. As causas mais
 - Falta de permissão de escrita do Actions no repositório — verifique em Settings → Actions →
   General → Workflow permissions, que precisa estar em "Read and write permissions".
 - Se o app publicar mas mostrar erro de configuração do Firebase ao abrir (não é um erro que
-  trava o workflow, mas falha em tempo de uso): confira se os 6 GitHub Secrets do Firebase
+  trava o workflow, mas falha em tempo de uso): confira se os GitHub Secrets do Firebase
   estão cadastrados corretamente (ver seção acima) e se os e-mails autorizados estão
   publicados em `firestore.rules` no Firebase Console.
 
