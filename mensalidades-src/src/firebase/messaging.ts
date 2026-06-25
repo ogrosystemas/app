@@ -41,18 +41,69 @@ const BASE_PATH = "/mensalidades/";
 const ESCOPO_SW_MENSAGENS = `${BASE_PATH}fcm/`;
 
 /**
- * Obtém o registro do service worker de mensagens já existente NESTE escopo
- * isolado, ou registra um novo se ainda não houver — usado pelos três pontos
- * que precisam dele (ativar, desativar, ouvir em primeiro plano), para nunca
- * deixar nenhum deles cair no registro automático/escopo padrão do SDK do
- * Firebase (ver ESCOPO_SW_MENSAGENS para o bug real que isso evita).
+ * Promise do registro do service worker de mensagens, cacheada em memória —
+ * preenchida UMA ÚNICA VEZ por `registrarServiceWorkerDeMensagensUmaVez`
+ * (chamada em main.tsx, na inicialização do app, fora de qualquer clique).
+ *
+ * Os handlers de clique (ativar/desativar) NUNCA chamam
+ * navigator.serviceWorker.register() ou getRegistration() diretamente — eles
+ * só leem esta variável. Isso existe por um bug real já corrigido: registrar
+ * ou apenas consultar o registro de um Service Worker via JavaScript, mesmo
+ * em um escopo isolado (ESCOPO_SW_MENSAGENS), faz alguns navegadores
+ * reavaliarem TODOS os Service Workers da mesma origem — incluindo o do
+ * Workbox/PWA — o que disparava o banner "Nova versão disponível"
+ * (UpdateBanner.tsx) especificamente sempre que a pessoa clicava em
+ * ativar/desativar notificações. Registrando uma única vez, bem no início,
+ * separado de qualquer interação do usuário, esse efeito colateral passa a
+ * acontecer (se acontecer) só na carga inicial do app, nunca em resposta a um
+ * clique — onde a pessoa não associa a um banner "aparecendo do nada".
+ *
+ * Relação com UpdateBanner.tsx (componente separado, sem dependência direta
+ * deste arquivo): aquele componente só monta dentro de MainApp — ou seja,
+ * DEPOIS do login, quando o useRegisterSW dele registra o SW do Workbox por
+ * sua vez. Esta promise (registrada em main.tsx, antes do React renderizar)
+ * sempre resolve ANTES disso. A ordem importa: se este registro acontecesse
+ * DEPOIS do SW do Workbox já estar ativo (ex: dentro de um clique, em vez de
+ * na carga inicial), seria ele o lado "tardio" reavaliando o outro — o que é
+ * exatamente o cenário evitado aqui.
  */
-async function obterRegistroSWMensagens(): Promise<ServiceWorkerRegistration> {
-  const existente = await navigator.serviceWorker.getRegistration(ESCOPO_SW_MENSAGENS);
-  if (existente) return existente;
-  return navigator.serviceWorker.register(`${BASE_PATH}firebase-messaging-sw.js`, {
-    scope: ESCOPO_SW_MENSAGENS,
-  });
+let registroSWMensagensPromise: Promise<ServiceWorkerRegistration | null> | null = null;
+
+/**
+ * Registra o service worker de mensagens (FCM) uma única vez — chamar em
+ * main.tsx, na inicialização do app. Chamadas subsequentes (ex: em
+ * StrictMode, que pode re-executar efeitos) reaproveitam a mesma promise em
+ * memória, nunca registrando duas vezes.
+ *
+ * Nunca lança: se o navegador não suportar Service Worker, ou o registro
+ * falhar por qualquer motivo, resolve para null — os botões de notificação
+ * vão reportar erro ao serem clicados, sem afetar o carregamento do app.
+ */
+export function registrarServiceWorkerDeMensagensUmaVez(): void {
+  if (registroSWMensagensPromise !== null) return;
+
+  registroSWMensagensPromise = (async () => {
+    try {
+      if (!("serviceWorker" in navigator)) return null;
+      return await navigator.serviceWorker.register(`${BASE_PATH}firebase-messaging-sw.js`, {
+        scope: ESCOPO_SW_MENSAGENS,
+      });
+    } catch (erro) {
+      console.error("Falha ao registrar o service worker de mensagens:", erro);
+      return null;
+    }
+  })();
+}
+
+/** Aguarda o registro feito por `registrarServiceWorkerDeMensagensUmaVez` — nunca registra por conta própria. */
+async function aguardarRegistroSWMensagens(): Promise<ServiceWorkerRegistration | null> {
+  if (registroSWMensagensPromise === null) {
+    // Defesa: se por algum motivo main.tsx não tiver chamado o registro ainda
+    // (ex: ordem de import inesperada), registra agora como fallback — melhor
+    // um registro tardio do que nunca, mesmo correndo o risco do banner.
+    registrarServiceWorkerDeMensagensUmaVez();
+  }
+  return registroSWMensagensPromise;
 }
 
 export type ResultadoAtivarNotificacoes =
@@ -95,12 +146,12 @@ export async function ativarNotificacoesPush(
       return { ok: false, motivo: "permissao-negada" };
     }
 
-    // Registra (ou reaproveita, se já registrado) o service worker dedicado ao
-    // FCM — separado do service worker do PWA (gerado pelo vite-plugin-pwa),
-    // porque o FCM exige um arquivo com nome e conteúdo específicos próprios.
-    // Escopo isolado (ESCOPO_SW_MENSAGENS) para não competir com o SW do
-    // Workbox — ver comentário da constante para o bug real que isso evita.
-    const registroSW = await obterRegistroSWMensagens();
+    // Reaproveita o registro feito uma única vez em main.tsx — NUNCA registra
+    // aqui dentro do clique (ver comentário de registroSWMensagensPromise).
+    const registroSW = await aguardarRegistroSWMensagens();
+    if (!registroSW) {
+      return { ok: false, motivo: "erro", detalhe: "Service worker de mensagens não registrado" };
+    }
 
     const messaging = getMessaging(firebaseApp);
     const token = await getToken(messaging, {
@@ -145,8 +196,10 @@ export async function desativarNotificacoesPush(): Promise<void> {
     const suportado = await isSupported();
     if (!suportado) return;
 
+    const registroSW = await aguardarRegistroSWMensagens();
+    if (!registroSW) return;
+
     const messaging = getMessaging(firebaseApp);
-    const registroSW = await obterRegistroSWMensagens();
     const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: registroSW }).catch(
       () => null,
     );
@@ -185,11 +238,10 @@ export async function ouvirNotificacoesEmPrimeiroPlano(
   const suportado = await isSupported();
   if (!suportado) return () => {};
 
-  // Garante que o SW de mensagens já está registrado no escopo isolado ANTES
-  // de chamar onMessage — onMessage não registra SW por si só, mas mantemos a
-  // mesma garantia explícita dos outros pontos de uso por consistência e para
-  // não depender de uma chamada anterior já ter registrado o SW.
-  await obterRegistroSWMensagens();
+  // Garante que o registro (feito uma única vez em main.tsx) já resolveu
+  // antes de seguir — onMessage não registra SW por si só, mas aguardamos
+  // por consistência com os outros pontos de uso.
+  await aguardarRegistroSWMensagens();
 
   const messaging = getMessaging(firebaseApp);
   return onMessage(messaging, (payload) => {
