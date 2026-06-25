@@ -227,8 +227,28 @@ src/
 - Botão **Dar Baixa**: baixa rápida de 1 clique, sempre na competência PENDENTE real do
   membro (não na competência selecionada no seletor do topo) — importante para membros
   afastados, cuja única dívida pode ser de um mês diferente do mês em exibição.
-- Botão **Negociar** (aparece quando há 2+ meses pendentes): abre modal para selecionar
-  quais competências estão sendo quitadas agora, soma os valores e baixa todas em lote.
+- Botão **Negociar** (aparece quando há 2+ meses pendentes): abre modal com uma grade dos
+  12 meses do ano corrente, cada um com status visual (pendente = vermelho, já pago = verde
+  e bloqueado, fora do período do membro = cinza e bloqueado, futuro/ainda não vencido =
+  laranja "adiantado") — o tesoureiro pode combinar livremente dívida real (meses pendentes)
+  com pagamento adiantado (meses futuros do mesmo ano) na mesma negociação. Pré-seleciona
+  automaticamente todos os meses pendentes; meses futuros começam desmarcados (adiantar é
+  uma escolha extra, não o caso padrão). Soma os valores e baixa todas as competências
+  selecionadas em lote. Inclui um botão **"Gerar Pix deste total"**, que abre o QR Code de
+  cobrança (ver "Cobrança via Pix" abaixo) com o valor somado de tudo que foi selecionado —
+  útil para mandar uma cobrança consolidada em vez do membro pagar mês a mês. Ver
+  `NegotiationModal.tsx` e `utils/status.utils.ts` (`gerarMesesDoAnoParaNegociacao`).
+- Botão **Adiantar** (aparece quando o membro está Em Dia, sem nenhuma pendência): abre o
+  mesmo modal de Negociação — como não há mês pendente, a grade naturalmente só oferece os
+  meses futuros disponíveis (o título do modal também se ajusta automaticamente para
+  "Adiantar" em vez de "Negociar" quando não há nenhuma dívida real envolvida).
+- **Adiantamento pelo próprio integrante** (área de autoconsulta, `MemberSelfView`): um
+  botão "Adiantar Mensalidades" abre uma grade só com os meses futuros do ano corrente,
+  permitindo ao membro gerar o próprio Pix com o valor somado de quantos meses quiser
+  adiantar — mas SEM nenhuma escrita no banco: o integrante nunca registra a própria baixa,
+  apenas gera o código para pagar. A baixa de fato continua sendo feita pelo tesoureiro,
+  depois de confirmar o recebimento — mesmo modelo de confiança usado no resto do app (o
+  integrante nunca consegue se autodeclarar "pago"). Ver `AdvancePaymentModal.tsx`.
 - **"Arrecadado" é uma métrica de caixa, não de competência**: soma o valor de TODOS os
   pagamentos cuja `dataPagamento` cai no mês/ano selecionado no topo, independentemente de
   qual competência (mês cobrado) cada pagamento se refere. Uma negociação que quita 2 meses

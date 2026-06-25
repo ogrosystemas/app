@@ -206,6 +206,72 @@ export function chaveCompetencia(c: Competencia): string {
   return `${c.ano}-${c.mes}`;
 }
 
+export type StatusMesNegociacao = "paga" | "pendente" | "futura" | "fora-do-periodo";
+
+export interface MesParaNegociacao {
+  competencia: Competencia;
+  status: StatusMesNegociacao;
+}
+
+/**
+ * Gera os 12 meses do ano da competência de referência (Janeiro a Dezembro), cada um
+ * com seu status individual — usado pelo modal de Negociação para permitir ao
+ * tesoureiro quitar de uma vez tanto meses pendentes (passados) quanto meses futuros
+ * ainda não vencidos (pagamento adiantado), dentro do mesmo ano corrente.
+ *
+ * Diferente de `calcularInadimplenciaMembro` (que só retorna competências PENDENTES,
+ * já vencidas em relação à referência), esta função retorna o ano INTEIRO, com cada
+ * mês classificado:
+ * - "paga": já existe Pagamento registrado para essa competência.
+ * - "pendente": já venceu (é igual ou anterior à referência) e não foi paga — dívida real.
+ * - "futura": ainda não venceu (é posterior à referência) e não foi paga — pagamento
+ *   adiantado, permitido para negociação.
+ * - "fora-do-periodo": mês em que o membro não estava sujeito à cobrança (antes do
+ *   ingresso, ou depois do afastamento) — não deve ser oferecido como opção, mas é
+ *   incluído na lista para a grade de 12 meses ficar visualmente completa.
+ *
+ * Respeita o mesmo ciclo anual usado em todo o resto do app (Janeiro-Dezembro do ano
+ * da referência, exceto o ano de ingresso que pode começar mais tarde — ver
+ * `inicioCicloDoAno`) e o afastamento, se houver.
+ */
+export function gerarMesesDoAnoParaNegociacao(
+  membro: Membro,
+  pagamentosDoMembro: Pagamento[],
+  competenciaReferencia: Competencia,
+): MesParaNegociacao[] {
+  const competenciaIngresso = competenciaDeDataISO(membro.dataIngresso);
+  const competenciaAfastamento = competenciaDeStringAnoMes(membro.competenciaAfastamento);
+  const pagas = new Set(pagamentosDoMembro.map((p) => chaveCompetencia(p)));
+
+  const resultado: MesParaNegociacao[] = [];
+  for (let mes = 1; mes <= 12; mes++) {
+    const competencia: Competencia = { mes, ano: competenciaReferencia.ano };
+    const chave = chaveCompetencia(competencia);
+
+    if (pagas.has(chave)) {
+      resultado.push({ competencia, status: "paga" });
+      continue;
+    }
+
+    const antesDoIngresso = compararCompetencias(competencia, competenciaIngresso) < 0;
+    const depoisDoAfastamento =
+      membro.status === "afastado" &&
+      competenciaAfastamento !== null &&
+      compararCompetencias(competencia, competenciaAfastamento) >= 0;
+
+    if (antesDoIngresso || depoisDoAfastamento) {
+      resultado.push({ competencia, status: "fora-do-periodo" });
+      continue;
+    }
+
+    const status: StatusMesNegociacao =
+      compararCompetencias(competencia, competenciaReferencia) <= 0 ? "pendente" : "futura";
+    resultado.push({ competencia, status });
+  }
+
+  return resultado;
+}
+
 /**
  * Texto curto para o badge de status na lista de membros.
  *

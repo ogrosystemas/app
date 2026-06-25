@@ -12,6 +12,7 @@ interface MemberListProps {
   carregando: boolean;
   onDarBaixaRapida: (membroId: string, competencia: Competencia) => void;
   onAbrirNegociacao: (membroId: string) => void;
+  onAbrirAdiantamento: (membroId: string) => void;
   onAbrirHistorico: (membroId: string) => void;
   onAbrirAcoes: (membroId: string) => void;
   onAbrirPix: (membroId: string, competencia: Competencia) => void;
@@ -24,6 +25,7 @@ export function MemberList({
   carregando,
   onDarBaixaRapida,
   onAbrirNegociacao,
+  onAbrirAdiantamento,
   onAbrirHistorico,
   onAbrirAcoes,
   onAbrirPix,
@@ -107,6 +109,7 @@ export function MemberList({
                 if (competenciaPendente) onDarBaixaRapida(membro.id as string, competenciaPendente);
               }}
               onAbrirNegociacao={() => onAbrirNegociacao(membro.id as string)}
+              onAbrirAdiantamento={() => onAbrirAdiantamento(membro.id as string)}
               onAbrirHistorico={() => onAbrirHistorico(membro.id as string)}
               onAbrirAcoes={() => onAbrirAcoes(membro.id as string)}
               onAbrirPix={() => {

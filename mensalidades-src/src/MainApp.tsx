@@ -70,10 +70,6 @@ export function MainApp({ clubeId, emailLogado, onSair, onTrocarSede }: MainAppP
     return membros.find((m) => m.id === membroId);
   }
 
-  function buscarResumo(membroId: string) {
-    return membrosComStatus.find((item) => item.membro.id === membroId)?.resumo;
-  }
-
   function fechar() {
     setModal({ tipo: "nenhum" });
   }
@@ -104,7 +100,6 @@ export function MainApp({ clubeId, emailLogado, onSair, onTrocarSede }: MainAppP
     modal.tipo === "confirmar-exclusao"
       ? modal.membro
       : undefined;
-  const resumoEmFoco = membroEmFoco?.id !== undefined ? buscarResumo(membroEmFoco.id) : undefined;
 
   return (
     <div className="flex min-h-screen flex-col bg-graphite-950">
@@ -131,6 +126,13 @@ export function MainApp({ clubeId, emailLogado, onSair, onTrocarSede }: MainAppP
         carregando={carregandoLista}
         onDarBaixaRapida={handleDarBaixaRapida}
         onAbrirNegociacao={(membroId) => {
+          const membro = buscarMembro(membroId);
+          if (membro) setModal({ tipo: "negociacao", membro });
+        }}
+        onAbrirAdiantamento={(membroId) => {
+          // Mesmo modal da negociação — para um membro em dia, nenhum mês "pendente"
+          // existe, então o NegotiationModal naturalmente não pré-seleciona nada,
+          // deixando só os meses futuros disponíveis para escolha (pagamento adiantado).
           const membro = buscarMembro(membroId);
           if (membro) setModal({ tipo: "negociacao", membro });
         }}
@@ -180,9 +182,11 @@ export function MainApp({ clubeId, emailLogado, onSair, onTrocarSede }: MainAppP
 
       <NegotiationModal
         aberto={modal.tipo === "negociacao"}
+        clubeId={clubeId}
         membro={membroEmFoco}
-        resumo={resumoEmFoco}
+        competenciaReferencia={competencia}
         valorMensalidade={config.valorMensalidade}
+        pix={config.pix}
         onFechar={fechar}
         onConfirmar={async (competencias, valorTotalPago, formaPagamento, observacao) => {
           if (membroEmFoco?.id === undefined) return;

@@ -1,8 +1,9 @@
-import { Bell, CheckCircle2, LogOut, QrCode, Skull, XCircle } from "lucide-react";
+import { Bell, CalendarPlus, CheckCircle2, LogOut, QrCode, Skull, XCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import { usePagamentosDoMembro } from "../../hooks/usePagamentos";
 import { useAvisos, useAvisosDoMembro, jaAvisouCompetencia } from "../../hooks/useAvisos";
 import { PixPaymentModal } from "../members/PixPaymentModal";
+import { AdvancePaymentModal } from "./AdvancePaymentModal";
 import type { Competencia, ConfigPix, Membro } from "../../types";
 import { competenciaAtual, formatarCompetencia } from "../../utils/date.utils";
 import {
@@ -42,6 +43,7 @@ export function MemberSelfView({ clubeId, membro, valorMensalidade, pix, onSair 
   const { enviarAviso } = useAvisos(clubeId);
   const [enviando, setEnviando] = useState<string | null>(null);
   const [competenciaParaPagar, setCompetenciaParaPagar] = useState<Competencia | null>(null);
+  const [adiantamentoAberto, setAdiantamentoAberto] = useState(false);
 
   const resumo = useMemo(
     () => calcularInadimplenciaMembro(membro, pagamentos, competenciaHoje, valorMensalidade),
@@ -108,6 +110,16 @@ export function MemberSelfView({ clubeId, membro, valorMensalidade, pix, onSair 
           </Badge>
           {membro.patente && (
             <span className="text-xs text-graphite-400">{membro.patente}</span>
+          )}
+          {!afastado && (
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={<CalendarPlus size={14} />}
+              onClick={() => setAdiantamentoAberto(true)}
+            >
+              Adiantar Mensalidades
+            </Button>
           )}
         </div>
 
@@ -189,6 +201,15 @@ export function MemberSelfView({ clubeId, membro, valorMensalidade, pix, onSair 
         apelidoMembro={membro.apelido}
         competencia={competenciaParaPagar ?? competenciaHoje}
         valor={valorMensalidade}
+      />
+
+      <AdvancePaymentModal
+        aberto={adiantamentoAberto}
+        onFechar={() => setAdiantamentoAberto(false)}
+        membro={membro}
+        pagamentos={pagamentos}
+        valorMensalidade={valorMensalidade}
+        pix={pix}
       />
     </div>
   );

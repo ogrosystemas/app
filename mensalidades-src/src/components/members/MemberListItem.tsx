@@ -1,4 +1,4 @@
-import { Bell, CheckCircle2, Handshake, MoreVertical, QrCode, UserX } from "lucide-react";
+import { Bell, CalendarPlus, CheckCircle2, Handshake, MoreVertical, QrCode, UserX } from "lucide-react";
 import type { Membro } from "../../types";
 import type { ResumoInadimplenciaMembro } from "../../utils/status.utils";
 import { textoBadgeStatus } from "../../utils/status.utils";
@@ -13,6 +13,8 @@ interface MemberListItemProps {
   temAvisoPendente: boolean;
   onDarBaixaRapida: () => void;
   onAbrirNegociacao: () => void;
+  /** Abre o mesmo modal de negociação, mas para um membro em dia adiantar meses futuros. */
+  onAbrirAdiantamento: () => void;
   onAbrirHistorico: () => void;
   onAbrirAcoes: () => void;
   /** Abre o modal de cobrança via Pix para a competência pendente mais antiga do membro. */
@@ -26,9 +28,12 @@ interface MemberListItemProps {
  *   informação de pendência nunca fica escondida só porque o membro está afastado.
  *   Mesmo afastado, ainda mostra o botão de regularizar a dívida (Dar Baixa/Negociar),
  *   já que essa dívida é anterior ao afastamento e continua cobrável.
- * - Em dia: badge verde, sem botão de cobrança.
+ * - Em dia: badge verde, botão discreto "Adiantar" para pagamento adiantado de meses
+ *   futuros do mesmo ano (mesmo modal de Negociação, com os meses pendentes vazios —
+ *   só os futuros aparecem disponíveis para seleção).
  * - Pendente em 1 mês (a competência selecionada): botão "Dar Baixa" direto.
- * - Pendente em 2+ meses (acumulado): badge informa quantidade, botão "Negociar" abre modal.
+ * - Pendente em 2+ meses (acumulado): badge informa quantidade, botão "Negociar" abre modal
+ *   (que também permite incluir meses futuros na mesma negociação, opcionalmente).
  * - Ícone de sino: aparece quando o próprio membro (via área de consulta restrita)
  *   avisou informalmente que vai pagar alguma competência ainda pendente — é só um
  *   lembrete visual, não altera nenhum cálculo de status.
@@ -47,6 +52,7 @@ export function MemberListItem({
   temAvisoPendente,
   onDarBaixaRapida,
   onAbrirNegociacao,
+  onAbrirAdiantamento,
   onAbrirHistorico,
   onAbrirAcoes,
   onAbrirPix,
@@ -121,6 +127,12 @@ export function MemberListItem({
           {!emDia && acumulado && (
             <Button size="sm" variant="danger" icon={<Handshake size={14} />} onClick={onAbrirNegociacao}>
               Negociar
+            </Button>
+          )}
+
+          {emDia && (
+            <Button size="sm" variant="ghost" icon={<CalendarPlus size={14} />} onClick={onAbrirAdiantamento}>
+              Adiantar
             </Button>
           )}
         </div>
