@@ -186,6 +186,27 @@ service cloud.firestore {
         (temVinculoDeAdministrador() && clubeIdDoAdministrador() == resource.data.clubeId);
     }
 
+    // Coleção de tokens de notificação push (FCM) — ver types/notificacao.types.ts.
+    // Cada pessoa só lê/escreve o PRÓPRIO token (o token é o ID do documento, mas
+    // a regra confere o campo `email` dentro do documento contra o e-mail
+    // autenticado, não o ID em si — o token em si não é previsível/comparável
+    // como string fixa). O script de disparo (fora do app, no VPS) usa a
+    // Service Account do Firebase Admin, que ignora estas regras por design —
+    // por isso não há aqui nenhuma regra de leitura "em lote" para administradores.
+    match /tokensNotificacao/{token} {
+      allow read: if request.auth != null && request.auth.token.email.lower() == resource.data.email;
+
+      allow create: if request.auth != null &&
+        request.auth.token.email.lower() == request.resource.data.email;
+
+      allow update: if request.auth != null &&
+        request.auth.token.email.lower() == resource.data.email &&
+        request.auth.token.email.lower() == request.resource.data.email;
+
+      allow delete: if request.auth != null &&
+        request.auth.token.email.lower() == resource.data.email;
+    }
+
     // Qualquer outro caminho não previsto explicitamente acima é sempre negado —
     // postura "tudo bloqueado por padrão", igual ao modo de produção inicial
     // gerado pelo próprio Firebase.

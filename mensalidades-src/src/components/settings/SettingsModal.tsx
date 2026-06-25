@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useBackup } from "../../hooks/useBackup";
 import type { ConfigClube, ConfigPix } from "../../types";
 import { formatarMoeda, parseMoeda } from "../../utils/currency.utils";
+import { NotificationToggle } from "../shared/NotificationToggle";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 
@@ -14,6 +15,8 @@ interface SettingsModalProps {
   onSalvar: (nomeClube: string, valorMensalidade: number, pix?: ConfigPix) => Promise<void>;
   onAbrirRelatorio: () => void;
   emailLogado: string | null;
+  /** ID do membro vinculado a este e-mail nesta sede, se o tesoureiro também for membro cadastrado. */
+  membroIdDoEmailLogado?: string;
   onSair: () => Promise<void>;
   /** Presente somente para Super Admin — mostra o botão "Trocar sede". */
   onTrocarSede?: () => void;
@@ -35,6 +38,7 @@ export function SettingsModal({
   onSalvar,
   onAbrirRelatorio,
   emailLogado,
+  membroIdDoEmailLogado,
   onSair,
   onTrocarSede,
 }: SettingsModalProps) {
@@ -236,6 +240,16 @@ export function SettingsModal({
           </span>
           {emailLogado && (
             <p className="mb-2 truncate text-sm text-graphite-200">{emailLogado}</p>
+          )}
+          {emailLogado && (
+            <div className="mb-2">
+              <NotificationToggle
+                email={emailLogado}
+                clubeId={clubeId}
+                papel="admin-sede"
+                membroId={membroIdDoEmailLogado}
+              />
+            </div>
           )}
           {onTrocarSede && (
             <Button

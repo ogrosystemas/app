@@ -1,6 +1,14 @@
 import { collection, doc, type CollectionReference, type DocumentReference } from "firebase/firestore";
 import { db } from "../firebase/config";
-import type { Administrador, AvisoPagamento, ConfigClube, Membro, Pagamento, Sede } from "../types";
+import type {
+  Administrador,
+  AvisoPagamento,
+  ConfigClube,
+  Membro,
+  Pagamento,
+  Sede,
+  TokenNotificacao,
+} from "../types";
 
 /**
  * Estrutura multi-sede do Firestore: cada sede (clube) do Mutantes Moto Clube vive
@@ -110,3 +118,24 @@ export function refAcesso(email: string): DocumentReference<AcessoMembro> {
 export function normalizarEmail(email: string): string {
   return email.trim().toLowerCase();
 }
+
+// ---------------------------------------------------------------------------
+// Tokens de notificação push (FCM) — coleção central, fora do caminho de
+// qualquer sede específica (ver justificativa em types/notificacao.types.ts).
+// ---------------------------------------------------------------------------
+
+/**
+ * Referência à coleção de TODOS os tokens de notificação push, de todas as
+ * sedes — usada pelo script de disparo (rodando fora do app) para uma leitura
+ * central única. Dentro do app, cada pessoa só lê/escreve o PRÓPRIO token (ver
+ * firestore.rules), nunca esta coleção como um todo.
+ */
+export function refTokensNotificacao(): CollectionReference<TokenNotificacao> {
+  return collection(db, "tokensNotificacao") as CollectionReference<TokenNotificacao>;
+}
+
+/** Referência a um token de notificação específico — o próprio token é o ID do documento. */
+export function refTokenNotificacao(token: string): DocumentReference<TokenNotificacao> {
+  return doc(db, "tokensNotificacao", token) as DocumentReference<TokenNotificacao>;
+}
+

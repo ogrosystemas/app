@@ -218,6 +218,7 @@ export default function App() {
         membro={acessoMembro.membro}
         valorMensalidade={config.valorMensalidade}
         pix={config.pix}
+        emailLogado={usuario.email ?? ""}
         onSair={sair}
       />
     );

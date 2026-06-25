@@ -246,6 +246,14 @@ export function MainApp({ clubeId, emailLogado, onSair, onTrocarSede }: MainAppP
         }}
         onAbrirRelatorio={() => setRelatorioAberto(true)}
         emailLogado={emailLogado}
+        // ID do membro vinculado a este e-mail nesta sede, se o próprio tesoureiro
+        // também for um membro cadastrado (emailAcesso comparado em minúsculas,
+        // mesma normalização usada nas regras do Firestore) — usado só para o
+        // toggle de notificações push saber se deve calcular pendência pessoal
+        // além do resumo da sede.
+        membroIdDoEmailLogado={
+          membros.find((m) => m.emailAcesso?.trim().toLowerCase() === emailLogado?.trim().toLowerCase())?.id
+        }
         onSair={onSair}
         onTrocarSede={onTrocarSede}
       />

@@ -4,6 +4,7 @@ import { usePagamentosDoMembro } from "../../hooks/usePagamentos";
 import { useAvisos, useAvisosDoMembro, jaAvisouCompetencia } from "../../hooks/useAvisos";
 import { PixPaymentModal } from "../members/PixPaymentModal";
 import { AdvancePaymentModal } from "./AdvancePaymentModal";
+import { NotificationToggle } from "../shared/NotificationToggle";
 import type { Competencia, ConfigPix, Membro } from "../../types";
 import { competenciaAtual, formatarCompetencia } from "../../utils/date.utils";
 import {
@@ -20,6 +21,7 @@ interface MemberSelfViewProps {
   membro: Membro;
   valorMensalidade: number;
   pix: ConfigPix | undefined;
+  emailLogado: string;
   onSair: () => Promise<void>;
 }
 
@@ -36,7 +38,14 @@ interface MemberSelfViewProps {
  * `clubeId` identifica a sede a que este membro pertence — todo dado lido/escrito
  * aqui (pagamentos, avisos) fica isolado dentro dela.
  */
-export function MemberSelfView({ clubeId, membro, valorMensalidade, pix, onSair }: MemberSelfViewProps) {
+export function MemberSelfView({
+  clubeId,
+  membro,
+  valorMensalidade,
+  pix,
+  emailLogado,
+  onSair,
+}: MemberSelfViewProps) {
   const competenciaHoje = competenciaAtual();
   const pagamentos = usePagamentosDoMembro(clubeId, membro.id);
   const avisos = useAvisosDoMembro(clubeId, membro.id);
@@ -122,6 +131,13 @@ export function MemberSelfView({ clubeId, membro, valorMensalidade, pix, onSair 
             </Button>
           )}
         </div>
+
+        <NotificationToggle
+          email={emailLogado}
+          clubeId={clubeId}
+          papel="integrante"
+          membroId={membro.id}
+        />
 
         <div>
           <h2 className="mb-2 font-display text-sm font-semibold uppercase tracking-widest2 text-graphite-400">
