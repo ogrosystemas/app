@@ -23,7 +23,7 @@ export interface Membro {
   apelido: string;
 
   /**
-   * Patente/cargo do membro dentro do clube (ex: "Presidente", "Membro").
+   * Patente/cargo do membro dentro do clube (ex: "Presidente", "PP").
    * Lista fixa definida em PATENTES_EM_ORDEM (constants/patentes.constants.ts),
    * em ordem hierárquica — usada tanto no seletor do formulário quanto para
    * ordenação/agrupamento futuro da lista por patente.

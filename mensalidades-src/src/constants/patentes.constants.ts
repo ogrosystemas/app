@@ -4,6 +4,11 @@
  * futuro da lista de membros por patente.
  */
 export const PATENTES_EM_ORDEM: readonly string[] = [
+  "Presidente",
+  "Vice-Presidente",
+  "Secretário",
+  "Tesoureiro",
+  "Nômade",
   "Diretor Regional",
   "Veterano",
   "Diretor",
