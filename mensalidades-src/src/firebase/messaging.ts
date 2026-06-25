@@ -16,10 +16,44 @@ const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 /**
  * BASE_PATH do app, repetido aqui (em vez de importar de vite.config.ts, que
  * não pode ser importado em código de runtime) — necessário para registrar o
- * service worker de mensagens no escopo correto, já que o app vive numa
+ * service worker de mensagens no caminho correto, já que o app vive numa
  * subpasta (app.ogrosystemas.com.br/mensalidades/), não na raiz do domínio.
  */
 const BASE_PATH = "/mensalidades/";
+
+/**
+ * Escopo PRÓPRIO do service worker de mensagens — um subcaminho fictício
+ * dedicado (não precisa existir como pasta real; o navegador só usa essa
+ * string como prefixo de escopo), DIFERENTE do escopo do service worker do
+ * Workbox/PWA (que é BASE_PATH inteiro, controlando toda a navegação do app —
+ * ver navigateFallbackAllowlist em vite.config.ts).
+ *
+ * Registrar os dois SWs no MESMO escopo (BASE_PATH) faz o navegador tratá-los
+ * como concorrentes pelo mesmo controle de página: cada chamada a
+ * navigator.serviceWorker.register() neste escopo compartilhado disparava uma
+ * re-checagem de atualização também no SW do Workbox, fazendo o banner
+ * "Atualizar" da UI (ver UpdateBanner.tsx) reaparecer especificamente quando
+ * a pessoa clicava em ativar/desativar notificações — bug real já corrigido,
+ * não repetir: o SW de mensagens precisa de um escopo isolado, mesmo que
+ * mais restrito do que o necessário para a Push API funcionar (que só exige
+ * que o escopo cubra a própria origem das mensagens recebidas).
+ */
+const ESCOPO_SW_MENSAGENS = `${BASE_PATH}fcm/`;
+
+/**
+ * Obtém o registro do service worker de mensagens já existente NESTE escopo
+ * isolado, ou registra um novo se ainda não houver — usado pelos três pontos
+ * que precisam dele (ativar, desativar, ouvir em primeiro plano), para nunca
+ * deixar nenhum deles cair no registro automático/escopo padrão do SDK do
+ * Firebase (ver ESCOPO_SW_MENSAGENS para o bug real que isso evita).
+ */
+async function obterRegistroSWMensagens(): Promise<ServiceWorkerRegistration> {
+  const existente = await navigator.serviceWorker.getRegistration(ESCOPO_SW_MENSAGENS);
+  if (existente) return existente;
+  return navigator.serviceWorker.register(`${BASE_PATH}firebase-messaging-sw.js`, {
+    scope: ESCOPO_SW_MENSAGENS,
+  });
+}
 
 export type ResultadoAtivarNotificacoes =
   | { ok: true }
@@ -64,9 +98,9 @@ export async function ativarNotificacoesPush(
     // Registra (ou reaproveita, se já registrado) o service worker dedicado ao
     // FCM — separado do service worker do PWA (gerado pelo vite-plugin-pwa),
     // porque o FCM exige um arquivo com nome e conteúdo específicos próprios.
-    const registroSW = await navigator.serviceWorker.register(`${BASE_PATH}firebase-messaging-sw.js`, {
-      scope: BASE_PATH,
-    });
+    // Escopo isolado (ESCOPO_SW_MENSAGENS) para não competir com o SW do
+    // Workbox — ver comentário da constante para o bug real que isso evita.
+    const registroSW = await obterRegistroSWMensagens();
 
     const messaging = getMessaging(firebaseApp);
     const token = await getToken(messaging, {
@@ -112,7 +146,10 @@ export async function desativarNotificacoesPush(): Promise<void> {
     if (!suportado) return;
 
     const messaging = getMessaging(firebaseApp);
-    const token = await getToken(messaging, { vapidKey: VAPID_KEY }).catch(() => null);
+    const registroSW = await obterRegistroSWMensagens();
+    const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: registroSW }).catch(
+      () => null,
+    );
     if (!token) return;
 
     await deleteToken(messaging);
@@ -147,6 +184,12 @@ export async function ouvirNotificacoesEmPrimeiroPlano(
 ): Promise<() => void> {
   const suportado = await isSupported();
   if (!suportado) return () => {};
+
+  // Garante que o SW de mensagens já está registrado no escopo isolado ANTES
+  // de chamar onMessage — onMessage não registra SW por si só, mas mantemos a
+  // mesma garantia explícita dos outros pontos de uso por consistência e para
+  // não depender de uma chamada anterior já ter registrado o SW.
+  await obterRegistroSWMensagens();
 
   const messaging = getMessaging(firebaseApp);
   return onMessage(messaging, (payload) => {
