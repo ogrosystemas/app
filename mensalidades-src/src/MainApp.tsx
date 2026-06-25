@@ -11,7 +11,7 @@ import {
   NegotiationModal,
   PixPaymentModal,
 } from "./components/members";
-import { ForegroundNotificationToast, UpdateBanner } from "./components/pwa";
+import { ForegroundNotificationToast } from "./components/pwa";
 import { ReportModal, SettingsModal } from "./components/settings";
 import { Button, ConfirmDialog } from "./components/ui";
 import { useAvisosDoClube } from "./hooks/useAvisos";
@@ -289,7 +289,6 @@ export function MainApp({ clubeId, emailLogado, onSair, onTrocarSede }: MainAppP
         valor={config.valorMensalidade}
       />
 
-      <UpdateBanner />
       <ForegroundNotificationToast />
     </div>
   );

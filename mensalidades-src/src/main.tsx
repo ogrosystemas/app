@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { registrarServiceWorkerDeMensagensUmaVez } from "./firebase/messaging";
+import { UpdateBanner } from "./components/pwa";
 
 /**
  * Diferente da versão anterior (com Dexie local), a inicialização do banco
@@ -32,6 +33,24 @@ registrarServiceWorkerDeMensagensUmaVez();
 
 createRoot(rootElement).render(
   <StrictMode>
+    {/*
+      UpdateBanner monta AQUI, fora de App, e não mais dentro de MainApp —
+      bug real já corrigido, não repetir: App.tsx tem múltiplos retornos
+      condicionais (tela de login, seleção de sede, MainApp do tesoureiro,
+      MemberSelfView do integrante, acesso negado), e UpdateBanner só era
+      renderizado dentro de MainApp. Como é o `useRegisterSW` deste
+      componente que de fato registra o Service Worker do Workbox/PWA
+      (`injectRegister: null` em vite.config.ts desativa o registro
+      automático do plugin de propósito, delegando tudo a este hook), isso
+      significava que o SW do Workbox NUNCA registrava para quem ainda não
+      tinha logado — e sem esse SW controlando o `start_url` do manifest, o
+      Chrome nunca considera o site instalável, então o evento
+      `beforeinstallprompt` nunca disparava enquanto a pessoa estava na tela
+      de login (que é a primeira coisa que qualquer um vê ao abrir o app).
+      Montando aqui, o registro acontece sempre, desde o primeiro
+      carregamento da página, independente de autenticação.
+    */}
+    <UpdateBanner />
     <App />
   </StrictMode>,
 );
