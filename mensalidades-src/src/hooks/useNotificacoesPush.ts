@@ -25,6 +25,8 @@ const MENSAGENS_ERRO: Record<Exclude<ResultadoAtivarNotificacoes, { ok: true }>[
   "sem-suporte": "Este navegador/dispositivo não tem suporte a notificações push.",
   "permissao-negada":
     "Permissão de notificação negada. Habilite manualmente nas configurações do navegador para ativar.",
+  "ios-nao-instalado":
+    "No iPhone/iPad, notificações só funcionam com o app instalado na Tela de Início. Toque em Compartilhar e depois em \"Adicionar à Tela de Início\", abra o app por esse ícone e tente ativar de novo.",
   erro: "Não foi possível ativar as notificações agora. Tente novamente.",
 };
 

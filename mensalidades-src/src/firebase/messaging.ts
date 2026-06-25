@@ -2,6 +2,7 @@ import { deleteToken, getMessaging, getToken, isSupported, onMessage } from "fir
 import { deleteDoc, setDoc } from "firebase/firestore";
 import { firebaseApp } from "./config";
 import { refTokenNotificacao } from "../db/refs";
+import { estaInstaladoComoPWA, isIOS } from "../utils/platform.utils";
 import type { PapelTokenNotificacao } from "../types";
 
 /**
@@ -108,7 +109,7 @@ async function aguardarRegistroSWMensagens(): Promise<ServiceWorkerRegistration 
 
 export type ResultadoAtivarNotificacoes =
   | { ok: true }
-  | { ok: false; motivo: "sem-suporte" | "permissao-negada" | "erro"; detalhe?: unknown };
+  | { ok: false; motivo: "sem-suporte" | "permissao-negada" | "ios-nao-instalado" | "erro"; detalhe?: unknown };
 
 /**
  * Ativa notificações push para a pessoa logada: pede permissão ao navegador,
@@ -131,6 +132,16 @@ export async function ativarNotificacoesPush(
   membroId: string | undefined,
 ): Promise<ResultadoAtivarNotificacoes> {
   try {
+    // Checagem ESPECÍFICA antes da genérica: em iOS, "sem suporte" quase
+    // sempre significa "está no Safari sem ter instalado o PWA na Tela de
+    // Início" — restrição real da Apple (push Web só existe a partir do iOS
+    // 16.4, e só dentro do app instalado, nunca numa aba comum do Safari).
+    // Avisar isso especificamente evita a pessoa achar que o app está com
+    // erro/bug quando na verdade falta um passo de instalação dela mesma.
+    if (isIOS() && !estaInstaladoComoPWA()) {
+      return { ok: false, motivo: "ios-nao-instalado" };
+    }
+
     const suportado = await isSupported();
     if (!suportado) {
       return { ok: false, motivo: "sem-suporte" };
