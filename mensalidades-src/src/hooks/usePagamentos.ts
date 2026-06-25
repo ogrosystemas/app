@@ -185,12 +185,34 @@ export function usePagamentos(clubeId: string): UsePagamentosResult {
 
 /**
  * Hook auxiliar reativo: retorna todos os pagamentos de um membro específico,
- * dentro de uma sede, usado no modal de histórico.
+ * dentro de uma sede, usado no modal de histórico. Retorna só o array — para os
+ * casos que também precisam saber se os dados já carregaram de fato (distinguir
+ * "ainda não chegou nada do Firestore" de "chegou e está genuinamente vazio"),
+ * ver `usePagamentosDoMembroComStatus`.
  */
 export function usePagamentosDoMembro(clubeId: string, membroId: string | undefined): Pagamento[] {
-  const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
+  return usePagamentosDoMembroComStatus(clubeId, membroId).pagamentos;
+}
+
+/**
+ * Mesma leitura reativa de `usePagamentosDoMembro`, mas também expõe `carregando` —
+ * necessário sempre que o código que consome este hook precisa diferenciar um
+ * array vazio TRANSITÓRIO (ainda esperando o primeiro snapshot do Firestore) de um
+ * array vazio REAL (o membro de fato não tem nenhum pagamento registrado).
+ *
+ * Ver NegotiationModal.tsx para o caso concreto que motivou esta distinção: uma
+ * pré-seleção de meses feita antes dos dados reais chegarem usava o array vazio
+ * transitório como se fosse definitivo, classificando incorretamente meses já
+ * pagos como pendentes.
+ */
+export function usePagamentosDoMembroComStatus(
+  clubeId: string,
+  membroId: string | undefined,
+): { pagamentos: Pagamento[]; carregando: boolean } {
+  const [pagamentos, setPagamentos] = useState<Pagamento[] | undefined>(undefined);
 
   useEffect(() => {
+    setPagamentos(undefined);
     if (membroId === undefined) {
       setPagamentos([]);
       return;
@@ -203,7 +225,7 @@ export function usePagamentosDoMembro(clubeId: string, membroId: string | undefi
     return cancelarInscricao;
   }, [clubeId, membroId]);
 
-  return pagamentos;
+  return { pagamentos: pagamentos ?? [], carregando: pagamentos === undefined };
 }
 
 /** Arredonda um valor para 2 casas decimais (centavos), evitando erros de ponto flutuante. */

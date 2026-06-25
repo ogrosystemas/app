@@ -1,6 +1,7 @@
 import { QrCode } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { Competencia, ConfigPix, Membro, Pagamento } from "../../types";
+import { usePagamentosDoMembroComStatus } from "../../hooks/usePagamentos";
+import type { Competencia, ConfigPix, Membro } from "../../types";
 import { formatarMoeda } from "../../utils/currency.utils";
 import { formatarCompetenciaAbreviada, competenciaAtual } from "../../utils/date.utils";
 import {
@@ -15,7 +16,7 @@ interface AdvancePaymentModalProps {
   aberto: boolean;
   onFechar: () => void;
   membro: Membro;
-  pagamentos: Pagamento[];
+  clubeId: string;
   valorMensalidade: number;
   pix: ConfigPix | undefined;
 }
@@ -31,22 +32,35 @@ interface AdvancePaymentModalProps {
  * para o membro pagar. A baixa de fato continua sendo responsabilidade do
  * tesoureiro, depois de confirmar o recebimento na própria conta (mesmo modelo de
  * confiança do resto do app: o integrante nunca consegue se autodeclarar "pago").
+ *
+ * Busca os próprios pagamentos via `usePagamentosDoMembroComStatus` (em vez de
+ * receber a lista já calculada como prop) para poder esperar o carregamento real
+ * terminar antes de calcular `mesesFuturos` — evita classificar um mês já pago
+ * como "futuro" por uma fração de segundo enquanto os dados ainda não chegaram do
+ * Firestore (ver o bug real documentado em NegotiationModal.tsx, mesma causa raiz).
  */
 export function AdvancePaymentModal({
   aberto,
   onFechar,
   membro,
-  pagamentos,
+  clubeId,
   valorMensalidade,
   pix,
 }: AdvancePaymentModalProps) {
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [pixAberto, setPixAberto] = useState(false);
 
-  const competenciaHoje = competenciaAtual();
-  const mesesFuturos = gerarMesesDoAnoParaNegociacao(membro, pagamentos, competenciaHoje).filter(
-    (m) => m.status === "futura",
+  const { pagamentos, carregando: carregandoPagamentos } = usePagamentosDoMembroComStatus(
+    clubeId,
+    membro.id,
   );
+
+  const competenciaHoje = competenciaAtual();
+  const mesesFuturos = carregandoPagamentos
+    ? []
+    : gerarMesesDoAnoParaNegociacao(membro, pagamentos, competenciaHoje).filter(
+        (m) => m.status === "futura",
+      );
 
   useEffect(() => {
     if (!aberto) return;
@@ -104,7 +118,9 @@ export function AdvancePaymentModal({
             automaticamente.
           </p>
 
-          {mesesFuturos.length === 0 ? (
+          {carregandoPagamentos ? (
+            <p className="py-4 text-center text-sm text-graphite-400">Carregando...</p>
+          ) : mesesFuturos.length === 0 ? (
             <p className="py-6 text-center text-sm text-graphite-400">
               Não há meses futuros disponíveis para adiantar este ano.
             </p>

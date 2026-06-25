@@ -1,6 +1,6 @@
 import { QrCode } from "lucide-react";
-import { useEffect, useState } from "react";
-import { usePagamentosDoMembro } from "../../hooks/usePagamentos";
+import { useEffect, useMemo, useState } from "react";
+import { usePagamentosDoMembroComStatus } from "../../hooks/usePagamentos";
 import type { Competencia, ConfigPix, FormaPagamento, Membro } from "../../types";
 import { formatarMoeda } from "../../utils/currency.utils";
 import { formatarCompetenciaAbreviada } from "../../utils/date.utils";
@@ -95,27 +95,64 @@ export function NegotiationModal({
   const [observacao, setObservacao] = useState("");
   const [confirmando, setConfirmando] = useState(false);
   const [pixAberto, setPixAberto] = useState(false);
+  // Controla se a pré-seleção já foi feita PARA ESTA ABERTURA do modal — existe para
+  // não reaplicar a pré-seleção (e descartar a escolha do usuário) cada vez que
+  // `pagamentosDoMembro` mudar por qualquer motivo enquanto o modal já está aberto.
+  const [preSelecaoFeita, setPreSelecaoFeita] = useState(false);
 
-  const pagamentosDoMembro = usePagamentosDoMembro(clubeId, membro?.id);
+  const { pagamentos: pagamentosDoMembro, carregando: carregandoPagamentos } =
+    usePagamentosDoMembroComStatus(clubeId, membro?.id);
 
-  const mesesDoAno: MesParaNegociacao[] =
-    membro !== undefined
-      ? gerarMesesDoAnoParaNegociacao(membro, pagamentosDoMembro, competenciaReferencia)
-      : [];
+  const mesesDoAno: MesParaNegociacao[] = useMemo(
+    () =>
+      membro !== undefined
+        ? gerarMesesDoAnoParaNegociacao(membro, pagamentosDoMembro, competenciaReferencia)
+        : [],
+    [membro, pagamentosDoMembro, competenciaReferencia],
+  );
 
+  // Reseta o controle de pré-seleção sempre que o modal é reaberto (ou troca de membro) —
+  // a pré-seleção real só acontece no efeito abaixo, quando os pagamentos já tiverem
+  // carregado de fato.
   useEffect(() => {
     if (!aberto) return;
-    // Por padrão, pré-seleciona TODOS os meses pendentes (dívida real) — meses futuros
-    // (pagamento adiantado) começam desmarcados, já que adiantar é uma escolha extra
-    // do membro, não o caso de uso padrão.
+    setPreSelecaoFeita(false);
+    setFormaPagamento("pix");
+    setObservacao("");
+  }, [aberto, membro?.id]);
+
+  /**
+   * Pré-seleciona os meses pendentes (dívida real) assim que os dados de pagamentos
+   * estiverem disponíveis — meses futuros (pagamento adiantado) começam desmarcados,
+   * já que adiantar é uma escolha extra do membro, não o caso de uso padrão.
+   *
+   * IMPORTANTE — bug real já corrigido aqui, não repetir: este efeito antes dependia
+   * apenas de `[aberto, membro?.id]`, sem incluir `pagamentosDoMembro` nas dependências
+   * (havia até um `eslint-disable` silenciando o aviso correto do linter sobre isso).
+   * Como `usePagamentosDoMembro` inicializa com um array vazio ANTES do primeiro
+   * snapshot do Firestore chegar, a pré-seleção rodava com `pagamentosDoMembro = []`
+   * no instante em que o modal abria — fazendo TODO mês até a referência (mesmo já
+   * pago, em casos como membro 100% em dia) ser classificado como "pendente" e
+   * entrar na pré-seleção. Quando os dados reais chegavam um instante depois, a
+   * GRADE VISUAL já corrigia (mostrava verde/pago corretamente), mas o `Set` de
+   * seleção já tinha sido populado com as chaves erradas e nunca era recalculado —
+   * resultado: o "Total selecionado" somava meses já pagos junto com os que o
+   * usuário de fato clicou, mesmo sem aparecer nenhum sinal visual do erro na
+   * grade em si (os meses errados apareciam corretamente em verde/bloqueados, só
+   * o valor da soma é que vinha inflado).
+   *
+   * A correção: a pré-seleção só roda quando o modal está aberto E ainda não foi
+   * feita NESTA abertura — explicitamente esperando os dados reais (não um array
+   * vazio transitório) antes de decidir quais meses marcar.
+   */
+  useEffect(() => {
+    if (!aberto || preSelecaoFeita || carregandoPagamentos) return;
     const preSelecao = new Set<string>(
       mesesDoAno.filter((m) => m.status === "pendente").map((m) => chaveCompetencia(m.competencia)),
     );
     setSelecionadas(preSelecao);
-    setFormaPagamento("pix");
-    setObservacao("");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aberto, membro?.id]);
+    setPreSelecaoFeita(true);
+  }, [aberto, preSelecaoFeita, carregandoPagamentos, mesesDoAno]);
 
   function alternarSelecao(mes: MesParaNegociacao) {
     if (mes.status === "paga" || mes.status === "fora-do-periodo") return;
@@ -209,6 +246,9 @@ export function NegotiationModal({
             <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-graphite-400">
               Meses de {competenciaReferencia.ano}
             </span>
+            {carregandoPagamentos ? (
+              <p className="py-4 text-center text-sm text-graphite-400">Carregando...</p>
+            ) : (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {mesesDoAno.map((mes) => {
                 const chave = chaveCompetencia(mes.competencia);
@@ -235,6 +275,7 @@ export function NegotiationModal({
                 );
               })}
             </div>
+            )}
           </div>
 
           <div>

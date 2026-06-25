@@ -249,6 +249,24 @@ src/
   apenas gera o código para pagar. A baixa de fato continua sendo feita pelo tesoureiro,
   depois de confirmar o recebimento — mesmo modelo de confiança usado no resto do app (o
   integrante nunca consegue se autodeclarar "pago"). Ver `AdvancePaymentModal.tsx`.
+
+  ⚠️ **Bug real já corrigido aqui, não repetir**: a pré-seleção de meses pendentes (e o
+  cálculo de `mesesFuturos` no modal do integrante) usava `pagamentosDoMembro` direto do
+  hook reativo (`usePagamentosDoMembro`), que inicializa com um ARRAY VAZIO antes do
+  primeiro snapshot do Firestore chegar. Isso fazia, no instante em que o modal abria,
+  TODO mês até a referência ser classificado como "pendente" (já que nenhum pagamento
+  tinha sido carregado ainda) — mesmo para um membro 100% em dia. A grade visual corrigia
+  um instante depois (mostrava verde/pago corretamente, já com os dados reais), mas a
+  pré-seleção já tinha capturado as chaves erradas e nunca recalculava (o efeito de
+  pré-seleção dependia só de `[aberto, membro?.id]` — havia até um `eslint-disable`
+  silenciando o aviso correto do linter sobre a dependência faltante). Resultado:
+  "Total selecionado" somava meses já pagos junto com os que o usuário de fato clicou,
+  sem nenhum sinal visual incorreto na própria grade (cada mês aparecia com a cor certa;
+  só a SOMA vinha inflada). A correção usa `usePagamentosDoMembroComStatus` (retorna
+  também `carregando`), e a pré-seleção só roda depois que o carregamento genuíno
+  termina — nunca com base num array vazio transitório. Ver `usePagamentos.ts` e os
+  comentários extensos em `NegotiationModal.tsx` e `AdvancePaymentModal.tsx`.
+
 - **"Arrecadado" é uma métrica de caixa, não de competência**: soma o valor de TODOS os
   pagamentos cuja `dataPagamento` cai no mês/ano selecionado no topo, independentemente de
   qual competência (mês cobrado) cada pagamento se refere. Uma negociação que quita 2 meses

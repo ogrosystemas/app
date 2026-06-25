@@ -207,7 +207,7 @@ export function MemberSelfView({ clubeId, membro, valorMensalidade, pix, onSair 
         aberto={adiantamentoAberto}
         onFechar={() => setAdiantamentoAberto(false)}
         membro={membro}
-        pagamentos={pagamentos}
+        clubeId={clubeId}
         valorMensalidade={valorMensalidade}
         pix={pix}
       />
