@@ -165,7 +165,30 @@ export function NegotiationModal({
     });
   }
 
-  const competenciasEscolhidas = mesesDoAno
+  /**
+   * IMPORTANTE — segunda camada de proteção contra o mesmo bug já documentado
+   * no efeito de pré-seleção acima (linhas 124-155), não remover: mesmo com a
+   * pré-seleção esperando corretamente os dados reais antes de rodar, o
+   * Firestore pode entregar um PRIMEIRO snapshot a partir do cache local
+   * (potencialmente incompleto/desatualizado) e só DEPOIS um segundo snapshot
+   * do servidor com o dado definitivo — ambos passam por
+   * `carregandoPagamentos === false`, então o efeito de pré-seleção (que só
+   * roda UMA VEZ por abertura, via `preSelecaoFeita`) pode capturar o
+   * snapshot intermediário errado e nunca recalcular.
+   *
+   * Por isso `competenciasEscolhidas` NUNCA confia apenas em "a chave está no
+   * Set selecionadas" — filtra também pelo status ATUAL de `mesesDoAno`
+   * (sempre recalculado a partir do pagamentosDoMembro mais recente). Um mês
+   * que hoje é "paga" ou "fora-do-periodo" nunca entra na soma, mesmo que a
+   * chave dele tenha ficado presa no Set por qualquer motivo de timing —
+   * eliminando a possibilidade de falso positivo (cobrar algo já pago) ou
+   * falso negativo (deixar de cobrar algo elegível) independente da corrida
+   * entre snapshots.
+   */
+  const competenciasElegiveis = mesesDoAno.filter(
+    (m) => m.status === "pendente" || m.status === "futura",
+  );
+  const competenciasEscolhidas = competenciasElegiveis
     .filter((m) => selecionadas.has(chaveCompetencia(m.competencia)))
     .map((m) => m.competencia);
   const valorTotal = competenciasEscolhidas.length * valorMensalidade;
