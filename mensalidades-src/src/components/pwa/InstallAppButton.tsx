@@ -1,6 +1,6 @@
 import { Download, MoreVertical, Share } from "lucide-react";
 import { useEffect, useState } from "react";
-import { estaInstaladoComoPWA, isIOS } from "../../utils/platform.utils";
+import { estaInstaladoComoPWA, isIOS, isMobile } from "../../utils/platform.utils";
 
 /**
  * Evento disparado pelo navegador quando ele decide que o site é instalável.
@@ -101,7 +101,7 @@ export function InstallAppButton() {
   }
 
   if (mostrarInstrucaoManualFallback) {
-    return <InstrucaoInstalar variante="menu-navegador" />;
+    return <InstrucaoInstalar variante={isMobile() ? "android" : "desktop"} />;
   }
 
   return null;
@@ -140,18 +140,24 @@ function BotaoInstalarNativo({
 }
 
 /**
- * Instrução manual de instalação — duas variantes de conteúdo, mesma casca
+ * Instrução manual de instalação — três variantes de conteúdo, mesma casca
  * visual (botão + popover):
  * - "ios": Compartilhar → Adicionar à Tela de Início (única forma no Safari).
- * - "menu-navegador": menu de três pontos → "Instalar [nome do app]..." —
- *   caminho que SEMPRE funciona em Chrome/Edge desktop e Android, mesmo
- *   quando o prompt automático (beforeinstallprompt) não dispara por
- *   decisão do modelo de ML do navegador (ver ESPERA_FALLBACK_MANUAL_MS).
+ * - "android": menu de três pontos → "Adicionar à tela inicial" → escolher
+ *   INSTALAR o app na tela seguinte (não "criar atalho", que é uma opção
+ *   diferente no mesmo fluxo e só abre o navegador, sem o app de verdade).
+ * - "desktop": menu de três pontos → "Instalar [nome do app]..." direto,
+ *   sem etapa intermediária — texto exato confirmado no Chrome desktop.
+ *
+ * Ambos os fallbacks (android/desktop) existem para o mesmo motivo: o
+ * prompt automático (beforeinstallprompt) pode não disparar por decisão do
+ * modelo de ML do navegador, mesmo em sites 100% instaláveis — ver
+ * ESPERA_FALLBACK_MANUAL_MS para a referência completa.
  *
  * Um clique abre/fecha o popover; não fecha sozinho, porque a pessoa pode
  * precisar de tempo para ler e seguir os passos antes de voltar.
  */
-function InstrucaoInstalar({ variante }: { variante: "ios" | "menu-navegador" }) {
+function InstrucaoInstalar({ variante }: { variante: "ios" | "android" | "desktop" }) {
   const [aberto, setAberto] = useState(false);
 
   return (
@@ -170,7 +176,7 @@ function InstrucaoInstalar({ variante }: { variante: "ios" | "menu-navegador" })
       </button>
       {aberto && (
         <div className="absolute right-0 top-full z-50 mt-2 w-64 border border-graphite-700 bg-graphite-900 p-3 text-left shadow-patch">
-          {variante === "ios" ? (
+          {variante === "ios" && (
             <>
               <p className="mb-2 text-xs leading-relaxed text-graphite-200">
                 Para instalar no iPhone/iPad: toque no ícone{" "}
@@ -182,10 +188,20 @@ function InstrucaoInstalar({ variante }: { variante: "ios" | "menu-navegador" })
                 suficiente.
               </p>
             </>
-          ) : (
+          )}
+          {variante === "android" && (
             <p className="text-xs leading-relaxed text-graphite-200">
               Toque no menu <MoreVertical size={12} className="inline align-text-bottom text-ember-500" />{" "}
-              (três pontinhos) do navegador e depois em <strong>"Instalar Mutantes Moto Clube..."</strong>.
+              (três pontinhos) do navegador, depois em <strong>"Adicionar à tela inicial"</strong>. Na
+              tela seguinte, escolha <strong>instalar o app</strong> — não "criar atalho", que só abre o
+              navegador sem o app de verdade.
+            </p>
+          )}
+          {variante === "desktop" && (
+            <p className="text-xs leading-relaxed text-graphite-200">
+              Clique no menu <MoreVertical size={12} className="inline align-text-bottom text-ember-500" />{" "}
+              (três pontinhos) do navegador, depois em{" "}
+              <strong>"Instalar Mutantes Moto Clube..."</strong>.
             </p>
           )}
         </div>

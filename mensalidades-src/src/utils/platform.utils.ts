@@ -17,6 +17,12 @@ export function isIOS(): boolean {
   return ehIOSClassico || ehIPadComUserAgentDeMac;
 }
 
+/** true se o dispositivo é touch-primary (celular/tablet) — usado para diferenciar textos de instrução entre o menu do navegador mobile e o menu do navegador desktop, que têm itens diferentes. */
+export function isMobile(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPad|iPhone|iPod|Mobile/.test(navigator.userAgent);
+}
+
 /** true se o app já está rodando instalado (modo standalone) — funciona tanto para Android/Chrome quanto para iOS/Safari, que expõe essa informação de formas diferentes. */
 export function estaInstaladoComoPWA(): boolean {
   if (typeof window === "undefined") return false;
